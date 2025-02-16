@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
+/* import { useEffect, useState } from "react";
+import { auth, db } from "@/app/lib/firebase";
 import {
   collection,
   getDocs,
@@ -86,6 +86,15 @@ export default function Dashboard() {
       <button className="btn btn-secondary mt-4" onClick={() => signOut(auth)}>
         Cerrar Sesión
       </button>
+    </div>
+  );
+}
+ */
+export default function DashboardPage() {
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold">¡Bienvenido al Dashboard!</h1>
+      <p>Esta es la página de administración de reservas.</p>
     </div>
   );
 }
