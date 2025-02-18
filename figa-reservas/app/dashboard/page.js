@@ -5,10 +5,12 @@ import { auth } from "../lib/firebase.js";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import Image from "next/image";
+import { set } from "react-hook-form";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [reservas, setReservas] = useState([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -18,6 +20,13 @@ export default function DashboardPage() {
         setUser(user);
       }
     });
+    const fetchReservas = async () => {
+      const response = await fetch("/api/reservas");
+      const data = await response.json();
+      setReservas(data);
+    };
+
+    fetchReservas();
 
     return () => unsubscribe();
   }, [router]);
@@ -26,48 +35,17 @@ export default function DashboardPage() {
     router.push("/reservas");
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm("¿Estás seguro de eliminar esta reserva?")) return;
+    await fetch(`/api/reservas/${id}`, { method: "DELETE" }); // Eliminar la reserva
+
+    setReservas(reservas.filter((reserva) => reserva.id !== id)); // Actualizar la lista de reservas
+  };
+
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
   };
-  const [reservations, setReservations] = useState([
-    {
-      id: 323,
-      provider: "Provider Example",
-      cost: "₡180.000",
-      pickUp: "8:00 AM",
-      dropOff: "12:00 MD",
-      adults: 3,
-      children: 0,
-      client: "Termales del bosque",
-      dateSubmitted: "15/02/2025",
-      reservationDate: "03/02/2025",
-    },
-    {
-      id: 324,
-      provider: "Provider Example",
-      cost: "₡110.000",
-      pickUp: "10:30 AM",
-      dropOff: "1:00 PM",
-      adults: 2,
-      children: 1,
-      client: "Hotel Campestre",
-      dateSubmitted: "15/02/2025",
-      reservationDate: "10/02/2025",
-    },
-    {
-      id: 325,
-      provider: "Provider Example",
-      cost: "₡300.020",
-      pickUp: "7:30 AM",
-      dropOff: "10:00 AM",
-      adults: 5,
-      children: 1,
-      client: "Volcano Lodge",
-      dateSubmitted: "15/02/2025",
-      reservationDate: "06/02/2025",
-    },
-  ]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -81,35 +59,51 @@ export default function DashboardPage() {
       />
 
       {/* Tabla */}
-      <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-5xl">
-        <table className="w-full border-collapse border border-gray-300">
-          <thead className="bg-gray-200">
+      <div>
+        <h1 id="dashTitle">Dashboard de Reservas</h1>
+        <table>
+          <thead>
             <tr>
-              <th className="border p-2">ID</th>
-              <th className="border p-2">Provider</th>
-              <th className="border p-2">Cost</th>
-              <th className="border p-2">Pick Up</th>
-              <th className="border p-2">Drop Off</th>
-              <th className="border p-2">Adults</th>
-              <th className="border p-2">Children</th>
-              <th className="border p-2">Client</th>
-              <th className="border p-2">Date Submitted</th>
-              <th className="border p-2">Reservation Date</th>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>ItinId</th>
+              <th>Cliente</th>
+              <th>PickUp</th>
+              <th>DropOff</th>
+              <th>Adultos</th>
+              <th>Niños</th>
+              <th>Precio</th>
+              <th>Nota</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {reservations.map((res) => (
-              <tr key={res.id} className="text-center">
-                <td className="border p-2">{res.id}</td>
-                <td className="border p-2">{res.provider}</td>
-                <td className="border p-2">{res.cost}</td>
-                <td className="border p-2">{res.pickUp}</td>
-                <td className="border p-2">{res.dropOff}</td>
-                <td className="border p-2">{res.adults}</td>
-                <td className="border p-2">{res.children}</td>
-                <td className="border p-2">{res.client}</td>
-                <td className="border p-2">{res.dateSubmitted}</td>
-                <td className="border p-2">{res.reservationDate}</td>
+            {reservas.map((reserva) => (
+              <tr key={reserva.id}>
+                <td>{reserva.id}</td>
+                <td>{reserva.fecha}</td>
+                <td>{reserva.proveedor}</td>
+                <td>{reserva.itinId}</td>
+                <td>{reserva.cliente}</td>
+                <td>{reserva.pickUp}</td>
+                <td>{reserva.dropOff}</td>
+                <td>{reserva.AD}</td>
+                <td>{reserva.NI}</td>
+                <td>{reserva.precio}</td>
+                <td>{reserva.nota}</td>
+                <td>
+                  <button onClick={() => handleDelete(reserva.id)}>
+                    ❌ Eliminar
+                  </button>
+                  <button
+                    onClick={() =>
+                      (window.location.href = `/reservas/edit/${reserva.id}`)
+                    }
+                  >
+                    ✏️ Editar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -123,16 +117,13 @@ export default function DashboardPage() {
       >
         <span className="mr-2">📁</span> Create
       </button>
-      <div className="p-6">
-        <h1 className="text-xl font-bold">¡Bienvenido, {user?.email}!</h1>
-        <p>Este es tu dashboard.</p>
-        <button
-          onClick={logout}
-          className="mt-4 bg-red-500 text-white p-2 rounded"
-        >
-          Cerrar Sesión
-        </button>
-      </div>
+      <button
+        onClick={logout}
+        className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-red-600"
+        onMouseUp={user?.email}
+      >
+        Cerrar Sesión
+      </button>
     </div>
   );
 }
