@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ReservaForm() {
   const [formData, setFormData] = useState({
@@ -23,6 +24,8 @@ export default function ReservaForm() {
       [name]: value,
     }));
   };
+
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +51,7 @@ export default function ReservaForm() {
         AD: 0,
         NI: 0,
       });
+      router.push("/dashboard");
     } else {
       alert("Error al guardar la reserva");
     }

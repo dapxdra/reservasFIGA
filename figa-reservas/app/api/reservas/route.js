@@ -13,7 +13,7 @@ export const POST = async (req) => {
     let newId = 1;
 
     if (!lastReservaSnap.empty) {
-      newId = lastReservaSnap.docs[0].data().figaIdId + 1;
+      newId = lastReservaSnap.docs[0].data().figaId + 1;
     }
 
     // Crear la nueva reserva con ID incremental
@@ -47,5 +47,36 @@ export const POST = async (req) => {
     return new Response(JSON.stringify({ message: "Error en el servidor" }), {
       status: 500,
     });
+  }
+};
+// Obtiene todas las reservas
+export const GET = async () => {
+  try {
+    const snapshot = await db.collection("reservas").get();
+    const reservas = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return Response.json(reservas);
+  } catch (error) {
+    return Response.json(
+      { message: "Error al obtener reservas" },
+      { status: 500 }
+    );
+  }
+};
+// Elimina una reserva
+export const DELETE = async (req) => {
+  try {
+    const { id } = await req.json();
+    await db.collection("reservas").doc(id).delete();
+
+    return Response.json({ message: "Reserva eliminada correctamente" });
+  } catch (error) {
+    return Response.json(
+      { message: "Error al eliminar reserva" },
+      { status: 500 }
+    );
   }
 };
