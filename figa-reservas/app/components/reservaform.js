@@ -48,6 +48,7 @@ export default function ReservaForm() {
         AD: 0,
         NI: 0,
       });
+      router.push("/dashboard");
     } else {
       alert("Error al guardar la reserva");
     }

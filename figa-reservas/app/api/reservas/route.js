@@ -13,7 +13,7 @@ export const POST = async (req) => {
     let newId = 1;
 
     if (!lastReservaSnap.empty) {
-      newId = lastReservaSnap.docs[0].data().figaIdId + 1;
+      newId = lastReservaSnap.docs[0].data().figaId + 1;
     }
 
     // Crear la nueva reserva con ID incremental
