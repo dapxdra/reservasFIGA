@@ -49,3 +49,34 @@ export const POST = async (req) => {
     });
   }
 };
+// Obtiene todas las reservas
+export const GET = async () => {
+  try {
+    const snapshot = await db.collection("reservas").get();
+    const reservas = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return Response.json(reservas);
+  } catch (error) {
+    return Response.json(
+      { message: "Error al obtener reservas" },
+      { status: 500 }
+    );
+  }
+};
+// Elimina una reserva
+export const DELETE = async (req) => {
+  try {
+    const { id } = await req.json();
+    await db.collection("reservas").doc(id).delete();
+
+    return Response.json({ message: "Reserva eliminada correctamente" });
+  } catch (error) {
+    return Response.json(
+      { message: "Error al eliminar reserva" },
+      { status: 500 }
+    );
+  }
+};
