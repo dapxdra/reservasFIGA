@@ -26,46 +26,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96 ">
-        <Image
-          src="/logo.PNG"
-          alt="FIGA Logo"
-          width={96}
-          height={96}
-          className="flex justify-center items-center mx-auto mb-4"
-        />
+    <div className="main-container grid grid-cols-1 place-items-center bg-gray-50">
+      <Image
+        src="/logo.PNG"
+        alt="FIGA Logo"
+        width={280}
+        height={280}
+        className=""
+      />
+      <div id="login-content" className="bg-white rounded-lg shadow-lg w-96">
 
-        {error && <p className="text-red-500 text-center mb-2">{error}</p>}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-gray-700">Email</label>
+        {error && <p className="text-red-500 text-center">{error}</p>}
+
+        <form onSubmit={handleLogin} className="text-black">
+          <div className="email-password-container">
+            <label className="block text-gray-700 font-bold">Email</label>
             <input
               type="email"
-              placeholder=""
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              placeholder="Type your email"
+              className="w-full border border-gray-300 rounded input-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div>
-            <label className="block text-gray-700">Password</label>
+          <div className="email-password-container">
+            <label className="block text-gray-700  font-bold">Password</label>
             <input
               type="password"
-              placeholder=""
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              placeholder="Type your password"
+              className="w-full border border-gray-300 rounded input-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
 
-          <button
+          <button id="login-button"
             type="submit"
-            className="w-full bg-black text-white py-2 rounded hover:bg-gray-800"
+            className="w-full bg-black text-white py-2 rounded-xl hover:bg-gray-800 cursor-pointer"
           >
             Sign in
           </button>
