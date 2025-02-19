@@ -43,17 +43,6 @@ a {
   }
 }
 
-#dashTitle {
-  font-size: 1.5rem;
-  font-weight: 700;
-  justify-content: center;
-  display: flex;
-  color: #3b3b3b;
-}
-#dashContainer {
-  color: #242222;
-}
-
 /* Custom styles Login */
 
 #login-content {

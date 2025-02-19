@@ -1,0 +1,100 @@
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3b3b3b;
+  margin-top: 1rem;
+  padding-left: 3.5rem;
+}
+
+.dashboard-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4rem;
+}
+
+.dashboard-image {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fff;
+  padding: 5px;
+  z-index: 10;
+}
+
+.dashboard-table {
+  border: 1px solid #6b6b6b;
+  border-radius: 10px;
+  border-collapse: separate;
+  color: #202020;
+  text-align: start;
+  padding: 4rem;
+  padding-top: 5rem;
+}
+
+.dashboard-table caption {
+  caption-side: top;
+  text-align: left;
+  width: 100%;
+}
+
+td,
+th {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.dashboard-table td {
+  padding: 10px;
+}
+
+.dashboard-table tbody tr {
+  border-bottom: 1px solid #c0c0c0;
+}
+
+.dashboard-table tbody tr:last-child {
+  border-bottom: 0px;
+}
+
+.dashboard-table th {
+  border-right: 1px solid #c0c0c0;
+}
+
+.dashboard-table th:last-child {
+  border-right: 0px;
+}
+
+td.scroll {
+  margin: 0.5rem;
+  max-width: 200px;
+  max-height: 5.5rem;
+  overflow-y: auto;
+  word-break: break-word;
+  display: block;
+}
+
+td.scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+td.scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+td.scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+td.scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+p {
+  color: #202020;
+}
