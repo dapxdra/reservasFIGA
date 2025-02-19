@@ -59,7 +59,7 @@ export default function DashboardPage() {
             <div className="dashboard-container">
               {/* Logo */}
               <Image
-                src="/logo.PNG"
+                src="/logo.png"
                 alt="FIGA Travel Logo"
                 width={250}
                 height={80}

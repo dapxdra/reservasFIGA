@@ -28,7 +28,7 @@ export default function LoginPage() {
   return (
     <div className="main-container grid grid-cols-1 place-items-center bg-gray-50">
       <Image
-        src="/logo.PNG"
+        src="/logo.png"
         alt="FIGA Logo"
         width={280}
         height={280}
