@@ -53,3 +53,26 @@ a {
 #dashContainer {
   color: #242222;
 }
+
+/* Custom styles Login */
+
+#login-content {
+  padding: 1% 1%;
+  border: 1px rgb(184, 184, 184) solid;
+}
+
+.main-container {
+  height: 100vh;
+}
+
+#login-button {
+  padding: 4%;
+}
+
+.email-password-container {
+  margin-bottom: 9%;
+}
+
+.input-field {
+  padding: 2%;
+}
