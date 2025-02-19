@@ -59,13 +59,14 @@ export default function DashboardPage() {
       />
 
       {/* Tabla */}
-      <div>
+      <div id="dashContainer">
         <h1 id="dashTitle">Dashboard de Reservas</h1>
         <table>
           <thead>
             <tr>
               <th>ID</th>
               <th>Fecha</th>
+              <th>Hora</th>
               <th>Proveedor</th>
               <th>ItinId</th>
               <th>Cliente</th>
@@ -83,6 +84,7 @@ export default function DashboardPage() {
               <tr key={reserva.id}>
                 <td>{reserva.id}</td>
                 <td>{reserva.fecha}</td>
+                <td>{reserva.hora}</td>
                 <td>{reserva.proveedor}</td>
                 <td>{reserva.itinId}</td>
                 <td>{reserva.cliente}</td>
