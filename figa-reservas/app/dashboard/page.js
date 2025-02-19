@@ -51,7 +51,7 @@ export default function DashboardPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
       {/* Logo */}
       <Image
-        src="/logo.PNG"
+        src="/logo.png"
         alt="FIGA Travel Logo"
         width={120}
         height={80}

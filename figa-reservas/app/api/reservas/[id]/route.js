@@ -31,3 +31,31 @@ export async function PUT(req, { params }) {
     );
   }
 }
+
+export async function DELETE(req, { params }) {
+  try {
+    if (!params || !params.id) {
+      return Response.json({ message: "ID no proporcionado" }, { status: 400 });
+    }
+
+    const reservaRef = db.collection("reservas").doc(params.id);
+    const reservaDoc = await reservaRef.get();
+
+    if (!reservaDoc.exists) {
+      return Response.json(
+        { message: "Reserva no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    await reservaRef.delete();
+
+    return Response.json({ message: "Reserva eliminada correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar reserva:", error);
+    return Response.json(
+      { message: "Error al eliminar reserva" },
+      { status: 500 }
+    );
+  }
+}
