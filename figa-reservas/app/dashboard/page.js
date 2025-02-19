@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import Image from "next/image";
 import { set } from "react-hook-form";
+import "../styles/dashboard.css";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -48,84 +49,91 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      {/* Logo */}
-      <Image
-        src="/logo.png"
-        alt="FIGA Travel Logo"
-        width={120}
-        height={80}
-        className="mb-6"
-      />
-
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
       {/* Tabla */}
-      <div id="dashContainer">
-        <h1 id="dashTitle">Dashboard de Reservas</h1>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Fecha</th>
-              <th>Hora</th>
-              <th>Proveedor</th>
-              <th>ItinId</th>
-              <th>Cliente</th>
-              <th>PickUp</th>
-              <th>DropOff</th>
-              <th>Adultos</th>
-              <th>Niños</th>
-              <th>Precio</th>
-              <th>Nota</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reservas.map((reserva) => (
-              <tr key={reserva.id}>
-                <td>{reserva.id}</td>
-                <td>{reserva.fecha}</td>
-                <td>{reserva.hora}</td>
-                <td>{reserva.proveedor}</td>
-                <td>{reserva.itinId}</td>
-                <td>{reserva.cliente}</td>
-                <td>{reserva.pickUp}</td>
-                <td>{reserva.dropOff}</td>
-                <td>{reserva.AD}</td>
-                <td>{reserva.NI}</td>
-                <td>{reserva.precio}</td>
-                <td>{reserva.nota}</td>
-                <td>
-                  <button onClick={() => handleDelete(reserva.id)}>
-                    ❌ Eliminar
-                  </button>
-                  <button
-                    onClick={() =>
-                      (window.location.href = `/reservas/edit/${reserva.id}`)
-                    }
-                  >
-                    ✏️ Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {!reservas.length ? (
+        <p>loading...</p>
+      ) : (
+        reservas.length > 0 && (
+          <>
+            <div className="dashboard-container">
+              {/* Logo */}
+              <Image
+                src="/logo.png"
+                alt="FIGA Travel Logo"
+                width={250}
+                height={80}
+                className="dashboard-image mb-6"
+              />
 
-      {/* Botón de Crear Reserva */}
-      <button
-        onClick={handleNavigate}
-        className="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center hover:bg-gray-900"
-      >
-        <span className="mr-2">📁</span> Create
-      </button>
-      <button
-        onClick={logout}
-        className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-red-600"
-        onMouseUp={user?.email}
-      >
-        Cerrar Sesión
-      </button>
+              <table className="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Proveedor</th>
+                    <th>ItinId</th>
+                    <th>Cliente</th>
+                    <th>PickUp</th>
+                    <th>DropOff</th>
+                    <th>Adultos</th>
+                    <th>Niños</th>
+                    <th>Precio</th>
+                    <th>Nota</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservas.map((reserva) => (
+                    <tr key={reserva.id}>
+                      <td>{reserva.id}</td>
+                      <td>{reserva.fecha}</td>
+                      <td>{reserva.hora}</td>
+                      <td>{reserva.proveedor}</td>
+                      <td>{reserva.itinId}</td>
+                      <td>{reserva.cliente}</td>
+                      <td>{reserva.pickUp}</td>
+                      <td>{reserva.dropOff}</td>
+                      <td>{reserva.AD}</td>
+                      <td>{reserva.NI}</td>
+                      <td>{reserva.precio}</td>
+                      <td className="scroll">{reserva.nota}</td>
+                      <td>
+                        <button onClick={() => handleDelete(reserva.id)}>
+                          ❌ Eliminar
+                        </button>
+                        <button
+                          onClick={() =>
+                            (window.location.href = `/reservas/edit/${reserva.id}`)
+                          }
+                        >
+                          ✏️ Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Botón de Crear Reserva */}
+            <button
+              onClick={handleNavigate}
+              className="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center hover:bg-gray-900"
+            >
+              <span className="mr-2">📁</span> Create
+            </button>
+            <button
+              onClick={logout}
+              className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-red-600"
+              onMouseUp={user?.email}
+            >
+              Cerrar Sesión
+            </button>
+          </>
+        )
+      )}
     </div>
   );
 }
