@@ -30,6 +30,8 @@ export const POST = async (req) => {
       precio: body.precio || 0,
       AD: body.AD || 0,
       NI: body.NI || 0,
+      pago: body.pago || false,
+      fechaPago: body.fechaPago || "",
       createdAt: new Date(),
     };
 

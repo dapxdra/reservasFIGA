@@ -12,6 +12,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [reservas, setReservas] = useState([]);
+  const [filteredReservas, setFilteredReservas] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDateSearch, setIsDateSearch] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -22,15 +25,50 @@ export default function DashboardPage() {
       }
     });
     const fetchReservas = async () => {
-      const response = await fetch("/api/reservas");
-      const data = await response.json();
-      setReservas(data);
+      try {
+        const response = await fetch("/api/reservas");
+        const data = await response.json();
+        console.log("Datos de reservas obtenidos:", data);
+        setReservas(data);
+        setFilteredReservas(data);
+      } catch (error) {
+        console.error("Error al obtener reservas:", error);
+      }
     };
 
     fetchReservas();
 
     return () => unsubscribe();
   }, [router]);
+
+  const handleFilter = () => {
+    console.log("Búsqueda:", searchQuery);
+
+    let filtered = [...reservas];
+
+    if (searchQuery) {
+      filtered = filtered.filter((reserva) => {
+        return (
+          reserva.fecha.includes(searchQuery) || // Coincidencia parcial en fecha
+          reserva.itinId.toString() === searchQuery || // Coincidencia exacta en itinId
+          reserva.cliente.includes(searchQuery) || // Coincidencia parcial en cliente
+          reserva.proveedor.includes(searchQuery) // Coincidencia parcial en proveedor
+        );
+      });
+    }
+
+    console.log("Resultados filtrados:", filtered);
+    setFilteredReservas(filtered);
+  };
+
+  // Función para cambiar el tipo de input según el valor ingresado
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    // Si el usuario ingresa algo con formato de fecha (AAAA-MM-DD), cambia a tipo 'date'
+    setIsDateSearch(/^\d{4}-\d{2}-\d{2}$/.test(value));
+  };
 
   const handleNavigate = () => {
     router.push("/reservas");
@@ -58,13 +96,28 @@ export default function DashboardPage() {
           <>
             <div className="dashboard-container">
               {/* Logo */}
-              <Image
+              {/* <Image
                 src="/logo.png"
                 alt="FIGA Travel Logo"
                 width={250}
                 height={80}
                 className="dashboard-image mb-6"
+              /> */}
+              <input
+                type={isDateSearch ? "date" : "text"}
+                placeholder={
+                  isDateSearch ? "Selecciona una fecha" : "Buscar..."
+                }
+                value={searchQuery}
+                onChange={handleInputChange}
+                className="border p-2 rounded-md"
               />
+              <button
+                onClick={handleFilter}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Buscar
+              </button>
 
               <table className="dashboard-table">
                 <thead>
@@ -81,11 +134,13 @@ export default function DashboardPage() {
                     <th>Niños</th>
                     <th>Precio</th>
                     <th>Nota</th>
+                    <th>Pago</th>
+                    <th>FechaPago</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reservas.map((reserva) => (
+                  {filteredReservas.map((reserva) => (
                     <tr key={reserva.id}>
                       <td>{reserva.id}</td>
                       <td>{reserva.fecha}</td>
@@ -99,6 +154,8 @@ export default function DashboardPage() {
                       <td>{reserva.NI}</td>
                       <td>{reserva.precio}</td>
                       <td className="scroll">{reserva.nota}</td>
+                      <td>{reserva.pago ? "Sí" : "No"}</td>
+                      <td>{reserva.fechaPago}</td>
                       <td>
                         <button onClick={() => handleDelete(reserva.id)}>
                           ❌ Eliminar
@@ -127,7 +184,6 @@ export default function DashboardPage() {
             <button
               onClick={logout}
               className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-red-600"
-              onMouseUp={user?.email}
             >
               Cerrar Sesión
             </button>

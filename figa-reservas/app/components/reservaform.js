@@ -113,6 +113,18 @@ export default function ReservaForm() {
           placeholder="Niños"
           onChange={handleChange}
         />
+        <input
+          type="checkbox"
+          name="pago"
+          placeholder="Pago"
+          onChange={handleChange}
+        />
+        <input
+          type="date"
+          name="fechaPago"
+          placeholder="Fecha Pago"
+          onChange={handleChange}
+        />
         <textarea name="nota" placeholder="Nota" onChange={handleChange} />
       </div>
       <button type="submit" className="mt-4 bg-blue-500 text-white p-2 rounded">
