@@ -101,6 +101,20 @@ export default function EditReserva() {
         onChange={(e) => setReserva({ ...reserva, precio: e.target.value })}
       />
       <input
+        type="checkbox"
+        name="pago"
+        placeholder="Pago"
+        value={reserva.pago || ""}
+        onChange={(e) => setReserva({ ...reserva, pago: e.target.value })}
+      />
+      <input
+        type="date"
+        name="fechaPago"
+        placeholder="FechaPago"
+        value={reserva.fechaPago || ""}
+        onChange={(e) => setReserva({ ...reserva, fechaPago: e.target.value })}
+      />
+      <input
         type="text"
         name="nota"
         placeholder="Nota"
