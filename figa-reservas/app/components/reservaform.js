@@ -58,28 +58,46 @@ export default function ReservaForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border rounded shadow-lg">
+    <form
+      onSubmit={handleSubmit}
+      className="p-4 border rounded shadow-lg space-y-4"
+    >
       <div className="grid grid-cols-2 gap-4">
         <input
           type="number"
           name="itinId"
           placeholder="Itinerario ID"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rouded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
         <input
           type="text"
           name="cliente"
           placeholder="Cliente"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
           required
         />
-        <input type="date" name="fecha" onChange={handleChange} required />
-        <input type="time" name="hora" onChange={handleChange} required />
+        <input
+          type="date"
+          name="fecha"
+          onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          required
+        />
+        <input
+          type="time"
+          name="hora"
+          onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          required
+        />
         <input
           type="text"
           name="dropOff"
           placeholder="Drop Off"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
           required
         />
         <input
@@ -87,6 +105,7 @@ export default function ReservaForm() {
           name="pickUp"
           placeholder="Pick Up"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
           required
         />
         <input
@@ -94,40 +113,54 @@ export default function ReservaForm() {
           name="proveedor"
           placeholder="Proveedor"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
         <input
           type="number"
           name="precio"
           placeholder="Precio"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
         <input
           type="number"
           name="AD"
           placeholder="Adultos"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
         <input
           type="number"
           name="NI"
           placeholder="Niños"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
         <input
           type="checkbox"
           name="pago"
           placeholder="Pago"
           onChange={handleChange}
+          className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
         />
         <input
           type="date"
           name="fechaPago"
           placeholder="Fecha Pago"
           onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
-        <textarea name="nota" placeholder="Nota" onChange={handleChange} />
+        <textarea
+          name="nota"
+          placeholder="Nota"
+          onChange={handleChange}
+          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+        />
       </div>
-      <button type="submit" className="mt-4 bg-blue-500 text-white p-2 rounded">
+      <button
+        type="submit"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition duration-300"
+      >
         Guardar
       </button>
     </form>

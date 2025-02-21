@@ -29,13 +29,14 @@ export default function EditReserva() {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-4">
       <input
         type="date"
         name="fecha"
         placeholder="Fecha"
         value={reserva.fecha || ""}
         onChange={(e) => setReserva({ ...reserva, fecha: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="time"
@@ -43,6 +44,7 @@ export default function EditReserva() {
         placeholder="Hora"
         value={reserva.hora || ""}
         onChange={(e) => setReserva({ ...reserva, hora: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="text"
@@ -50,6 +52,7 @@ export default function EditReserva() {
         placeholder="Proveedor"
         value={reserva.proveedor || ""}
         onChange={(e) => setReserva({ ...reserva, proveedor: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="number"
@@ -57,6 +60,7 @@ export default function EditReserva() {
         placeholder="ItinId"
         value={reserva.itinId || ""}
         onChange={(e) => setReserva({ ...reserva, itinId: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="text"
@@ -64,6 +68,7 @@ export default function EditReserva() {
         placeholder="Cliente"
         value={reserva.cliente || ""}
         onChange={(e) => setReserva({ ...reserva, cliente: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="text"
@@ -71,6 +76,7 @@ export default function EditReserva() {
         placeholder="PickUp"
         value={reserva.pickUp || ""}
         onChange={(e) => setReserva({ ...reserva, pickUp: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="text"
@@ -78,6 +84,7 @@ export default function EditReserva() {
         placeholder="DropOff"
         value={reserva.dropOff || ""}
         onChange={(e) => setReserva({ ...reserva, dropOff: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="number"
@@ -85,6 +92,7 @@ export default function EditReserva() {
         placeholder="Adultos"
         value={reserva.AD || ""}
         onChange={(e) => setReserva({ ...reserva, AD: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="number"
@@ -92,6 +100,7 @@ export default function EditReserva() {
         placeholder="Niños"
         value={reserva.NI || ""}
         onChange={(e) => setReserva({ ...reserva, NI: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="number"
@@ -99,6 +108,7 @@ export default function EditReserva() {
         placeholder="Precio"
         value={reserva.precio || ""}
         onChange={(e) => setReserva({ ...reserva, precio: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="checkbox"
@@ -106,6 +116,7 @@ export default function EditReserva() {
         placeholder="Pago"
         value={reserva.pago || ""}
         onChange={(e) => setReserva({ ...reserva, pago: e.target.value })}
+        className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
       />
       <input
         type="date"
@@ -113,6 +124,7 @@ export default function EditReserva() {
         placeholder="FechaPago"
         value={reserva.fechaPago || ""}
         onChange={(e) => setReserva({ ...reserva, fechaPago: e.target.value })}
+        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
       <input
         type="text"
@@ -120,6 +132,7 @@ export default function EditReserva() {
         placeholder="Nota"
         value={reserva.nota || ""}
         onChange={(e) => setReserva({ ...reserva, nota: e.target.value })}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition duration-300"
       />
       <button type="submit">Actualizar</button>
     </form>
