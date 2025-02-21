@@ -48,13 +48,16 @@ export async function DELETE(req, { params }) {
       );
     }
 
+    const reservaData = reservaDoc.data();
+    await db.collection("canceladas").doc(params.id).set(reservaData);
+
     await reservaRef.delete();
 
-    return Response.json({ message: "Reserva eliminada correctamente" });
+    return Response.json({ message: "Reserva cancelada correctamente" });
   } catch (error) {
-    console.error("Error al eliminar reserva:", error);
+    console.error("Error al cancelar reserva:", error);
     return Response.json(
-      { message: "Error al eliminar reserva" },
+      { message: "Error al cancelar reserva" },
       { status: 500 }
     );
   }

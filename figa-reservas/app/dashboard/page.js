@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [filteredReservas, setFilteredReservas] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDateSearch, setIsDateSearch] = useState(false);
+  const [verCanceladas, setVerCanceladas] = useState(false);
+  const [canceladas, setCanceladas] = useState([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -36,10 +38,26 @@ export default function DashboardPage() {
       }
     };
 
+    fetchCanceladas();
     fetchReservas();
 
     return () => unsubscribe();
   }, [router]);
+
+  const fetchCanceladas = async () => {
+    try {
+      const response = await fetch("/api/canceladas");
+      const data = await response.json();
+      setCanceladas(data);
+    } catch (error) {
+      console.error("Error al obtener reservas canceladas:", error);
+    }
+  };
+
+  const toggleCanceladas = () => {
+    if (!verCanceladas) fetchCanceladas();
+    setVerCanceladas(!verCanceladas);
+  };
 
   const handleFilter = () => {
     console.log("Búsqueda:", searchQuery);
@@ -75,7 +93,7 @@ export default function DashboardPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("¿Estás seguro de eliminar esta reserva?")) return;
+    if (!confirm("¿Estás seguro de cancelar esta reserva?")) return;
     await fetch(`/api/reservas/${id}`, { method: "DELETE" }); // Eliminar la reserva
 
     setReservas(reservas.filter((reserva) => reserva.id !== id)); // Actualizar la lista de reservas
@@ -118,6 +136,12 @@ export default function DashboardPage() {
               >
                 Buscar
               </button>
+              <button
+                onClick={toggleCanceladas}
+                className="bg-blue-500 text-white p-2 rounded-md mb-4"
+              >
+                {verCanceladas ? "Ver Reservas Activas" : "Ver Canceladas"}
+              </button>
 
               <table className="dashboard-table">
                 <thead>
@@ -140,36 +164,38 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReservas.map((reserva) => (
-                    <tr key={reserva.id}>
-                      <td>{reserva.id}</td>
-                      <td>{reserva.fecha}</td>
-                      <td>{reserva.hora}</td>
-                      <td>{reserva.proveedor}</td>
-                      <td>{reserva.itinId}</td>
-                      <td>{reserva.cliente}</td>
-                      <td>{reserva.pickUp}</td>
-                      <td>{reserva.dropOff}</td>
-                      <td>{reserva.AD}</td>
-                      <td>{reserva.NI}</td>
-                      <td>{reserva.precio}</td>
-                      <td className="scroll">{reserva.nota}</td>
-                      <td>{reserva.pago ? "Sí" : "No"}</td>
-                      <td>{reserva.fechaPago}</td>
-                      <td>
-                        <button onClick={() => handleDelete(reserva.id)}>
-                          ❌ Eliminar
-                        </button>
-                        <button
-                          onClick={() =>
-                            (window.location.href = `/reservas/edit/${reserva.id}`)
-                          }
-                        >
-                          ✏️ Editar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {(verCanceladas ? canceladas : filteredReservas).map(
+                    (reserva) => (
+                      <tr key={reserva.id}>
+                        <td>{reserva.id}</td>
+                        <td>{reserva.fecha}</td>
+                        <td>{reserva.hora}</td>
+                        <td>{reserva.proveedor}</td>
+                        <td>{reserva.itinId}</td>
+                        <td>{reserva.cliente}</td>
+                        <td>{reserva.pickUp}</td>
+                        <td>{reserva.dropOff}</td>
+                        <td>{reserva.AD}</td>
+                        <td>{reserva.NI}</td>
+                        <td>{reserva.precio}</td>
+                        <td className="scroll">{reserva.nota}</td>
+                        <td>{reserva.pago ? "Sí" : "No"}</td>
+                        <td>{reserva.fechaPago}</td>
+                        <td>
+                          <button onClick={() => handleDelete(reserva.id)}>
+                            ❌ Cancelar
+                          </button>
+                          <button
+                            onClick={() =>
+                              (window.location.href = `/reservas/edit/${reserva.id}`)
+                            }
+                          >
+                            ✏️ Editar
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
