@@ -114,7 +114,7 @@ export default function EditReserva() {
         type="checkbox"
         name="pago"
         placeholder="Pago"
-        value={reserva.pago || ""}
+        value={reserva.pago || false}
         onChange={(e) => setReserva({ ...reserva, pago: e.target.value })}
         className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
       />
