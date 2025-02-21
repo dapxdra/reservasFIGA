@@ -38,7 +38,9 @@ export async function DELETE(req, { params }) {
       return Response.json({ message: "ID no proporcionado" }, { status: 400 });
     }
 
-    const reservaRef = db.collection("reservas").doc(params.id);
+    const reservaId = params.id;
+
+    const reservaRef = db.collection("reservas").doc(reservaId);
     const reservaDoc = await reservaRef.get();
 
     if (!reservaDoc.exists) {
@@ -49,7 +51,7 @@ export async function DELETE(req, { params }) {
     }
 
     const reservaData = reservaDoc.data();
-    await db.collection("canceladas").doc(params.id).set(reservaData);
+    await db.collection("canceladas").doc(reservaId).set(reservaData);
 
     await reservaRef.delete();
 
