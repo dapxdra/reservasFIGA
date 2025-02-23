@@ -113,14 +113,6 @@ export default function DashboardPage() {
         reservas.length > 0 && (
           <>
             <div className="dashboard-container">
-              {/* Logo */}
-              {/* <Image
-                src="/logo.png"
-                alt="FIGA Travel Logo"
-                width={250}
-                height={80}
-                className="dashboard-image mb-6"
-              /> */}
               <input
                 type={isDateSearch ? "date" : "text"}
                 placeholder={
@@ -128,22 +120,45 @@ export default function DashboardPage() {
                 }
                 value={searchQuery}
                 onChange={handleInputChange}
-                className="border p-2 rounded-md"
+                className="border rounded-md text-black input-search"
               />
+              <button onClick={handleFilter} className="search-button">
+                .
+              </button>
+              {/* Botón de Crear Reserva */}
               <button
-                onClick={handleFilter}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                onClick={handleNavigate}
+                className="border rounded-md text-black button-create"
               >
-                Buscar
+                <span className="mr-2">📁</span>
               </button>
               <button
                 onClick={toggleCanceladas}
-                className="bg-blue-500 text-white p-2 rounded-md mb-4"
+                className="border rounded-md text-black button-canceladas"
               >
-                {verCanceladas ? "Ver Reservas Activas" : "Ver Canceladas"}
+                {verCanceladas ? "VA" : "VC"}
+              </button>
+              <button
+                onClick={toggleCanceladas}
+                className="border rounded-md text-black button-antiguas"
+              >
+                {verCanceladas ? "VA" : "VAN"}
+              </button>
+              <button
+                onClick={logout}
+                className="border rounded-md text-black button-logout"
+              >
+                Cerrar Sesión
               </button>
 
               <table className="dashboard-table">
+                <Image
+                  src="/logo.png"
+                  alt="FIGA Logo"
+                  width={280}
+                  height={280}
+                  className="dashboard-logo"
+                />
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -199,20 +214,6 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </div>
-
-            {/* Botón de Crear Reserva */}
-            <button
-              onClick={handleNavigate}
-              className="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center hover:bg-gray-900"
-            >
-              <span className="mr-2">📁</span> Create
-            </button>
-            <button
-              onClick={logout}
-              className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg flex items-center hover:bg-red-600"
-            >
-              Cerrar Sesión
-            </button>
           </>
         )
       )}

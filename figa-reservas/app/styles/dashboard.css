@@ -1,30 +1,3 @@
-.dashboard-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #3b3b3b;
-  margin-top: 1rem;
-  padding-left: 3.5rem;
-}
-
-.dashboard-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-top: 4rem;
-}
-
-.dashboard-image {
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #fff;
-  padding: 5px;
-  z-index: 10;
-}
-
 .dashboard-table {
   border: 1px solid #6b6b6b;
   border-radius: 10px;

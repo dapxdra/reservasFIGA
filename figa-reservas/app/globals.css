@@ -65,3 +65,56 @@ a {
 .input-field {
   padding: 2%;
 }
+
+/* Custom styles Dashboard */
+
+table {
+  z-index: 1;
+  position: relative;
+}
+
+.dashboard-logo {
+  background-color: white;
+  border-radius: 5%;
+  padding: 1%;
+  z-index: 100;
+  position: absolute;
+  bottom: 87%;
+  left: 40%;
+}
+
+.button-create {
+  margin-bottom: 1%;
+  margin-left: 70%;
+}
+
+.button-logout .button-antiguas .button-canceladas {
+  margin-bottom: 1%;
+  margin-left: 1%;
+}
+
+th {
+  background-color: #c7c6c6;
+  padding: 1%;
+  cursor: pointer;
+}
+
+tr {
+  background-color: #e4e4e4;
+}
+
+.input-search {
+  margin-top: 1%;
+  margin-bottom: 1%;
+}
+
+.search-button {
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=132&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+}
