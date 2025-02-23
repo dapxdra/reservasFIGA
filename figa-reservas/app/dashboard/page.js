@@ -38,7 +38,6 @@ export default function DashboardPage() {
       }
     };
 
-    fetchCanceladas();
     fetchReservas();
 
     return () => unsubscribe();
@@ -55,6 +54,7 @@ export default function DashboardPage() {
   };
 
   const toggleCanceladas = () => {
+    fetchCanceladas();
     if (!verCanceladas) fetchCanceladas();
     setVerCanceladas(!verCanceladas);
   };
