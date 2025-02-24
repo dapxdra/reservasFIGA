@@ -86,6 +86,14 @@ table {
 .button-create {
   margin-bottom: 1%;
   margin-left: 70%;
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=6697&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
 }
 
 .button-logout .button-antiguas .button-canceladas {

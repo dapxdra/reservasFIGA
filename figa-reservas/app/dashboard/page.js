@@ -115,6 +115,7 @@ export default function DashboardPage() {
             <div className="dashboard-container">
               <input
                 type={isDateSearch ? "date" : "text"}
+                title="Buscar por Fecha, ItinId, Cliente o Proveedor"
                 placeholder={
                   isDateSearch ? "Selecciona una fecha" : "Buscar..."
                 }
@@ -128,9 +129,10 @@ export default function DashboardPage() {
               {/* Botón de Crear Reserva */}
               <button
                 onClick={handleNavigate}
+                title="Crear Reserva"
                 className="border rounded-md text-black button-create"
               >
-                <span className="mr-2">📁</span>
+                .
               </button>
               <button
                 onClick={toggleCanceladas}
@@ -159,6 +161,7 @@ export default function DashboardPage() {
                   height={280}
                   className="dashboard-logo"
                 />
+
                 <thead>
                   <tr>
                     <th>ID</th>
