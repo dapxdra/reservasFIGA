@@ -1,4 +1,5 @@
 import { db } from "../../lib/firebaseadmin.js";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const POST = async (req) => {
   try {
@@ -51,9 +52,24 @@ export const POST = async (req) => {
     });
   }
 };
+
 // Obtiene todas las reservas
-export const GET = async () => {
+export const GET = async (req) => {
   try {
+    const { searchParams } = new URL(req.url);
+    const filter = searchParams.get("filter");
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Resetea las horas para comparar solo fechas
+
+    let query = db.collection("reservas").where("cancelada", "==", false);
+
+    if (filter === "antiguas") {
+      query = query.where("fecha", "<", today);
+    } else {
+      // Por defecto muestra las actuales (hoy en adelante)
+      query = query.where("fecha", ">=", today);
+    }
     const snapshot = await db.collection("reservas").get();
     const reservas = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -69,7 +85,7 @@ export const GET = async () => {
   }
 };
 // Elimina una reserva
-export const DELETE = async (req) => {
+/* export const DELETE = async (req) => {
   try {
     const { id } = await req.json();
     await db.collection("reservas").doc(id).delete();
@@ -81,4 +97,4 @@ export const DELETE = async (req) => {
       { status: 500 }
     );
   }
-};
+}; */

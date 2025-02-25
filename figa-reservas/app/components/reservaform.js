@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import "../styles/dashboard.css";
 
 export default function ReservaForm() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,9 @@ export default function ReservaForm() {
     precio: 0,
     AD: 0,
     NI: 0,
+    pago: false,
+    fechaPago: "",
+    cancelada: false,
   });
 
   const handleChange = (e) => {
@@ -58,111 +62,187 @@ export default function ReservaForm() {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="p-4 border rounded shadow-lg space-y-4"
-    >
-      <div className="grid grid-cols-2 gap-4">
-        <input
-          type="number"
-          name="itinId"
-          placeholder="Itinerario ID"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rouded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-        <input
-          type="text"
-          name="cliente"
-          placeholder="Cliente"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          required
-        />
-        <input
-          type="date"
-          name="fecha"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          required
-        />
-        <input
-          type="time"
-          name="hora"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          required
-        />
-        <input
-          type="text"
-          name="dropOff"
-          placeholder="Drop Off"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          required
-        />
-        <input
-          type="text"
-          name="pickUp"
-          placeholder="Pick Up"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          required
-        />
-        <input
-          type="text"
-          name="proveedor"
-          placeholder="Proveedor"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-        <input
-          type="number"
-          name="precio"
-          placeholder="Precio"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-        <input
-          type="number"
-          name="AD"
-          placeholder="Adultos"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-        <input
-          type="number"
-          name="NI"
-          placeholder="Niños"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-        <input
-          type="checkbox"
-          name="pago"
-          placeholder="Pago"
-          onChange={handleChange}
-          className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-        />
-        <input
-          type="date"
-          name="fechaPago"
-          placeholder="Fecha Pago"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-        <textarea
-          name="nota"
-          placeholder="Nota"
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
-      </div>
-      <button
-        type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition duration-300"
-      >
-        Guardar
-      </button>
-    </form>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+      <form onSubmit={handleSubmit} className="p-4 border rounded space-y-4">
+        <div className="grid grid-cols-8 gap-4">
+          <div className="col-span-2">
+            <label htmlFor="itinId" className="text-sm font-semibold">
+              ItinID
+              <input
+                type="number"
+                name="itinId"
+                placeholder=""
+                onChange={handleChange}
+                required
+                className="w-full mt-1 p-2 border border-gray-300 rouded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="proveedor" className="text-sm font-semibold">
+              Proveedor
+              <input
+                type="text"
+                name="proveedor"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="cliente" className="text-sm font-semibold">
+              Cliente
+              <input
+                type="text"
+                name="cliente"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                required
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="precio" className="text-sm font-semibold">
+              Precio
+              <input
+                type="number"
+                name="precio"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="fecha" className="text-sm font-semibold">
+              Fecha
+              <input
+                type="date"
+                name="fecha"
+                onChange={handleChange}
+                className="datepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                required
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="hora" className="text-sm font-semibold">
+              Hora
+              <input
+                type="time"
+                name="hora"
+                onChange={handleChange}
+                className="timepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                required
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="pickUp" className="text-sm font-semibold">
+              Pick Up
+              <input
+                type="text"
+                name="pickUp"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                required
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="dropOff" className="text-sm font-semibold">
+              Drop Off
+              <input
+                type="text"
+                name="dropOff"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                required
+              />
+            </label>
+          </div>
+
+          <div className="col-span-2">
+            <label htmlFor="AD" className="text-sm font-semibold">
+              Adultos
+              <input
+                type="number"
+                name="AD"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="NI" className="text-sm font-semibold">
+              Niños
+              <input
+                type="number"
+                name="NI"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-1">
+            <label htmlFor="pago" className="text-sm font-semibold">
+              Pago
+              <input
+                type="checkbox"
+                name="pago"
+                title="Pagado"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+            </label>
+          </div>
+          <div className="col-span-3">
+            <label htmlFor="fechaPago" className="text-sm font-semibold">
+              Fecha Pago
+              <input
+                type="date"
+                name="fechaPago"
+                placeholder=""
+                onChange={handleChange}
+                className="datepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-black"
+              />
+            </label>
+          </div>
+          <div className="col-span-8">
+            <label htmlFor="nota" className="text-sm font-semibold">
+              Nota
+              <textarea
+                name="nota"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          <button
+            type="submit"
+            className="submitbtn w-full py-2 rounded-lg font-semibold transition duration-300 col-span-2"
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="atrasbtn w-full  py-2 rounded-lg font-semibold transition duration-300 col-span-2"
+          >
+            Atrás
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

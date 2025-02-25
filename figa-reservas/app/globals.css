@@ -94,13 +94,57 @@ table {
   width: 26px; /* Ajusta el tamaño del botón */
   height: 26px; /* Ajusta el tamaño del botón */
   border: none;
+  color: rgba(0, 0, 0, 0);
 }
 
-.button-logout .button-antiguas .button-canceladas {
+.button-antiguas {
   margin-bottom: 1%;
   margin-left: 1%;
+  cursor: pointer;
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+}
+.button-canceladas {
+  margin-bottom: 1%;
+  margin-left: 1%;
+  cursor: pointer;
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+}
+/* Iconos */
+.icon-activas {
+  background-image: url("https://img.icons8.com/?size=100&id=39273&format=png&color=000000");
 }
 
+.icon-canceladas {
+  background-image: url("https://img.icons8.com/?size=100&id=3062&format=png&color=000000");
+}
+.icon-antiguas {
+  background-image: url("https://img.icons8.com/?size=100&id=6904&format=png&color=000000");
+}
+.button-logout {
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=2445&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  margin-bottom: 1%;
+  margin-left: 1%;
+  color: rgba(0, 0, 0, 0);
+}
 th {
   background-color: #c7c6c6;
   padding: 1%;
@@ -125,4 +169,46 @@ tr {
   width: 26px; /* Ajusta el tamaño del botón */
   height: 26px; /* Ajusta el tamaño del botón */
   border: none;
+  color: rgba(0, 0, 0, 0);
+}
+
+.actionbutton-cancel {
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=60713&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+}
+
+.actionbutton-edit {
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=71201&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+  margin-left: 10%;
+}
+.datepicker {
+  color-scheme: light;
+}
+.timepicker {
+  color-scheme: light;
+}
+.atrasbtn {
+  cursor: pointer;
+  color: rgb(250, 250, 250);
+  background-color: #7c7c7c;
+}
+.submitbtn {
+  cursor: pointer;
+  color: rgb(255, 255, 255);
+  background-color: mediumseagreen;
 }
