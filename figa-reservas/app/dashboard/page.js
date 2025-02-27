@@ -7,6 +7,8 @@ import { signOut } from "firebase/auth";
 import Image from "next/image";
 import { set } from "react-hook-form";
 import "../styles/dashboard.css";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -161,6 +163,21 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
+  const exportToExcel = (data, fileName) => {
+    const workSheet = XLSX.utils.json_to_sheet(data);
+    const workBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workBook, workSheet, "Reservas");
+    const excelBuffer = XLSX.write(workBook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob(
+      { excelBuffer },
+      { type: "application/octet-stream" }
+    );
+    saveAs(blob, `${fileName}.xlsx`);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
       {/* Tabla */}
@@ -181,6 +198,13 @@ export default function DashboardPage() {
                 className="border rounded-md text-black input-search"
               />
               <button onClick={handleFilter} className="search-button">
+                .
+              </button>
+              <button
+                onClick={() => exportToExcel(reservas, "Resrevas_FIGA")}
+                className="border rounded-md text-black button-export"
+                title="Exportar a Excel"
+              >
                 .
               </button>
               {/* Botón de Crear Reserva */}
