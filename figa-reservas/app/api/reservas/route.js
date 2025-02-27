@@ -33,7 +33,8 @@ export const POST = async (req) => {
       NI: body.NI || 0,
       pago: body.pago || false,
       fechaPago: body.fechaPago || "",
-      createdAt: new Date(),
+      cancelada: body.cancelada || false,
+      createdAt: new Date().toString(),
     };
 
     await reservasRef.doc(newId.toString()).set(newReserva);

@@ -169,13 +169,21 @@ export default function DashboardPage() {
     XLSX.utils.book_append_sheet(workBook, workSheet, "Reservas");
     const excelBuffer = XLSX.write(workBook, {
       bookType: "xlsx",
-      type: "array",
+      type: "binary",
     });
-    const blob = new Blob(
-      { excelBuffer },
-      { type: "application/octet-stream" }
-    );
+    const blob = new Blob([s2ab(excelBuffer)], {
+      type: "application/octet-stream",
+    });
     saveAs(blob, `${fileName}.xlsx`);
+  };
+
+  const s2ab = (s) => {
+    const buf = new ArrayBuffer(s.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < s.length; i++) {
+      view[i] = s.charCodeAt(i) & 0xff;
+    }
+    return buf;
   };
 
   return (
@@ -201,7 +209,7 @@ export default function DashboardPage() {
                 .
               </button>
               <button
-                onClick={() => exportToExcel(reservas, "Resrevas_FIGA")}
+                onClick={() => exportToExcel(filteredReservas, "Resrevas_FIGA")}
                 className="border rounded-md text-black button-export"
                 title="Exportar a Excel"
               >
