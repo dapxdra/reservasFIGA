@@ -81,11 +81,10 @@ table {
   position: absolute;
   bottom: 87%;
   left: 40%;
+  margin: auto;
 }
 
 .button-export {
-  margin-bottom: 1%;
-  margin-left: 70%;
   cursor: pointer;
   background-image: url("https://img.icons8.com/?size=100&id=366&format=png&color=000000");
   background-size: contain; /* Ajusta la imagen al tamaño del botón */
@@ -98,8 +97,6 @@ table {
 }
 
 .button-create {
-  margin-bottom: 1%;
-  margin-left: 1%;
   cursor: pointer;
   background-image: url("https://img.icons8.com/?size=100&id=6697&format=png&color=000000");
   background-size: contain; /* Ajusta la imagen al tamaño del botón */
@@ -112,8 +109,6 @@ table {
 }
 
 .button-antiguas {
-  margin-bottom: 1%;
-  margin-left: 1%;
   cursor: pointer;
   background-size: contain; /* Ajusta la imagen al tamaño del botón */
   background-repeat: no-repeat; /* Evita que la imagen se repita */
@@ -124,8 +119,6 @@ table {
   color: rgba(0, 0, 0, 0);
 }
 .button-canceladas {
-  margin-bottom: 1%;
-  margin-left: 1%;
   cursor: pointer;
   background-size: contain; /* Ajusta la imagen al tamaño del botón */
   background-repeat: no-repeat; /* Evita que la imagen se repita */
@@ -155,8 +148,6 @@ table {
   width: 26px; /* Ajusta el tamaño del botón */
   height: 26px; /* Ajusta el tamaño del botón */
   border: none;
-  margin-bottom: 1%;
-  margin-left: 1%;
   color: rgba(0, 0, 0, 0);
 }
 th {
@@ -170,8 +161,7 @@ tr {
 }
 
 .input-search {
-  margin-top: 1%;
-  margin-bottom: 1%;
+  margin-left: 15rem;
 }
 
 .search-button {
@@ -184,6 +174,60 @@ tr {
   height: 26px; /* Ajusta el tamaño del botón */
   border: none;
   color: rgba(0, 0, 0, 0);
+}
+.filter-button {
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=3004&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+  margin-right: 50%;
+}
+.applyFilters-button {
+  cursor: pointer;
+  background-image: url("https://img.icons8.com/?size=100&id=DgfdDC5-bqhb&format=png&color=000000");
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+  margin: auto;
+}
+.advanced-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin: auto;
+}
+.dashboard-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  position: fixed;
+  width: 100%;
+}
+.dashbar {
+  color: #202020;
+  padding: 3rem;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-items: center;
+  margin: auto;
 }
 
 .actionbutton-cancel {

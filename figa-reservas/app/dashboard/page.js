@@ -19,6 +19,15 @@ export default function DashboardPage() {
   const [isDateSearch, setIsDateSearch] = useState(false);
   const [verCanceladas, setVerCanceladas] = useState(false);
   const [filtro, setFiltro] = useState("activas");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    month: "",
+    cliente: "",
+    id: "",
+    itinId: "",
+  });
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -51,6 +60,10 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, [filtro, router]);
+
+  const toggleAdvancedFilters = () => {
+    setShowAdvancedFilters(!showAdvancedFilters);
+  };
 
   const toggleCanceladas = () => {
     setVerCanceladas(!verCanceladas);
@@ -98,6 +111,46 @@ export default function DashboardPage() {
     }
   };
 
+  const handleAdvancedFilter = () => {
+    let filtered = [...reservas];
+
+    if (filters.startDate && filters.endDate) {
+      const startDate = new Date(filters.startDate);
+      const endDate = new Date(filters.endDate);
+      filtered = filtered.filter((reserva) => {
+        const fechaReserva = new Date(reserva.fecha);
+        return fechaReserva >= startDate && fechaReserva <= endDate;
+      });
+    }
+
+    if (filters.month) {
+      filtered = filtered.filter((reserva) => {
+        const reservaMonth = new Date(reserva.fecha).getMonth() + 1; // getMonth() es 0-indexed
+        return reservaMonth === parseInt(filters.month);
+      });
+    }
+
+    if (filters.cliente) {
+      filtered = filtered.filter((reserva) =>
+        reserva.cliente.toLowerCase().includes(filters.cliente.toLowerCase())
+      );
+    }
+
+    if (filters.id) {
+      filtered = filtered.filter(
+        (reserva) => reserva.id.toString() === filters.id
+      );
+    }
+
+    if (filters.itinId) {
+      filtered = filtered.filter(
+        (reserva) => reserva.itinId.toString() === filters.itinId
+      );
+    }
+
+    setFilteredReservas(filtered);
+  };
+
   const handleFilter = () => {
     console.log("Búsqueda:", searchQuery);
 
@@ -106,16 +159,16 @@ export default function DashboardPage() {
     if (searchQuery) {
       filtered = filtered.filter((reserva) => {
         return (
-          reserva.fecha.includes(searchQuery) || // Coincidencia parcial en fecha
-          reserva.itinId.toString() === searchQuery || // Coincidencia exacta en itinId
-          reserva.cliente.includes(searchQuery) || // Coincidencia parcial en cliente
-          reserva.proveedor.includes(searchQuery) // Coincidencia parcial en proveedor
+          reserva.fecha.includes(searchQuery) ||
+          reserva.itinId.toString().includes(searchQuery) ||
+          reserva.cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          reserva.proveedor.toLowerCase().includes(searchQuery.toLowerCase())
         );
       });
     }
 
     console.log("Resultados filtrados:", filtered);
-    setFilteredReservas(filtered);
+    setFilteredReservas(filtered.filter((reserva) => !reserva.cancelada));
   };
 
   // Función para cambiar el tipo de input según el valor ingresado
@@ -195,60 +248,129 @@ export default function DashboardPage() {
         reservas.length > 0 && (
           <>
             <div className="dashboard-container">
-              <input
-                type={isDateSearch ? "date" : "text"}
-                title="Buscar por Fecha, ItinId, Cliente o Proveedor"
-                placeholder={
-                  isDateSearch ? "Selecciona una fecha" : "Buscar..."
-                }
-                value={searchQuery}
-                onChange={handleInputChange}
-                className="border rounded-md text-black input-search"
-              />
-              <button onClick={handleFilter} className="search-button">
-                .
-              </button>
-              <button
-                onClick={() => exportToExcel(filteredReservas, "Resrevas_FIGA")}
-                className="border rounded-md text-black button-export"
-                title="Exportar a Excel"
-              >
-                .
-              </button>
-              {/* Botón de Crear Reserva */}
-              <button
-                onClick={handleNavigate}
-                title="Crear Reserva"
-                className="border rounded-md text-black button-create"
-              >
-                .
-              </button>
-              <button
-                onClick={toggleCanceladas}
-                className={`border rounded-md text-black button-canceladas ${
-                  verCanceladas ? "icon-activas" : "icon-canceladas"
-                }`}
-                aria-label={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
-                title={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
-              >
-                .
-              </button>
-              <button
-                onClick={toggleAntiguas}
-                className={`border rounded-md text-black button-canceladas ${
-                  filtro === "activas" ? "icon-antiguas" : "icon-activas"
-                }`}
-                title={filtro === "activas" ? "Ver Antiguas" : "Ver Activas"}
-              >
-                .
-              </button>
-              <button
-                onClick={logout}
-                title="Cerrar Sesión"
-                className="border rounded-md text-black button-logout"
-              >
-                .
-              </button>
+              <div className="dashbar">
+                <input
+                  type={isDateSearch ? "date" : "text"}
+                  title="Buscar por Fecha, ItinId, Cliente o Proveedor"
+                  placeholder={
+                    isDateSearch ? "Selecciona una fecha" : "Buscar..."
+                  }
+                  value={searchQuery}
+                  onChange={handleInputChange}
+                  className="border rounded-md text-black input-search"
+                />
+                <button
+                  onClick={handleFilter}
+                  className="search-button"
+                  title="Buscar por Fecha, ItinId, Cliente o Proveedor"
+                ></button>
+                <button
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="filter-button"
+                  title="Filtros Avanzados"
+                ></button>
+                {showAdvancedFilters && (
+                  <div className="advanced-filters">
+                    <label>Fecha Inicio:</label>
+                    <input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={(e) =>
+                        setFilters({ ...filters, startDate: e.target.value })
+                      }
+                    />
+
+                    <label>Fecha Fin:</label>
+                    <input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={(e) =>
+                        setFilters({ ...filters, endDate: e.target.value })
+                      }
+                    />
+
+                    <label>Mes (1-12):</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="12"
+                      value={filters.month}
+                      onChange={(e) =>
+                        setFilters({ ...filters, month: e.target.value })
+                      }
+                    />
+
+                    <label>Cliente:</label>
+                    <input
+                      type="text"
+                      value={filters.cliente}
+                      onChange={(e) =>
+                        setFilters({ ...filters, cliente: e.target.value })
+                      }
+                    />
+
+                    <label>ID:</label>
+                    <input
+                      type="text"
+                      value={filters.id}
+                      onChange={(e) =>
+                        setFilters({ ...filters, id: e.target.value })
+                      }
+                    />
+
+                    <label>ItinId:</label>
+                    <input
+                      type="text"
+                      value={filters.itinId}
+                      onChange={(e) =>
+                        setFilters({ ...filters, itinId: e.target.value })
+                      }
+                    />
+
+                    <button
+                      onClick={handleAdvancedFilter}
+                      className="applyFilters-button"
+                      title="Aplicar Filtros"
+                    ></button>
+                  </div>
+                )}
+                <button
+                  onClick={() =>
+                    exportToExcel(
+                      filteredReservas,
+                      `Reservas_FIGA_${new Date().toLocaleDateString()}`
+                    )
+                  }
+                  className="border rounded-md text-black button-export"
+                  title="Exportar a Excel"
+                ></button>
+                {/* Botón de Crear Reserva */}
+                <button
+                  onClick={handleNavigate}
+                  title="Crear Reserva"
+                  className="border rounded-md text-black button-create"
+                ></button>
+                <button
+                  onClick={toggleCanceladas}
+                  className={`border rounded-md text-black button-canceladas ${
+                    verCanceladas ? "icon-activas" : "icon-canceladas"
+                  }`}
+                  aria-label={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
+                  title={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
+                ></button>
+                <button
+                  onClick={toggleAntiguas}
+                  className={`border rounded-md text-black button-canceladas ${
+                    filtro === "activas" ? "icon-antiguas" : "icon-activas"
+                  }`}
+                  title={filtro === "activas" ? "Ver Antiguas" : "Ver Activas"}
+                ></button>
+                <button
+                  onClick={logout}
+                  title="Cerrar Sesión"
+                  className="border rounded-md text-black button-logout"
+                ></button>
+              </div>
 
               <table className="dashboard-table">
                 <Image
@@ -300,18 +422,14 @@ export default function DashboardPage() {
                           onClick={() => handleCancel(reserva.id)}
                           className="actionbutton-cancel"
                           title="Cancelar Reserva"
-                        >
-                          .
-                        </button>
+                        ></button>
                         <button
                           onClick={() =>
                             (window.location.href = `/reservas/edit/${reserva.id}`)
                           }
                           className="actionbutton-edit"
                           title="Editar Reserva"
-                        >
-                          .
-                        </button>
+                        ></button>
                       </td>
                     </tr>
                   ))}
