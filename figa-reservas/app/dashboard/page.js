@@ -9,6 +9,7 @@ import { set } from "react-hook-form";
 import "../styles/dashboard.css";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import Modal from "../components/modal.js";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function DashboardPage() {
   const [verCanceladas, setVerCanceladas] = useState(false);
   const [filtro, setFiltro] = useState("activas");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({
     startDate: "",
     endDate: "",
@@ -27,6 +29,7 @@ export default function DashboardPage() {
     cliente: "",
     id: "",
     itinId: "",
+    proveedor: "",
   });
 
   useEffect(() => {
@@ -111,6 +114,50 @@ export default function DashboardPage() {
     }
   };
 
+  const handleSearch = () => {
+    let filtered = reservas.filter((r) => !r.cancelada);
+    if (searchQuery) {
+      filtered = reservas.filter((r) =>
+        [r.fecha, r.itinId, r.cliente, r.proveedor, r.id]
+          .map((v) => v.toString().toLowerCase)
+          .some((value) => value.includes(searchQuery.toLowerCase()))
+      );
+    }
+
+    //Aplica filtros avanzados
+    if (filters.startDate && filters.endDate) {
+      filtered = filtered.filter(
+        (r) =>
+          new Date(r.fecha) >= new Date(filters.startDate) &&
+          new Date(r.fecha) <= new Date(filters.endDate)
+      );
+    }
+    if (filters.month) {
+      filtered = filtered.filter((r) => {
+        const reservaMonth = new Date(r.fecha).getMonth() + 1; // getMonth() es 0-indexed
+        return reservaMonth === parseInt(filters.month);
+      });
+    }
+    if (filters.cliente) {
+      filtered = filtered.filter((r) =>
+        r.cliente.toLowerCase().includes(filters.cliente.toLowerCase())
+      );
+    }
+    if (filters.proveedor) {
+      filtered = filtered.filter((r) =>
+        r.proveedor.toLowerCase().includes(filters.proveedor.toLowerCase())
+      );
+    }
+    if (filters.itinId) {
+      filtered = filtered.filter((r) => r.itinId.toString() === filters.itinId);
+    }
+    if (filters.id) {
+      filtered = filtered.filter((r) => r.id.toString() === filters.id);
+    }
+    setFilteredReservas(filtered);
+    setShowModal(false);
+  };
+
   const handleAdvancedFilter = () => {
     let filtered = [...reservas];
 
@@ -152,7 +199,15 @@ export default function DashboardPage() {
   };
 
   const handleFilter = () => {
+    const { startDate, endDate } = filters;
+
+    // Validar si las fechas están completas
+    if (startDate && endDate && startDate > endDate) {
+      alert("La fecha de inicio no puede ser posterior a la fecha de fin");
+      return;
+    }
     console.log("Búsqueda:", searchQuery);
+    console.log("Aplicando filtros:", filters);
 
     let filtered = [...reservas];
 
@@ -250,13 +305,11 @@ export default function DashboardPage() {
             <div className="dashboard-container">
               <div className="dashbar">
                 <input
-                  type={isDateSearch ? "date" : "text"}
+                  type="text"
                   title="Buscar por Fecha, ItinId, Cliente o Proveedor"
-                  placeholder={
-                    isDateSearch ? "Selecciona una fecha" : "Buscar..."
-                  }
+                  placeholder="Buscar..."
                   value={searchQuery}
-                  onChange={handleInputChange}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="border rounded-md text-black input-search"
                 />
                 <button
@@ -265,74 +318,100 @@ export default function DashboardPage() {
                   title="Buscar por Fecha, ItinId, Cliente o Proveedor"
                 ></button>
                 <button
-                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  onClick={() => setShowModal(true)}
                   className="filter-button"
                   title="Filtros Avanzados"
                 ></button>
-                {showAdvancedFilters && (
-                  <div className="advanced-filters">
-                    <label>Fecha Inicio:</label>
+
+                {showModal && (
+                  <Modal onClose={() => setShowModal(false)}>
+                    <h2 className="text-lg font-bold mb-2 col-span-8 ">
+                      Filtros Avanzados
+                    </h2>
+                    <label className="col-span-1">Fecha Inicio:</label>
                     <input
                       type="date"
-                      value={filters.startDate}
+                      value={filters.startDate || ""}
                       onChange={(e) =>
                         setFilters({ ...filters, startDate: e.target.value })
                       }
+                      className="p-2 border w-full mb-2 datepicker col-span-3"
                     />
-
-                    <label>Fecha Fin:</label>
+                    <label className="col-span-1">Fecha Fin:</label>
                     <input
                       type="date"
-                      value={filters.endDate}
+                      value={filters.endDate || ""}
                       onChange={(e) =>
                         setFilters({ ...filters, endDate: e.target.value })
                       }
+                      className="p-2 border w-full mb-2 datepicker col-span-3"
                     />
-
-                    <label>Mes (1-12):</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="12"
-                      value={filters.month}
+                    <label className="col-span-1">Mes:</label>
+                    <select
+                      value={filters.month || ""}
                       onChange={(e) =>
                         setFilters({ ...filters, month: e.target.value })
                       }
-                    />
-
-                    <label>Cliente:</label>
+                      className="p-2 border w-full mb-2 col-span-7"
+                    >
+                      <option value="">Selecciona un mes</option>
+                      <option value="01">Enero</option>
+                      <option value="02">Febrero</option>
+                      <option value="03">Marzo</option>
+                      <option value="04">Abril</option>
+                      <option value="05">Mayo</option>
+                      <option value="06">Junio</option>
+                      <option value="07">Julio</option>
+                      <option value="08">Agosto</option>
+                      <option value="09">Septiembre</option>
+                      <option value="10">Octubre</option>
+                      <option value="11">Noviembre</option>
+                      <option value="12">Diciembre</option>
+                    </select>
+                    <label className="col-span-2">Cliente:</label>
                     <input
                       type="text"
-                      value={filters.cliente}
+                      value={filters.cliente || ""}
                       onChange={(e) =>
                         setFilters({ ...filters, cliente: e.target.value })
                       }
+                      className="p-2 border w-full mb-2 col-span-6"
+                    />
+                    <label className="col-span-2">Proveedor:</label>
+                    <input
+                      type="text"
+                      value={filters.proveedor || ""}
+                      onChange={(e) =>
+                        setFilters({ ...filters, proveedor: e.target.value })
+                      }
+                      className="p-2 border w-full mb-2 col-span-6"
+                    />
+                    <label className="col-span-1">ItinId:</label>
+                    <input
+                      type="text"
+                      value={filters.itinId || ""}
+                      onChange={(e) =>
+                        setFilters({ ...filters, itinId: e.target.value })
+                      }
+                      className="p-2 border w-full mb-2 col-span-3"
                     />
 
-                    <label>ID:</label>
+                    <label className="col-span-1">ID:</label>
                     <input
                       type="text"
                       value={filters.id}
                       onChange={(e) =>
                         setFilters({ ...filters, id: e.target.value })
                       }
-                    />
-
-                    <label>ItinId:</label>
-                    <input
-                      type="text"
-                      value={filters.itinId}
-                      onChange={(e) =>
-                        setFilters({ ...filters, itinId: e.target.value })
-                      }
+                      className="p-2 border w-full mb-2 col-span-3"
                     />
 
                     <button
-                      onClick={handleAdvancedFilter}
-                      className="applyFilters-button"
+                      onClick={handleSearch}
+                      className="applyFilters-button col-span-8"
                       title="Aplicar Filtros"
                     ></button>
-                  </div>
+                  </Modal>
                 )}
                 <button
                   onClick={() =>

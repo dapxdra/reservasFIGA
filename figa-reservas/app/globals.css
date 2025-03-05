@@ -254,6 +254,9 @@ tr {
   color: rgba(0, 0, 0, 0);
   margin-left: 10%;
 }
+.modalCont {
+  background-color: rgba(0, 0, 0, 0.5);
+}
 .datepicker {
   color-scheme: light;
 }
