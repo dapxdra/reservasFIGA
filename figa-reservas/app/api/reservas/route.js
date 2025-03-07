@@ -3,7 +3,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const POST = async (req) => {
   try {
-    const body = await req.json();
+    const body = await req.JSON();
     const reservasRef = db.collection("reservas");
 
     // Obtener el último ID registrado
@@ -77,11 +77,10 @@ export const GET = async (req) => {
       ...doc.data(),
     }));
 
-    return Response.json(reservas);
+    return new Response(JSON.stringify(reservas));
   } catch (error) {
-    return Response.json(
-      { message: "Error al obtener reservas" },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ message: "Error al obtener reservas" }, { status: 500 })
     );
   }
 };
