@@ -9,6 +9,7 @@ export default function EditReserva() {
   const params = useParams();
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [error, setError] = useState("");
   const [reserva, setReserva] = useState({
     itinId: "",
     proveedor: "",
@@ -25,11 +26,23 @@ export default function EditReserva() {
     nota: "",
   });
   useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        router.push("/login"); // Redirigir si no está autenticado
+      } else {
+        setUser(user);
+      }
+    });
+
     if (params?.id) {
       fetchReserva(params.id);
+      console.log("Data dentroif:", params);
     } else {
+      console.log("Data fueraif:", params);
       console.error("ID no encontrado en los parámetros");
     }
+
+    return () => unsubscribe();
   }, [params]);
 
   const fetchReserva = async (id) => {
@@ -37,6 +50,7 @@ export default function EditReserva() {
       const res = await fetch(`/api/reservas/${id}`);
       if (!res.ok) throw new Error("Error al obtener la reserva");
       const data = await res.json();
+      console.log("Reserva obtenida:", data);
       setReserva(data);
     } catch (error) {
       setError(error.message);
@@ -86,7 +100,7 @@ export default function EditReserva() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    await fetch(`/api/reservas/${id}`, {
+    await fetch(`/api/reservas/${params.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(reserva),

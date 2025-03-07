@@ -3,7 +3,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const POST = async (req) => {
   try {
-    const body = await req.JSON();
+    const body = await req.json();
     const reservasRef = db.collection("reservas");
 
     // Obtener el último ID registrado

@@ -143,13 +143,13 @@ function jsonResponse(data = {}, status = 200) {
 
 // Método GET para obtener una reserva por ID
 export async function GET(req, { params }) {
-  if (!params?.id) {
+  const re = await params;
+  if (!re?.id) {
     return jsonResponse({ error: "ID no proporcionado" }, 400);
   }
 
   try {
-    const id = params.id;
-    const doc = await db.collection("reservas").doc(id).get();
+    const doc = await db.collection("reservas").doc(re.id).get();
 
     if (!doc.exists) {
       return jsonResponse({ message: "Reserva no encontrada" }, 404);
@@ -164,7 +164,8 @@ export async function GET(req, { params }) {
 
 // Método PUT para actualizar una reserva
 export async function PUT(req, { params }) {
-  if (!params?.id) {
+  const re = await params;
+  if (!re?.id) {
     return jsonResponse({ error: "ID no proporcionado" }, 400);
   }
 
@@ -175,7 +176,7 @@ export async function PUT(req, { params }) {
       return jsonResponse({ error: "Datos inválidos" }, 400);
     }
 
-    await db.collection("reservas").doc(params.id).update(data);
+    await db.collection("reservas").doc(re.id).update(data);
     return jsonResponse({ message: "Reserva actualizada correctamente" });
   } catch (error) {
     console.error("Error al actualizar la reserva:", error.message);
@@ -185,12 +186,13 @@ export async function PUT(req, { params }) {
 
 // Método DELETE para marcar una reserva como cancelada
 export async function DELETE(req, { params }) {
-  if (!params?.id) {
+  const re = await params;
+  if (!re?.id) {
     return jsonResponse({ error: "ID no proporcionado" }, 400);
   }
 
   try {
-    const reservaRef = db.collection("reservas").doc(params.id);
+    const reservaRef = db.collection("reservas").doc(re.id);
     const reservaDoc = await reservaRef.get();
 
     if (!reservaDoc.exists) {
