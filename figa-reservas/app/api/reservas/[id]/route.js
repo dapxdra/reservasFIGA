@@ -1,102 +1,131 @@
 import { db } from "../../../lib/firebaseadmin.js";
 
 export async function GET(req, { params }) {
+  if (!params || !params.id) {
+    return new Response(JSON.stringify({ error: "ID no proporcionado" }), {
+      status: 400,
+    });
+  }
   try {
-    const id = params?.id;
+    const id = params.id;
 
     if (!id) {
-      return Response.json({ message: "ID no proporcionado" }, { status: 400 });
+      return new Response(
+        JSON.stringify({ message: "ID no proporcionado" }, { status: 400 })
+      );
     }
 
     const doc = await db.collection("reservas").doc(id).get();
 
     if (!doc.exists) {
-      return Response.json(
-        { message: "Reserva no encontrada" },
-        { status: 404 }
+      return new Response(
+        JSON.stringify({ message: "Reserva no encontrada" }, { status: 404 })
       );
     }
 
-    return Response.json({ id: doc.id, ...doc.data() });
+    return new Response(JSON.stringify({ id: doc.id, ...doc.data() }), {
+      status: 200,
+    });
   } catch (error) {
     console.error("Error al obtener la reserva:", error);
-    return Response.json(
-      { message: "Error al obtener la reserva" },
-      { status: 500 }
+    return Response(
+      JSON.stringify(
+        { message: "Error al obtener la reserva" },
+        { status: 500 }
+      )
     );
   }
 }
 
+// Método PUT para actualizar una reserva
 export async function PUT(req, { params }) {
+  if (!params || !params.id) {
+    return new Response(JSON.stringify({ message: "ID no proporcionado" }), {
+      status: 400,
+    });
+  }
+
   try {
     const data = await req.json();
     await db.collection("reservas").doc(params.id).update(data);
 
-    return Response.json({ message: "Reserva actualizada correctamente" });
+    return new Response(
+      JSON.stringify({ message: "Reserva actualizada correctamente" }),
+      { status: 200 }
+    );
   } catch (error) {
-    return Response.json(
-      { message: "Error al actualizar reserva" },
+    console.error("Error al actualizar reserva:", error);
+    return new Response(
+      JSON.stringify({ message: "Error al actualizar reserva" }),
       { status: 500 }
     );
   }
 }
 
+// Método DELETE para marcar una reserva como cancelada
 export async function DELETE(req, { params }) {
+  if (!params || !params.id) {
+    return new Response(JSON.stringify({ message: "ID no proporcionado" }), {
+      status: 400,
+    });
+  }
+
   try {
-    if (!params || !params.id) {
-      return Response.json({ message: "ID no proporcionado" }, { status: 400 });
-    }
-
-    const reservaId = params.id;
-
-    const reservaRef = db.collection("reservas").doc(reservaId);
+    const reservaRef = db.collection("reservas").doc(params.id);
     const reservaDoc = await reservaRef.get();
 
     if (!reservaDoc.exists) {
-      return Response.json(
-        { message: "Reserva no encontrada" },
+      return new Response(
+        JSON.stringify({ message: "Reserva no encontrada" }),
         { status: 404 }
       );
     }
 
-    // Actualizar el campo "cancelada" a true
     await reservaRef.update({ cancelada: true });
 
-    return Response.json({ message: "Reserva marcada como cancelada" });
+    return new Response(
+      JSON.stringify({ message: "Reserva marcada como cancelada" }),
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error al cancelar reserva:", error);
-    return Response.json(
-      { message: "Error al cancelar reserva" },
+    return new Response(
+      JSON.stringify({ message: "Error al cancelar reserva" }),
       { status: 500 }
     );
   }
 }
+// Método PATCH para actualizar el estado 'cancelada'
 export async function PATCH(req) {
   try {
-    const { id, cancelada } = await req.json(); // Obtener el ID desde el cuerpo de la solicitud
+    const { id, cancelada } = await req.json();
 
     if (!id) {
-      return Response.json({ message: "ID no proporcionado" }, { status: 400 });
+      return new Response(JSON.stringify({ message: "ID no proporcionado" }), {
+        status: 400,
+      });
     }
 
     const reservaRef = db.collection("reservas").doc(id);
     const reservaDoc = await reservaRef.get();
 
     if (!reservaDoc.exists) {
-      return Response.json(
-        { message: "Reserva no encontrada" },
+      return new Response(
+        JSON.stringify({ message: "Reserva no encontrada" }),
         { status: 404 }
       );
     }
 
-    // Actualiza el campo 'cancelada' a true
     await reservaRef.update({ cancelada });
 
-    return Response.json({ message: "Reserva actualizada correctamente" });
+    return new Response(
+      JSON.stringify({ message: "Reserva actualizada correctamente" }),
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error al actualizar reserva:", error);
-    return Response.json(
-      { message: "Error al actualizar reserva" },
+    return new Response(
+      JSON.stringify({ message: "Error al actualizar reserva" }),
       { status: 500 }
     );
   }

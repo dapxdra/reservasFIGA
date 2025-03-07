@@ -224,6 +224,16 @@ export default function DashboardPage() {
 
     console.log("Resultados filtrados:", filtered);
     setFilteredReservas(filtered.filter((reserva) => !reserva.cancelada));
+    setFilters({
+      fechaInicio: "",
+      fechaFin: "",
+      cliente: "",
+      proveedor: "",
+      itinid: "",
+      mes: "",
+      id: "",
+    });
+    setShowModal(false);
   };
 
   // Función para cambiar el tipo de input según el valor ingresado

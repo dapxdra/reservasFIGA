@@ -6,12 +6,46 @@ import { auth } from "../../../lib/firebase.js";
 import "../../../styles/dashboard.css";
 
 export default function EditReserva() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [reserva, setReserva] = useState({});
-
+  const [reserva, setReserva] = useState({
+    itinId: "",
+    proveedor: "",
+    cliente: "",
+    precio: "",
+    fecha: "",
+    hora: "",
+    pickUp: "",
+    dropOff: "",
+    AD: "",
+    NI: "",
+    pago: false,
+    fechaPago: "",
+    nota: "",
+  });
   useEffect(() => {
+    if (params?.id) {
+      fetchReserva(params.id);
+    } else {
+      console.error("ID no encontrado en los parámetros");
+    }
+  }, [params]);
+
+  const fetchReserva = async (id) => {
+    try {
+      const res = await fetch(`/api/reservas/${id}`);
+      if (!res.ok) throw new Error("Error al obtener la reserva");
+      const data = await res.json();
+      setReserva(data);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  /* useEffect(() => {
+    if (!id) return; // Asegura que el id existe antes de hacer el fetch
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         router.push("/login"); // Redirigir si no está autenticado
@@ -19,19 +53,35 @@ export default function EditReserva() {
         setUser(user);
       }
     });
-    const fetchReserva = async () => {
+
+    const fetchReserva = async (id) => {
       try {
         const response = await fetch(`/api/reservas/${id}`);
+        if (!response.ok) {
+          throw new Error(
+            `Error al obtener la reserva: ${response.statusText}`
+          );
+        }
         const data = await response.json();
         console.log("Reserva obtenida:", data);
-        setReserva(data);
+
+        setReserva({
+          ...data,
+          fecha: data.fecha
+            ? new Date(data.fecha).toISOString().split("T")[0]
+            : "",
+          fechaPago: data.fechaPago
+            ? new Date(data.fechaPago).toISOString().split("T")[0]
+            : "",
+        });
       } catch (error) {
-        console.error("Error al obtener la reserva:", error);
+        console.error("Error al obtener la reserva:", error.message);
       }
     };
+
     fetchReserva();
     return () => unsubscribe();
-  }, [id]);
+  }, [id]); */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -209,9 +259,9 @@ export default function EditReserva() {
                   title="Pagado"
                   name="pago"
                   placeholder="Pago"
-                  value={reserva.pago || false}
+                  checked={reserva.pago || false}
                   onChange={(e) =>
-                    setReserva({ ...reserva, pago: e.target.value })
+                    setReserva({ ...reserva, pago: e.target.checked })
                   }
                   className="w-full mt-1 p-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
