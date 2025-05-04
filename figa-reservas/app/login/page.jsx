@@ -40,16 +40,15 @@ export default function LoginPage() {
 
   return (
     <div className="main-container grid grid-cols-1 place-items-center bg-gray-50">
-      <Image
-        src="/logo.PNG"
-        alt="FIGA Logo"
-        width={280}
-        height={280}
-        className=""
-      />
       <div id="login-content" className="bg-white rounded-lg shadow-lg w-96">
         {error && <p className="text-red-500 text-center">{error}</p>}
-
+        <Image
+          src="/logo.PNG"
+          alt="FIGA Logo"
+          width={280}
+          height={280}
+          className=""
+        />
         <form onSubmit={handleLogin} className="text-black">
           <div className="email-password-container">
             <label className="block text-gray-700 font-bold">Email</label>
