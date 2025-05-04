@@ -7,8 +7,21 @@
   padding: 4rem;
   padding-top: 5rem;
   margin: auto;
+  overflow-y: auto;
+  max-height: 600px;
 }
-
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  color: #202020;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: auto;
+  width: 63%;
+  align-items: center;
+  justify-content: center;
+}
 .dashboard-table caption {
   caption-side: top;
   text-align: left;
@@ -39,6 +52,11 @@ th {
 
 .dashboard-table th:last-child {
   border-right: 0px;
+}
+.modal-search {
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
 }
 
 td.scroll {

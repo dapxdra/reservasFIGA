@@ -131,7 +131,7 @@ export async function PATCH(req) {
   }
 }
  */
-import { db } from "../../../lib/firebaseadmin.js";
+import { db } from "../../../lib/firebaseadmin.jsx";
 
 // Función segura para las respuestas JSON
 function jsonResponse(data = {}, status = 200) {

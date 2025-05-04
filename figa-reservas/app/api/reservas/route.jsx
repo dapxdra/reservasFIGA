@@ -1,4 +1,4 @@
-import { db } from "../../lib/firebaseadmin.js";
+import { db } from "../../lib/firebaseadmin.jsx";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const POST = async (req) => {

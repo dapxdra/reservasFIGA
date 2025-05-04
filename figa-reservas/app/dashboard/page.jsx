@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { auth } from "../lib/firebase.js";
+import { auth } from "../lib/firebase.jsx";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import Image from "next/image";
@@ -9,7 +9,7 @@ import { set } from "react-hook-form";
 import "../styles/dashboard.css";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import Modal from "../components/modal.js";
+import Modal from "../components/modal.jsx";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -17,6 +17,8 @@ export default function DashboardPage() {
   const [reservas, setReservas] = useState([]);
   const [filteredReservas, setFilteredReservas] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const reservasPorPagina = 5;
   const [isDateSearch, setIsDateSearch] = useState(false);
   const [verCanceladas, setVerCanceladas] = useState(false);
   const [filtro, setFiltro] = useState("activas");
@@ -117,9 +119,9 @@ export default function DashboardPage() {
   const handleSearch = () => {
     let filtered = reservas.filter((r) => !r.cancelada);
     if (searchQuery) {
-      filtered = reservas.filter((r) =>
+      filtered = filtered.filter((r) =>
         [r.fecha, r.itinId, r.cliente, r.proveedor, r.id]
-          .map((v) => v.toString().toLowerCase)
+          .map((v) => v.toString().toLowerCase())
           .some((value) => value.includes(searchQuery.toLowerCase()))
       );
     }
@@ -199,40 +201,81 @@ export default function DashboardPage() {
   };
 
   const handleFilter = () => {
-    const { startDate, endDate } = filters;
+    const { startDate, endDate, cliente, proveedor, itinid, mes, id } = filters;
 
-    // Validar si las fechas están completas
-    if (startDate && endDate && startDate > endDate) {
+    // Validación de fechas
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       alert("La fecha de inicio no puede ser posterior a la fecha de fin");
       return;
     }
+
     console.log("Búsqueda:", searchQuery);
     console.log("Aplicando filtros:", filters);
 
     let filtered = [...reservas];
 
+    // Filtro por búsqueda libre
     if (searchQuery) {
-      filtered = filtered.filter((reserva) => {
-        return (
+      filtered = filtered.filter(
+        (reserva) =>
           reserva.fecha.includes(searchQuery) ||
-          reserva.itinId.toString().includes(searchQuery) ||
-          reserva.cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          reserva.proveedor.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+          reserva.itinId?.toString().includes(searchQuery) ||
+          reserva.cliente?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          reserva.proveedor?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filtros avanzados
+    if (startDate) {
+      filtered = filtered.filter(
+        (r) => new Date(r.fecha) >= new Date(startDate)
+      );
+    }
+    if (endDate) {
+      filtered = filtered.filter((r) => new Date(r.fecha) <= new Date(endDate));
+    }
+    if (cliente) {
+      filtered = filtered.filter((r) =>
+        r.cliente?.toLowerCase().includes(cliente.toLowerCase())
+      );
+    }
+    if (proveedor) {
+      filtered = filtered.filter((r) =>
+        r.proveedor?.toLowerCase().includes(proveedor.toLowerCase())
+      );
+    }
+    if (itinid) {
+      filtered = filtered.filter((r) => r.itinId?.toString().includes(itinid));
+    }
+    if (id) {
+      filtered = filtered.filter((r) => r.id?.toString().includes(id));
+    }
+
+    // Filtro por mes si aplica
+    if (mes) {
+      filtered = filtered.filter((r) => {
+        const reservaDate = new Date(r.fecha);
+        return reservaDate.getMonth() + 1 === parseInt(mes); // +1 porque los meses van de 0 a 11
       });
     }
 
+    // Eliminar canceladas
+    filtered = filtered.filter((r) => !r.cancelada);
+
     console.log("Resultados filtrados:", filtered);
-    setFilteredReservas(filtered.filter((reserva) => !reserva.cancelada));
+    setFilteredReservas(filtered);
+
+    // Opcional: limpiar filtros después de aplicar
     setFilters({
-      fechaInicio: "",
-      fechaFin: "",
+      startDate: "",
+      endDate: "",
       cliente: "",
       proveedor: "",
       itinid: "",
       mes: "",
       id: "",
     });
+
     setShowModal(false);
   };
 
@@ -304,6 +347,11 @@ export default function DashboardPage() {
     return buf;
   };
 
+  const totalPages = Math.ceil(filteredReservas.length / reservasPorPagina);
+  const indexOfLast = currentPage * reservasPorPagina;
+  const indexOfFirst = indexOfLast - reservasPorPagina;
+  const reservasPaginadas = filteredReservas.slice(indexOfFirst, indexOfLast);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
       {/* Tabla */}
@@ -321,6 +369,11 @@ export default function DashboardPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="border rounded-md text-black input-search"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleFilter();
+                    }
+                  }}
                 />
                 <button
                   onClick={handleFilter}
@@ -427,7 +480,7 @@ export default function DashboardPage() {
                   onClick={() =>
                     exportToExcel(
                       filteredReservas,
-                      `Reservas_FIGA_${new Date().toLocaleDateString()}`
+                      `Reservas_FIGA_${new Date().toISOString().split("T")[0]}`
                     )
                   }
                   className="border rounded-md text-black button-export"
@@ -442,7 +495,9 @@ export default function DashboardPage() {
                 <button
                   onClick={toggleCanceladas}
                   className={`border rounded-md text-black button-canceladas ${
-                    verCanceladas ? "icon-activas" : "icon-canceladas"
+                    verCanceladas
+                      ? "button-activo icon-activas"
+                      : "icon-canceladas"
                   }`}
                   aria-label={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
                   title={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
@@ -450,7 +505,9 @@ export default function DashboardPage() {
                 <button
                   onClick={toggleAntiguas}
                   className={`border rounded-md text-black button-canceladas ${
-                    filtro === "activas" ? "icon-antiguas" : "icon-activas"
+                    filtro === "activas"
+                      ? "icon-antiguas"
+                      : "button-activo icon-activas"
                   }`}
                   title={filtro === "activas" ? "Ver Antiguas" : "Ver Activas"}
                 ></button>
@@ -490,7 +547,13 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReservas.map((reserva) => (
+                  {filteredReservas.length === 0 && (
+                    <p className="mt-4 text-gray-500">
+                      No se encontraron reservas con los filtros aplicados.
+                    </p>
+                  )}
+
+                  {reservasPaginadas.map((reserva) => (
                     <tr key={reserva.id}>
                       <td>{reserva.id}</td>
                       <td>{reserva.fecha}</td>
@@ -524,6 +587,40 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
+              <div className="table-pagination">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="disabled:opacity-50"
+                >
+                  Ant
+                </button>
+
+                {[...Array(totalPages)].map((_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-1 py-1 rounded ${
+                        currentPage === page
+                          ? "bg-gray-200 text-black opacity-25"
+                          : "bg-gray-100 hover:bg-gray-300 opacity-25"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="disabled:opacity-50"
+                >
+                  Sig
+                </button>
+              </div>
             </div>
           </>
         )

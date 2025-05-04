@@ -63,6 +63,7 @@ export default function ReservaForm() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+      <h1 className="text-2xl font-bold mb-4">Nueva Reserva</h1>
       <form onSubmit={handleSubmit} className="p-4 border rounded space-y-4">
         <div className="grid grid-cols-8 gap-4">
           <div className="col-span-2">

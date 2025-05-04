@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { auth } from "../../../lib/firebase.js";
+import { auth } from "../../../lib/firebase.jsx";
 import "../../../styles/dashboard.css";
 
 export default function EditReserva() {
@@ -111,8 +111,8 @@ export default function EditReserva() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-black bg-white p-4">
-      <h1 className="text-2xl font-bold mb-4">Editar Reserva</h1>
       <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+        <h1 className="text-2xl font-bold mb-4">Editar Reserva</h1>
         <form onSubmit={handleSubmit} className="p-4 border rounded space-y-4">
           <div className="grid grid-cols-8 gap-4">
             <div className="col-span-2">
