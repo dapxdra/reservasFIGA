@@ -520,7 +520,7 @@ export default function DashboardPage() {
 
               <table className="dashboard-table">
                 <Image
-                  src="/logo.png"
+                  src="/logo.PNG"
                   alt="FIGA Logo"
                   width={280}
                   height={280}
