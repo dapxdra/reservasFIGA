@@ -57,7 +57,9 @@ a {
 #login-button {
   padding: 4%;
 }
-
+.logo-login {
+  padding-left: 68px;
+}
 .email-password-container {
   margin-bottom: 9%;
 }

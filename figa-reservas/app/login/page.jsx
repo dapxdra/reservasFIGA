@@ -47,7 +47,7 @@ export default function LoginPage() {
           alt="FIGA Logo"
           width={280}
           height={280}
-          className=""
+          className="logo-login"
         />
         <form onSubmit={handleLogin} className="text-black">
           <div className="email-password-container">
