@@ -1,3 +1,5 @@
+"use client";
+
 import ReservaForm from "../components/reservaform.jsx";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase.jsx";
