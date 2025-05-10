@@ -81,7 +81,7 @@ table {
   padding: 1%;
   z-index: 100;
   position: absolute;
-  bottom: 87%;
+  /* bottom: 87%; */
   left: 40%;
   margin: auto;
 }
@@ -114,7 +114,16 @@ table {
   border: none;
   color: rgba(0, 0, 0, 0);
 }
-
+.button-futuras {
+  cursor: pointer;
+  background-size: contain; /* Ajusta la imagen al tamaño del botón */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 26px; /* Ajusta el tamaño del botón */
+  height: 26px; /* Ajusta el tamaño del botón */
+  border: none;
+  color: rgba(0, 0, 0, 0);
+}
 .button-antiguas {
   cursor: pointer;
   background-size: contain; /* Ajusta la imagen al tamaño del botón */
@@ -139,7 +148,9 @@ table {
 .icon-activas {
   background-image: url("https://img.icons8.com/?size=100&id=39273&format=png&color=000000");
 }
-
+.icon-futuras {
+  background-image: url("https://img.icons8.com/?size=100&id=6j0yD4cLK9Xc&format=png&color=000000");
+}
 .icon-canceladas {
   background-image: url("https://img.icons8.com/?size=100&id=3062&format=png&color=000000");
 }
@@ -168,7 +179,8 @@ tr {
 }
 
 .input-search {
-  margin-left: 15rem;
+  /* margin-left: 2rem; */
+  cursor: pointer;
 }
 
 .search-button {

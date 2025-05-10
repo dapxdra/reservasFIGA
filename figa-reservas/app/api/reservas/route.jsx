@@ -1,10 +1,17 @@
 import { db } from "../../lib/firebaseadmin.jsx";
-import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const POST = async (req) => {
   try {
     const body = await req.json();
     const reservasRef = db.collection("reservas");
+
+    const itinSnap = await reservasRef.where("itinId", "==", body.itinId).get();
+    if (!itinSnap.empty) {
+      return new Response(JSON.stringify({ message: "El itinId ya existe" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     // Obtener el último ID registrado
     const lastReservaSnap = await reservasRef
@@ -20,7 +27,7 @@ export const POST = async (req) => {
     // Crear la nueva reserva con ID incremental
     const newReserva = {
       figaId: newId,
-      itinId: body.itinId || 0,
+      itinId: parseInt(body.itinId) || 0,
       cliente: body.cliente || "",
       fecha: body.fecha || "",
       hora: body.hora || "",
@@ -28,10 +35,12 @@ export const POST = async (req) => {
       pickUp: body.pickUp || "",
       proveedor: body.proveedor || "",
       nota: body.nota || "",
-      precio: body.precio || 0,
-      AD: body.AD || 0,
-      NI: body.NI || 0,
-      pago: body.pago || false,
+      precio: parseFloat(body.precio) || 0,
+      AD: parseInt(body.AD) || 0,
+      NI: parseInt(body.NI) || 0,
+      chofer: body.chofer || "",
+      buseta: parseInt(body.buseta) || 0,
+      pago: body.pago == "on",
       fechaPago: body.fechaPago || "",
       cancelada: body.cancelada || false,
       createdAt: new Date().toString(),
@@ -57,20 +66,24 @@ export const POST = async (req) => {
 // Obtiene todas las reservas
 export const GET = async (req) => {
   try {
-    const { searchParams } = new URL(req.url);
-    const filter = searchParams.get("filter");
+    /* const { searchParams } = new URL(req.url);
+    const filter = searchParams.get("filter"); */
 
-    const today = new Date();
+    /* const today = new Date();
     today.setHours(0, 0, 0, 0); // Resetea las horas para comparar solo fechas
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1); // Suma un día a la fecha actual
 
     let query = db.collection("reservas").where("cancelada", "==", false);
 
     if (filter === "antiguas") {
       query = query.where("fecha", "<", today);
+    } else if (filter === "futuras") {
+      query = query.where("fecha", ">", tomorrow);
     } else {
       // Por defecto muestra las actuales (hoy en adelante)
-      query = query.where("fecha", ">=", today);
-    }
+      query = query.where("fecha", ">=", today).where("fecha", "<=", tomorrow);
+    } */
     const snapshot = await db.collection("reservas").get();
     const reservas = snapshot.docs.map((doc) => ({
       id: doc.id,

@@ -6,9 +6,9 @@
   text-align: start;
   padding: 4rem;
   padding-top: 5rem;
-  margin: auto;
+  margin: auto; /* 
   overflow-y: auto;
-  max-height: 600px;
+  max-height: 600px; */
 }
 .table-pagination {
   display: flex;

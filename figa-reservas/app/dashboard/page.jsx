@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [filteredReservas, setFilteredReservas] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const reservasPorPagina = 5;
+  const reservasPorPagina = 8;
   const [isDateSearch, setIsDateSearch] = useState(false);
   const [verCanceladas, setVerCanceladas] = useState(false);
   const [filtro, setFiltro] = useState("activas");
@@ -51,8 +51,18 @@ export default function DashboardPage() {
 
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
+
+        const tomorrow = new Date(hoy);
+        tomorrow.setDate(hoy.getDate() + 1);
+
+        const yesterday = new Date(hoy);
+        yesterday.setDate(hoy.getDate() - 1);
+
         const activas = data.filter(
-          (reserva) => !reserva.cancelada && new Date(reserva.fecha) >= hoy
+          (reserva) =>
+            !reserva.cancelada &&
+            new Date(reserva.fecha) >= yesterday &&
+            new Date(reserva.fecha) <= tomorrow
         );
         setFilteredReservas(activas);
       } catch (error) {
@@ -80,9 +90,30 @@ export default function DashboardPage() {
       // Volver a mostrar las activas
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
-      const activas = reservas.filter(
-        (reserva) => !reserva.cancelada && new Date(reserva.fecha) >= hoy
-      );
+
+      const tomorrow = new Date(hoy);
+      tomorrow.setDate(hoy.getDate() + 1);
+
+      const yesterday = new Date(hoy);
+      yesterday.setDate(hoy.getDate() - 1); // Suma un día a la fecha actual
+
+      const activas = reservas.filter((reserva) => {
+        const fechaReserva = new Date(reserva.fecha); // Asegúrate de que 'fecha' esté correctamente formateada
+
+        console.log("fecha reserva:", fechaReserva);
+
+        if (filtro === "activas") {
+          return (
+            !reserva.cancelada &&
+            fechaReserva >= yesterday &&
+            fechaReserva <= tomorrow
+          ); // Reservas activas desde hoy en adelante
+        } else if (filtro === "futuras") {
+          return !reserva.cancelada && fechaReserva > tomorrow; // Solo las futuras
+        } else {
+          return !reserva.cancelada && fechaReserva < hoy; // Solo las antiguas (completadas)
+        }
+      });
       setFilteredReservas(activas);
     }
   };
@@ -90,6 +121,11 @@ export default function DashboardPage() {
   const toggleAntiguas = () => {
     setFiltro((prevFiltro) =>
       prevFiltro === "activas" ? "antiguas" : "activas"
+    );
+  };
+  const toggleFuturas = () => {
+    setFiltro((prevFiltro) =>
+      prevFiltro === "activas" ? "futuras" : "activas"
     );
   };
 
@@ -101,10 +137,30 @@ export default function DashboardPage() {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
 
+      const tomorrow = new Date(hoy);
+      tomorrow.setDate(hoy.getDate() + 1); // Suma un día a la fecha actual
+
+      const yesterday = new Date(hoy);
+      yesterday.setDate(hoy.getDate() - 1);
+
+      // Suma dos días a la fecha actual
+
+      console.log("fecha hoy:", hoy);
+      console.log("fecha manana:", tomorrow);
+
       const filtradas = data.filter((reserva) => {
         const fechaReserva = new Date(reserva.fecha); // Asegúrate de que 'fecha' esté correctamente formateada
+
+        console.log("fecha reserva:", fechaReserva);
+
         if (filtro === "activas") {
-          return !reserva.cancelada && fechaReserva >= hoy; // Reservas activas desde hoy en adelante
+          return (
+            !reserva.cancelada &&
+            fechaReserva >= yesterday &&
+            fechaReserva <= tomorrow
+          ); // Reservas activas desde hoy en adelante
+        } else if (filtro === "futuras") {
+          return !reserva.cancelada && fechaReserva > tomorrow; // Solo las futuras
         } else {
           return !reserva.cancelada && fechaReserva < hoy; // Solo las antiguas (completadas)
         }
@@ -325,7 +381,52 @@ export default function DashboardPage() {
   };
 
   const exportToExcel = (data, fileName) => {
-    const workSheet = XLSX.utils.json_to_sheet(data);
+    const dataForExcel = data.map((r) => ({
+      ID: r.id,
+      Fecha: r.fecha ? new Date(r.fecha).toISOString().split("T")[0] : "",
+      Agencia: r.proveedor,
+      ItinId: r.itinId,
+      PickUp: r.pickUp,
+      DropOff: r.dropOff,
+      Hora: r.hora,
+      Adultos: r.AD,
+      Niños: r.NI,
+      Cliente: r.cliente,
+      Nota: r.nota,
+      Chofer: r.chofer,
+      Buseta: r.buseta,
+      Precio: r.precio,
+      Pago: r.pago ? "Sí" : "No",
+      FechaPago: r.fechaPago
+        ? new Date(r.fechaPago).toISOString().split("T")[0]
+        : "",
+      Cancelada: r.cancelada ? "Sí" : "No",
+      CreatedAt: r.createdAt
+        ? new Date(r.createdAt).toISOString().split("T")[0]
+        : "",
+    }));
+    const workSheet = XLSX.utils.json_to_sheet(dataForExcel, {
+      header: [
+        "ID",
+        "Fecha",
+        "Agencia",
+        "ItinId",
+        "PickUp",
+        "DropOff",
+        "Hora",
+        "Adultos",
+        "Niños",
+        "Cliente",
+        "Nota",
+        "Chofer",
+        "Buseta",
+        "Precio",
+        "Pago",
+        "FechaPago",
+        "Cancelada",
+        "CreatedAt",
+      ],
+    });
     const workBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workBook, workSheet, "Reservas");
     const excelBuffer = XLSX.write(workBook, {
@@ -353,15 +454,15 @@ export default function DashboardPage() {
   const reservasPaginadas = filteredReservas.slice(indexOfFirst, indexOfLast);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+    <div className="flex flex-col min-h-screen items-center justify-center bg-white p-4">
       {/* Tabla */}
       {!reservas.length ? (
         <p>loading...</p>
       ) : (
         reservas.length > 0 && (
           <>
-            <div className="dashboard-container">
-              <div className="dashbar">
+            <div className="dashboard-container flex flex-col gap-4">
+              <div className="dashbar flex flex-wrap gap-2 justify-between items-center">
                 <input
                   type="text"
                   title="Buscar por Fecha, ItinId, Cliente o Proveedor"
@@ -440,7 +541,7 @@ export default function DashboardPage() {
                       }
                       className="p-2 border w-full mb-2 col-span-6"
                     />
-                    <label className="col-span-2">Proveedor:</label>
+                    <label className="col-span-2">Agencia:</label>
                     <input
                       type="text"
                       value={filters.proveedor || ""}
@@ -476,6 +577,13 @@ export default function DashboardPage() {
                     ></button>
                   </Modal>
                 )}
+                <Image
+                  src="/logo.PNG"
+                  alt="FIGA Logo"
+                  width={280}
+                  height={280}
+                  className="dashboard-logo"
+                />
                 <button
                   onClick={() =>
                     exportToExcel(
@@ -512,82 +620,96 @@ export default function DashboardPage() {
                   title={filtro === "activas" ? "Ver Antiguas" : "Ver Activas"}
                 ></button>
                 <button
+                  onClick={toggleFuturas}
+                  className={`border rounded-md text-black button-futuras ${
+                    filtro === "activas"
+                      ? "icon-futuras"
+                      : "button-activo icon-activas"
+                  }`}
+                  title={filtro === "activas" ? "Ver Futuras" : "Ver Activas"}
+                ></button>
+                <button
                   onClick={logout}
                   title="Cerrar Sesión"
                   className="border rounded-md text-black button-logout"
                 ></button>
               </div>
-
-              <table className="dashboard-table">
-                <Image
-                  src="/logo.PNG"
-                  alt="FIGA Logo"
-                  width={280}
-                  height={280}
-                  className="dashboard-logo"
-                />
-
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Proveedor</th>
-                    <th>ItinId</th>
-                    <th>Cliente</th>
-                    <th>PickUp</th>
-                    <th>DropOff</th>
-                    <th>Adultos</th>
-                    <th>Niños</th>
-                    <th>Precio</th>
-                    <th>Nota</th>
-                    <th>Pago</th>
-                    <th>FechaPago</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredReservas.length === 0 && (
-                    <p className="mt-4 text-gray-500">
-                      No se encontraron reservas con los filtros aplicados.
-                    </p>
-                  )}
-
-                  {reservasPaginadas.map((reserva) => (
-                    <tr key={reserva.id}>
-                      <td>{reserva.id}</td>
-                      <td>{reserva.fecha}</td>
-                      <td>{reserva.hora}</td>
-                      <td>{reserva.proveedor}</td>
-                      <td>{reserva.itinId}</td>
-                      <td>{reserva.cliente}</td>
-                      <td>{reserva.pickUp}</td>
-                      <td>{reserva.dropOff}</td>
-                      <td>{reserva.AD}</td>
-                      <td>{reserva.NI}</td>
-                      <td>{reserva.precio}</td>
-                      <td className="scroll">{reserva.nota}</td>
-                      <td>{reserva.pago ? "Sí" : "No"}</td>
-                      <td>{reserva.fechaPago}</td>
-                      <td>
-                        <button
-                          onClick={() => handleCancel(reserva.id)}
-                          className="actionbutton-cancel"
-                          title="Cancelar Reserva"
-                        ></button>
-                        <button
-                          onClick={() =>
-                            (window.location.href = `/reservas/edit/${reserva.id}`)
-                          }
-                          className="actionbutton-edit"
-                          title="Editar Reserva"
-                        ></button>
-                      </td>
+              <div className="overflow-auto max-h-[70vh] rounded border>">
+                <table className="dashboard-table min-w-full table-auto text-sm">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Fecha</th>
+                      <th>Agencia</th>
+                      <th>ItinId</th>
+                      <th>PickUp</th>
+                      <th>DropOff</th>
+                      <th>Hora</th>
+                      <th>Adultos</th>
+                      <th>Niños</th>
+                      <th>Cliente</th>
+                      <th>Nota</th>
+                      <th>Chofer</th>
+                      <th>Buseta</th>
+                      <th>Precio</th>
+                      <th>Pago</th>
+                      <th>FechaPago</th>
+                      <th>Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="table-pagination">
+                  </thead>
+                  <tbody>
+                    {filteredReservas.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={15}
+                          className="text-center py-4 text-gray-500"
+                        >
+                          No se encontraron reservas con los filtros aplicados.
+                        </td>
+                      </tr>
+                    ) : (
+                      reservasPaginadas.map((reserva) => (
+                        <tr key={reserva.id} className="border-t">
+                          <td>{reserva.id}</td>
+                          <td>{reserva.fecha}</td>
+                          <td>{reserva.proveedor}</td>
+                          <td>{reserva.itinId}</td>
+                          <td>{reserva.pickUp}</td>
+                          <td>{reserva.dropOff}</td>
+                          <td>{reserva.hora}</td>
+                          <td>{reserva.AD}</td>
+                          <td>{reserva.NI}</td>
+                          <td>{reserva.cliente}</td>
+                          <td className="max-w-xs overflow-x-auto">
+                            {reserva.nota}
+                          </td>
+                          <td>{reserva.chofer}</td>
+                          <td>{reserva.buseta}</td>
+                          <td>{reserva.precio}</td>
+                          <td>{reserva.pago ? "Sí" : "No"}</td>
+                          <td>{reserva.fechaPago}</td>
+                          <td>
+                            <button
+                              onClick={() => handleCancel(reserva.id)}
+                              className="actionbutton-cancel"
+                              title="Cancelar Reserva"
+                            ></button>
+                            <button
+                              onClick={() =>
+                                (window.location.href = `/reservas/edit/${reserva.id}`)
+                              }
+                              className="actionbutton-edit"
+                              title="Editar Reserva"
+                            ></button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {/* Paginación */}
+              <div className="table-pagination flex justify-center items-center gap-2 flex-wrap mt-4">
                 <button
                   onClick={() => setCurrentPage(currentPage - 1)}
                   disabled={currentPage === 1}

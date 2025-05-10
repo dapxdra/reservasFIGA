@@ -22,8 +22,12 @@ export default function EditReserva() {
     AD: "",
     NI: "",
     pago: false,
+    chofer: "",
+    buseta: "",
     fechaPago: "",
     nota: "",
+    chofer: "",
+    buseta: "",
   });
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -132,7 +136,7 @@ export default function EditReserva() {
             </div>
             <div className="col-span-2">
               <label htmlFor="proveedor" className="text-sm font-semibold">
-                Proveedor
+                Agencia
                 <input
                   type="text"
                   name="proveedor"
@@ -165,6 +169,8 @@ export default function EditReserva() {
                 Precio
                 <input
                   type="number"
+                  step="0.01"
+                  min="0"
                   name="precio"
                   placeholder="Precio"
                   value={reserva.precio || ""}
@@ -296,7 +302,7 @@ export default function EditReserva() {
                 />
               </label>
             </div>
-            <div className="col-span-8">
+            <div className="col-span-4">
               <label htmlFor="nota" className="text-sm font-semibold">
                 Nota
                 <textarea
@@ -306,6 +312,36 @@ export default function EditReserva() {
                   value={reserva.nota || ""}
                   onChange={(e) =>
                     setReserva({ ...reserva, nota: e.target.value })
+                  }
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                />
+              </label>
+            </div>
+            <div className="col-span-2">
+              <label htmlFor="chofer" className="text-sm font-semibold">
+                Chofer
+                <input
+                  type="text"
+                  name="chofer"
+                  placeholder="Chofer"
+                  value={reserva.chofer || ""}
+                  onChange={(e) =>
+                    setReserva({ ...reserva, chofer: e.target.value })
+                  }
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                />
+              </label>
+            </div>
+            <div className="col-span-2">
+              <label htmlFor="buseta" className="text-sm font-semibold">
+                Buseta
+                <input
+                  type="number"
+                  name="buseta"
+                  placeholder="buseta"
+                  value={reserva.buseta || ""}
+                  onChange={(e) =>
+                    setReserva({ ...reserva, buseta: e.target.value })
                   }
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 />

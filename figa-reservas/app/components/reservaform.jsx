@@ -16,6 +16,8 @@ export default function ReservaForm() {
     precio: 0,
     AD: 0,
     NI: 0,
+    chofer: "",
+    buseta: 0,
     pago: false,
     fechaPago: "",
     cancelada: false,
@@ -54,6 +56,8 @@ export default function ReservaForm() {
         precio: 0,
         AD: 0,
         NI: 0,
+        chofer: "",
+        buseta: 0,
       });
       router.push("/dashboard");
     } else {
@@ -81,7 +85,7 @@ export default function ReservaForm() {
           </div>
           <div className="col-span-2">
             <label htmlFor="proveedor" className="text-sm font-semibold">
-              Proveedor
+              Agencia
               <input
                 type="text"
                 name="proveedor"
@@ -109,9 +113,12 @@ export default function ReservaForm() {
               Precio
               <input
                 type="number"
+                step="0.01"
+                min="0"
                 name="precio"
                 placeholder=""
                 onChange={handleChange}
+                required
                 className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
               />
             </label>
@@ -216,11 +223,35 @@ export default function ReservaForm() {
               />
             </label>
           </div>
-          <div className="col-span-8">
+          <div className="col-span-4">
             <label htmlFor="nota" className="text-sm font-semibold">
               Nota
               <textarea
                 name="nota"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="chofer" className="text-sm font-semibold">
+              Chofer
+              <input
+                type="text"
+                name="chofer"
+                placeholder=""
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="buseta" className="text-sm font-semibold">
+              Buseta
+              <input
+                type="number"
+                name="buseta"
                 placeholder=""
                 onChange={handleChange}
                 className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
