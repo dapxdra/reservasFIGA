@@ -5,7 +5,9 @@ export const POST = async (req) => {
     const body = await req.json();
     const reservasRef = db.collection("reservas");
 
-    const itinSnap = await reservasRef.where("itinId", "==", body.itinId).get();
+    const itinSnap = await reservasRef
+      .where("itinId", "==", parseInt(body.itinId))
+      .get();
     if (!itinSnap.empty) {
       return new Response(JSON.stringify({ message: "El itinId ya existe" }), {
         status: 400,

@@ -111,7 +111,7 @@ export default function DashboardPage() {
         } else if (filtro === "futuras") {
           return !reserva.cancelada && fechaReserva > tomorrow; // Solo las futuras
         } else {
-          return !reserva.cancelada && fechaReserva < hoy; // Solo las antiguas (completadas)
+          return !reserva.cancelada && fechaReserva <= yesterday; // Solo las antiguas (completadas)
         }
       });
       setFilteredReservas(activas);
@@ -162,7 +162,7 @@ export default function DashboardPage() {
         } else if (filtro === "futuras") {
           return !reserva.cancelada && fechaReserva > tomorrow; // Solo las futuras
         } else {
-          return !reserva.cancelada && fechaReserva < hoy; // Solo las antiguas (completadas)
+          return !reserva.cancelada && fechaReserva <= yesterday; // Solo las antiguas (completadas)
         }
       });
 
