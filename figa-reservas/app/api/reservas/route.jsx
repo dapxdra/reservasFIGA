@@ -58,7 +58,10 @@ export const POST = async (req) => {
 // Obtiene todas las reservas
 export const GET = async (req) => {
   try {
-    const snapshot = await db.collection("reservas").get();
+    const snapshot = await db
+      .collection("reservas")
+      .orderBy("fecha", "asc")
+      .get();
     const reservas = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
