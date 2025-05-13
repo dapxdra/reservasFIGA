@@ -143,7 +143,6 @@ export default function ReservaForm() {
                 name="hora"
                 onChange={handleChange}
                 className="timepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                required
               />
             </label>
           </div>

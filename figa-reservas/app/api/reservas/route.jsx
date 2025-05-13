@@ -5,16 +5,6 @@ export const POST = async (req) => {
     const body = await req.json();
     const reservasRef = db.collection("reservas");
 
-    const itinSnap = await reservasRef
-      .where("itinId", "==", parseInt(body.itinId))
-      .get();
-    if (!itinSnap.empty) {
-      return new Response(JSON.stringify({ message: "El itinId ya existe" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     // Obtener el último ID registrado
     const lastReservaSnap = await reservasRef
       .orderBy("figaId", "desc")
@@ -68,24 +58,6 @@ export const POST = async (req) => {
 // Obtiene todas las reservas
 export const GET = async (req) => {
   try {
-    /* const { searchParams } = new URL(req.url);
-    const filter = searchParams.get("filter"); */
-
-    /* const today = new Date();
-    today.setHours(0, 0, 0, 0); // Resetea las horas para comparar solo fechas
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1); // Suma un día a la fecha actual
-
-    let query = db.collection("reservas").where("cancelada", "==", false);
-
-    if (filter === "antiguas") {
-      query = query.where("fecha", "<", today);
-    } else if (filter === "futuras") {
-      query = query.where("fecha", ">", tomorrow);
-    } else {
-      // Por defecto muestra las actuales (hoy en adelante)
-      query = query.where("fecha", ">=", today).where("fecha", "<=", tomorrow);
-    } */
     const snapshot = await db.collection("reservas").get();
     const reservas = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -99,17 +71,3 @@ export const GET = async (req) => {
     );
   }
 };
-// Elimina una reserva
-/* export const DELETE = async (req) => {
-  try {
-    const { id } = await req.json();
-    await db.collection("reservas").doc(id).delete();
-
-    return Response.json({ message: "Reserva eliminada correctamente" });
-  } catch (error) {
-    return Response.json(
-      { message: "Error al eliminar reserva" },
-      { status: 500 }
-    );
-  }
-}; */
