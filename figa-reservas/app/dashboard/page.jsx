@@ -375,6 +375,11 @@ export default function DashboardPage() {
     }
   };
 
+  const formatDate = (fecha) => {
+    const [year, month, day] = fecha.split("-");
+    return `${day}-${month}-${year}`;
+  };
+
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
@@ -671,7 +676,7 @@ export default function DashboardPage() {
                       reservasPaginadas.map((reserva) => (
                         <tr key={reserva.id} className="border-t">
                           <td>{reserva.id}</td>
-                          <td>{reserva.fecha}</td>
+                          <td>{formatDate(reserva.fecha)}</td>
                           <td>{reserva.proveedor}</td>
                           <td>{reserva.itinId}</td>
                           <td>{reserva.pickUp}</td>
