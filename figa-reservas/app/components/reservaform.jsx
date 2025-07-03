@@ -43,7 +43,15 @@ export default function ReservaForm() {
     });
 
     if (response.ok) {
-      alert("Reserva creada con éxito");
+      alert(
+        " Reserva creada con éxito:  " +
+          " ItinId: " +
+          formData.itinId +
+          " Cliente: " +
+          formData.cliente +
+          " Proveedor: " +
+          formData.proveedor
+      );
       setFormData({
         itinId: 0,
         cliente: "",

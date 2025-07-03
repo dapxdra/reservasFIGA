@@ -19,7 +19,6 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const reservasPorPagina = 8;
-  const [isDateSearch, setIsDateSearch] = useState(false);
   const [verCanceladas, setVerCanceladas] = useState(false);
   const [filtro, setFiltro] = useState("activas");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -42,39 +41,74 @@ export default function DashboardPage() {
         setUser(user);
       }
     });
-    const fetchReservas = async () => {
-      try {
-        const response = await fetch(`/api/reservas?filter=${filtro}`);
-        const data = await response.json();
-        console.log("Datos de reservas obtenidos:", data);
-        setReservas(data);
 
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
+    if (typeof window !== "undefined") {
+      // 1. Recuperar los filtros almacenados
+      const storedFiltro = localStorage.getItem("dashboardFiltro");
+      const storedSearchQuery = localStorage.getItem("dashboardSearchQuery");
+      const storedFilters = localStorage.getItem("dashboardFilters");
 
-        const tomorrow = new Date(hoy);
-        tomorrow.setDate(hoy.getDate() + 1);
+      console.log("storedFiltro:", storedFiltro);
+      console.log("storedSearchQuery:", storedSearchQuery);
+      console.log("storedFilters:", storedFilters);
 
-        const yesterday = new Date(hoy);
-        yesterday.setDate(hoy.getDate() - 1);
+      if (storedFiltro) setFiltro(storedFiltro);
+      if (storedSearchQuery) setSearchQuery(storedSearchQuery);
+      if (storedFilters) setFilters(JSON.parse(storedFilters));
 
-        const activas = data.filter(
-          (reserva) =>
-            !reserva.cancelada &&
-            new Date(reserva.fecha) >= yesterday &&
-            new Date(reserva.fecha) <= tomorrow
-        );
-        setFilteredReservas(activas);
-      } catch (error) {
-        console.error("Error al obtener reservas:", error);
-      }
-    };
+      // 2. Obtener reservas desde el backend
+      const fetchReservas = async () => {
+        try {
+          const response = await fetch(
+            `/api/reservas?filter=${storedFiltro || "activas"}`
+          );
+          const data = await response.json();
+          console.log("Datos de reservas obtenidos:", data);
+          setReservas(data);
+          const hoy = new Date();
+          hoy.setHours(0, 0, 0, 0);
 
-    fetchReservas();
-    filtrarReservas(filtro);
+          const tomorrow = new Date(hoy);
+          tomorrow.setDate(hoy.getDate() + 1);
+
+          const yesterday = new Date(hoy);
+          yesterday.setDate(hoy.getDate() - 1);
+
+          const activas = data.filter(
+            (reserva) =>
+              !reserva.cancelada &&
+              new Date(reserva.fecha) >= yesterday &&
+              new Date(reserva.fecha) <= tomorrow
+          );
+          setFilteredReservas(activas);
+        } catch (error) {
+          console.error("Error al obtener reservas:", error);
+        }
+      };
+
+      fetchReservas();
+      //filtrarReservas(filtro);
+    }
 
     return () => unsubscribe();
-  }, [filtro, router]);
+  }, [router, filtro]);
+
+  useEffect(() => {
+    if (reservas.length > 0) {
+      if (searchQuery) {
+        handleFilter();
+      } else {
+        filtrarReservas(filtro);
+      }
+    }
+
+    // Limpiar localStorage solo después de aplicar el filtro
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("dashboardFiltro");
+      localStorage.removeItem("dashboardSearchQuery");
+      localStorage.removeItem("dashboardFilters");
+    }
+  }, [reservas]);
 
   const toggleAdvancedFilters = () => {
     setShowAdvancedFilters(!showAdvancedFilters);
@@ -100,7 +134,7 @@ export default function DashboardPage() {
       const activas = reservas.filter((reserva) => {
         const fechaReserva = new Date(reserva.fecha); // Asegúrate de que 'fecha' esté correctamente formateada
 
-        console.log("fecha reserva:", fechaReserva);
+        //console.log("fecha reserva:", fechaReserva);
 
         if (filtro === "activas") {
           return (
@@ -216,48 +250,12 @@ export default function DashboardPage() {
     setShowModal(false);
   };
 
-  const handleAdvancedFilter = () => {
-    let filtered = [...reservas];
-
-    if (filters.startDate && filters.endDate) {
-      const startDate = new Date(filters.startDate);
-      const endDate = new Date(filters.endDate);
-      filtered = filtered.filter((reserva) => {
-        const fechaReserva = new Date(reserva.fecha);
-        return fechaReserva >= startDate && fechaReserva <= endDate;
-      });
-    }
-
-    if (filters.month) {
-      filtered = filtered.filter((reserva) => {
-        const reservaMonth = new Date(reserva.fecha).getMonth() + 1; // getMonth() es 0-indexed
-        return reservaMonth === parseInt(filters.month);
-      });
-    }
-
-    if (filters.cliente) {
-      filtered = filtered.filter((reserva) =>
-        reserva.cliente.toLowerCase().includes(filters.cliente.toLowerCase())
-      );
-    }
-
-    if (filters.id) {
-      filtered = filtered.filter(
-        (reserva) => reserva.id.toString() === filters.id
-      );
-    }
-
-    if (filters.itinId) {
-      filtered = filtered.filter(
-        (reserva) => reserva.itinId.toString() === filters.itinId
-      );
-    }
-
-    setFilteredReservas(filtered);
-  };
-
+  // Maneja el filtro avanzado
   const handleFilter = () => {
-    const { startDate, endDate, cliente, proveedor, itinid, mes, id } = filters;
+    console.log("Desde handleFilter tras regreso:", searchQuery, filters);
+
+    const busqueda = searchQuery.trim();
+    const { startDate, endDate, mes, cliente, proveedor, itinid, id } = filters;
 
     // Validación de fechas
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
@@ -271,14 +269,18 @@ export default function DashboardPage() {
     let filtered = [...reservas];
 
     // Filtro por búsqueda libre
-    if (searchQuery) {
+    if (busqueda !== "") {
       filtered = filtered.filter(
         (reserva) =>
-          reserva.fecha.includes(searchQuery) ||
-          reserva.itinId?.toString().includes(searchQuery) ||
-          reserva.cliente?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          reserva.proveedor?.toLowerCase().includes(searchQuery.toLowerCase())
+          reserva.id?.toString().includes(busqueda) ||
+          reserva.itinId?.toString().includes(busqueda) ||
+          reserva.cliente?.toLowerCase().includes(busqueda.toLowerCase()) ||
+          reserva.proveedor?.toLowerCase().includes(busqueda.toLowerCase())
       );
+    } else {
+      // Si no hay búsqueda, mostrar todas las reservas
+      setFiltro("activas");
+      filtrarReservas(filtro);
     }
 
     // Filtros avanzados
@@ -335,15 +337,6 @@ export default function DashboardPage() {
     setShowModal(false);
   };
 
-  // Función para cambiar el tipo de input según el valor ingresado
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-
-    // Si el usuario ingresa algo con formato de fecha (AAAA-MM-DD), cambia a tipo 'date'
-    setIsDateSearch(/^\d{4}-\d{2}-\d{2}$/.test(value));
-  };
-
   const handleNavigate = () => {
     router.push("/reservas");
   };
@@ -378,6 +371,14 @@ export default function DashboardPage() {
   const formatDate = (fecha) => {
     const [year, month, day] = fecha.split("-");
     return `${day}-${month}-${year}`;
+  };
+
+  const formatearHora = (horaStr) => {
+    if (!horaStr) return ""; // Manejar caso de hora no definida
+    const [hora, minutos] = horaStr.split(":").map(Number);
+    const ampm = hora >= 12 ? "pm" : "am";
+    const hora12 = hora % 12 === 0 ? 12 : hora % 12;
+    return `${hora12}:${minutos.toString().padStart(2, "0")} ${ampm}`;
   };
 
   const logout = async () => {
@@ -470,7 +471,7 @@ export default function DashboardPage() {
               <div className="dashbar flex flex-wrap gap-2 justify-between items-center">
                 <input
                   type="text"
-                  title="Buscar por Fecha, ItinId, Cliente o Proveedor"
+                  title="Buscar por ID, ItinId, Cliente o Agencia"
                   placeholder="Buscar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -484,7 +485,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleFilter}
                   className="search-button"
-                  title="Buscar por Fecha, ItinId, Cliente o Proveedor"
+                  title="Buscar por ID, ItinId, Cliente o Agencia"
                 ></button>
                 <button
                   onClick={() => setShowModal(true)}
@@ -681,7 +682,7 @@ export default function DashboardPage() {
                           <td>{reserva.itinId}</td>
                           <td>{reserva.pickUp}</td>
                           <td>{reserva.dropOff}</td>
-                          <td>{reserva.hora}</td>
+                          <td>{formatearHora(reserva.hora)}</td>
                           <td>{reserva.AD}</td>
                           <td>{reserva.NI}</td>
                           <td>{reserva.cliente}</td>
@@ -700,9 +701,19 @@ export default function DashboardPage() {
                               title="Cancelar Reserva"
                             ></button>
                             <button
-                              onClick={() =>
-                                (window.location.href = `/reservas/edit/${reserva.id}`)
-                              }
+                              onClick={() => {
+                                localStorage.setItem("dashboardFiltro", filtro);
+                                localStorage.setItem(
+                                  "dashboardSearchQuery",
+                                  searchQuery
+                                );
+                                localStorage.setItem(
+                                  "dashboardFilters",
+                                  JSON.stringify(filters)
+                                );
+
+                                router.push(`/reservas/edit/${reserva.id}`);
+                              }}
                               className="actionbutton-edit"
                               title="Editar Reserva"
                             ></button>
