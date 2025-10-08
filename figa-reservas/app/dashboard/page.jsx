@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth } from "../lib/firebase.jsx";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [reservas, setReservas] = useState([]);
+  const [revisadas, setRevisadas] = useState({});
   const [filteredReservas, setFilteredReservas] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,6 +33,8 @@ export default function DashboardPage() {
     itinId: "",
     proveedor: "",
   });
+  const logoutTimer = useRef(null);
+  const INACTIVITY_LIMIT = 10 * 60 * 1000;
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -88,10 +91,41 @@ export default function DashboardPage() {
 
       fetchReservas();
       //filtrarReservas(filtro);
+      const storedRevisadas = localStorage.getItem("reservasRevisadas");
+      if (storedRevisadas) {
+        setRevisadas(JSON.parse(storedRevisadas));
+      }
     }
 
     return () => unsubscribe();
   }, [router, filtro]);
+
+  useEffect(() => {
+    const resetTimer = () => {
+      clearTimeout(logoutTimer.current);
+      logoutTimer.current = setTimeout(async () => {
+        alert("Tu sesión ha expirado por inactividad.");
+        await logout();
+      }, INACTIVITY_LIMIT);
+    };
+
+    // Detectar actividad del usuario
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keydown", resetTimer);
+    window.addEventListener("click", resetTimer);
+    window.addEventListener("scroll", resetTimer);
+
+    // Iniciar contador
+    resetTimer();
+
+    return () => {
+      clearTimeout(logoutTimer.current);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keydown", resetTimer);
+      window.removeEventListener("click", resetTimer);
+      window.removeEventListener("scroll", resetTimer);
+    };
+  }, []);
 
   useEffect(() => {
     if (reservas.length > 0) {
@@ -109,6 +143,12 @@ export default function DashboardPage() {
       localStorage.removeItem("dashboardFilters");
     }
   }, [reservas]);
+
+  const toggleRevisada = (id) => {
+    const updated = { ...revisadas, [id]: !revisadas[id] };
+    setRevisadas(updated);
+    localStorage.setItem("reservasRevisadas", JSON.stringify(updated));
+  };
 
   const toggleAdvancedFilters = () => {
     setShowAdvancedFilters(!showAdvancedFilters);
@@ -717,6 +757,13 @@ export default function DashboardPage() {
                               className="actionbutton-edit"
                               title="Editar Reserva"
                             ></button>
+                            <input
+                              type="checkbox"
+                              checked={revisadas[reserva.id] || false}
+                              onChange={() => toggleRevisada(reserva.id)}
+                              className="actionbutton-check"
+                              title="Marcar como revisada"
+                            />
                           </td>
                         </tr>
                       ))

@@ -32,9 +32,11 @@ export default function ReservaForm() {
   };
 
   const router = useRouter();
+  const [guardando, setGuardando] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setGuardando(true);
 
     const response = await fetch("/api/reservas", {
       method: "POST",
@@ -67,10 +69,14 @@ export default function ReservaForm() {
         chofer: "",
         buseta: 0,
       });
-      router.push("/dashboard");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
     } else {
       alert("Error al guardar la reserva");
     }
+
+    setGuardando(false);
   };
 
   return (
@@ -137,6 +143,7 @@ export default function ReservaForm() {
               <input
                 type="date"
                 name="fecha"
+                min={new Date().toISOString().split("T")[0]}
                 onChange={handleChange}
                 className="datepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 required
@@ -271,7 +278,7 @@ export default function ReservaForm() {
             type="submit"
             className="submitbtn w-full py-2 rounded-lg font-semibold transition duration-300 col-span-2"
           >
-            Guardar
+            {guardando ? "Guardando..." : "Guardar reserva"}
           </button>
           <button
             type="button"

@@ -249,6 +249,17 @@ tr {
   margin: auto;
 }
 
+.actionbutton-check {
+  cursor: pointer;
+  background-position: center; /* Centra la imagen dentro del botón */
+  width: 22px; /* Ajusta el tamaño del botón */
+  height: 22px; /* Ajusta el tamaño del botón */
+  border: rgba(0, 0, 0, 0.5) solid 1px;
+  color: rgba(151, 137, 137, 0.164);
+  accent-color: rgba(113, 189, 78, 0.555);
+  margin-left: 10%;
+}
+
 .actionbutton-cancel {
   cursor: pointer;
   background-image: url("https://img.icons8.com/?size=100&id=60713&format=png&color=000000");
