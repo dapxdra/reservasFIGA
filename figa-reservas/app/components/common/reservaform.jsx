@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import "../styles/dashboard.css";
+import "../../styles/dashboard.css";
+import { crearReserva } from "@/app/lib/api";
 
 export default function ReservaForm() {
   const [formData, setFormData] = useState({
@@ -38,13 +39,9 @@ export default function ReservaForm() {
     e.preventDefault();
     setGuardando(true);
 
-    const response = await fetch("/api/reservas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    const response = await crearReserva(formData);
 
-    if (response.ok) {
+    if (!response.error) {
       alert(
         " Reserva creada con éxito:  " +
           " ItinId: " +
@@ -276,6 +273,7 @@ export default function ReservaForm() {
         <div className="grid grid-cols-4 gap-4">
           <button
             type="submit"
+            disabled={guardando}
             className="submitbtn w-full py-2 rounded-lg font-semibold transition duration-300 col-span-2"
           >
             {guardando ? "Guardando..." : "Guardar reserva"}

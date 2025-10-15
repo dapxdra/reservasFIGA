@@ -1,6 +1,6 @@
 "use client";
 
-import ReservaForm from "../components/reservaform.jsx";
+import ReservaForm from "../components/common/reservaform.jsx";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase.jsx";
 import { useRouter } from "next/navigation";
