@@ -1,5 +1,5 @@
 import Image from "next/image";
 
 export default function Logo() {
-  return <Image src="/logo.PNG" alt="FIGA Logo" width={280} height={280} />;
+  return <Image src="/logo.PNG" alt="FIGA Logo" width={225} height={225} />;
 }

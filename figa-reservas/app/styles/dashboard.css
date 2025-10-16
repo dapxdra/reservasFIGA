@@ -4,21 +4,14 @@
   border-collapse: separate;
   color: #202020;
   text-align: start;
-  padding: 4rem;
-  padding-top: 5rem;
-  margin: auto; /* 
-  overflow-y: auto;
-  max-height: 600px; */
 }
 .table-pagination {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   color: #202020;
-  padding: 1rem;
   border-radius: 8px;
-  margin: auto;
-  width: 63%;
+  width: 60%;
   align-items: center;
   justify-content: center;
 }
@@ -57,6 +50,7 @@ th {
   gap: 1rem;
   padding: 1rem;
   border-radius: 8px;
+  color: #202020;
 }
 
 td.scroll {
@@ -89,4 +83,21 @@ td.scroll::-webkit-scrollbar-thumb:hover {
 
 p {
   color: #202020;
+}
+.dashboard-navbar {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 12px 0;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.dashboard-navbar button {
+  margin: 0 4px;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
