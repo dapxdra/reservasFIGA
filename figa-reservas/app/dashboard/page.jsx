@@ -245,7 +245,7 @@ export default function DashboardPage() {
                         <label className="col-span-1">Fecha Inicio:</label>
                         <input
                           type="date"
-                          value={filters.startDate || ""}
+                          value={filters.startDate}
                           onChange={(e) =>
                             setFilters({
                               ...filters,
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                         <label className="col-span-1">Fecha Fin:</label>
                         <input
                           type="date"
-                          value={filters.endDate || ""}
+                          value={filters.endDate}
                           onChange={(e) =>
                             setFilters({ ...filters, endDate: e.target.value })
                           }
@@ -265,7 +265,7 @@ export default function DashboardPage() {
                         />
                         <label className="col-span-1">Mes:</label>
                         <select
-                          value={filters.month || ""}
+                          value={filters.month}
                           onChange={(e) =>
                             setFilters({ ...filters, month: e.target.value })
                           }
@@ -288,7 +288,7 @@ export default function DashboardPage() {
                         <label className="col-span-2">Cliente:</label>
                         <input
                           type="text"
-                          value={filters.cliente || ""}
+                          value={filters.cliente}
                           onChange={(e) =>
                             setFilters({ ...filters, cliente: e.target.value })
                           }
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                         <label className="col-span-2">Agencia:</label>
                         <input
                           type="text"
-                          value={filters.proveedor || ""}
+                          value={filters.proveedor}
                           onChange={(e) =>
                             setFilters({
                               ...filters,
@@ -309,7 +309,7 @@ export default function DashboardPage() {
                         <label className="col-span-1">ItinId:</label>
                         <input
                           type="text"
-                          value={filters.itinId || ""}
+                          value={filters.itinId}
                           onChange={(e) =>
                             setFilters({ ...filters, itinId: e.target.value })
                           }
