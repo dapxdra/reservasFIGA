@@ -3,21 +3,44 @@ import { useState } from "react";
 import { actualizarReserva } from "@/app/lib/api.js";
 import { useRouter } from "next/navigation";
 import "../../styles/dashboard.css";
+import LogoNav from "./LogoNav";
+import { set } from "react-hook-form";
 
 export default function EditReservaForm({ reservaInicial }) {
   const [reserva, setReserva] = useState(reservaInicial);
   const router = useRouter();
 
+  const [guardando, setGuardando] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await actualizarReserva(reserva.id, reserva);
-    router.push("/dashboard");
+    if (guardando || saved) return; // Prevenir múltiples envíos
+    setGuardando(true);
+    try {
+      const response = await actualizarReserva(reserva.id, reserva);
+      if (response.error) throw new Error(response.error);
+      alert("Reserva actualizada con éxito");
+      setSaved(true);
+      setGuardando(false);
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
+    } catch (error) {
+      console.error("Error al actualizar la reserva:", error);
+      alert("Error al actualizar la reserva");
+      setGuardando(false);
+    }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-black bg-white p-4">
       <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
-        <h1 className="text-2xl font-bold mb-4">Editar Reserva</h1>
+        <LogoNav />
+        <h1 className="text-2xl font-bold mb-4 font-sans text-gray-600">
+          Editar Reserva
+        </h1>
         <form onSubmit={handleSubmit} className="p-4 border rounded space-y-4">
           <div className="grid grid-cols-8 gap-4">
             <div className="col-span-2">

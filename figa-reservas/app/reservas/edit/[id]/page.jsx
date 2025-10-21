@@ -5,9 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import { auth } from "../../../lib/firebase.jsx";
 import "../../../styles/dashboard.css";
 import { getReservaPorId } from "@/app/lib/api.js";
+import Loading from "../../../components/common/Loading.jsx";
 
 const EditReservaForm = lazy(() =>
-  import("../../components/common/editReservaForm")
+  import("../../../components/common/editReservaForm.jsx")
 );
 
 export default function EditReserva() {
@@ -53,10 +54,10 @@ export default function EditReserva() {
   }, [params.id]);
 
   if (error) return <div>Error: {error}</div>;
-  if (!reserva) return <div>Cargando reserva...</div>;
+  if (!reserva) return <Loading />;
 
   return (
-    <Suspense fallback={<div>Cargando formulario...</div>}>
+    <Suspense fallback={<Loading />}>
       <EditReservaForm reservaInicial={reserva} />
     </Suspense>
   );

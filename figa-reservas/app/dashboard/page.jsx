@@ -20,7 +20,7 @@ import { formatDate } from "../utils/formatDate";
 import { formatearHora } from "../utils/formatearHora";
 import { cancelarReserva } from "../lib/api.js";
 import Logo from "../components/common/Logo.jsx";
-import { useReservasRevisadas } from "../context/ReservasContext";
+import Loading from "../components/common/Loading.jsx";
 
 const Modal = lazy(() => import("../components/common/modal"));
 
@@ -210,7 +210,7 @@ export default function DashboardPage() {
     >
       {/* Tabla */}
       {!reservas.length ? (
-        <p>loading...</p>
+        <Loading />
       ) : (
         reservas.length > 0 && (
           <>
@@ -222,7 +222,10 @@ export default function DashboardPage() {
                     title="Buscar por ID, ItinId, Cliente o Agencia"
                     placeholder="Buscar..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="input-search border border-gray-300 rounded-md px-3 py-2 text-black min-w-[160px] max-w-[220px] focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
                   <button
@@ -335,7 +338,25 @@ export default function DashboardPage() {
                     </Suspense>
                   )}
                 </div>
-                <div className="flex-none items-center ml-px-4 ">
+                <div
+                  className="flex-none items-center ml-px-4 cursor-pointer"
+                  role="button"
+                  title="Ir al dashboard (ver activas)"
+                  onClick={() => {
+                    setFiltro("activas");
+                    setSearchQuery("");
+                    setFilters({
+                      startDate: "",
+                      endDate: "",
+                      month: "",
+                      cliente: "",
+                      id: "",
+                      itinId: "",
+                      proveedor: "",
+                    });
+                    router.push("/dashboard");
+                  }}
+                >
                   <Logo />
                 </div>
                 <div className="flex items-center gap-2">
@@ -427,7 +448,7 @@ export default function DashboardPage() {
                     {filteredReservas.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={15}
+                          colSpan={17}
                           className="text-center py-4 text-gray-500"
                         >
                           No se encontraron reservas con los filtros aplicados.
@@ -509,8 +530,8 @@ export default function DashboardPage() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-1 py-1 rounded ${
                         currentPage === page
-                          ? "bg-gray-200 text-black opacity-25"
-                          : "bg-gray-100 hover:bg-gray-300 opacity-25"
+                          ? "bg-gray-300 text-black opacity-75"
+                          : "bg-gray-100 hover:bg-gray-200 opacity-50"
                       }`}
                     >
                       {page}

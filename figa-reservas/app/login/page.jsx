@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase.jsx";
 import Image from "next/image";
+import Logo from "../components/common/Logo.jsx";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,15 +41,14 @@ export default function LoginPage() {
 
   return (
     <div className="main-container grid grid-cols-1 place-items-center bg-gray-50">
-      <div id="login-content" className="bg-white rounded-lg shadow-lg w-96">
+      <div
+        id="login-content"
+        className="bg-white rounded-lg shadow-lg w-96 items-center justify-center "
+      >
         {error && <p className="text-red-500 text-center">{error}</p>}
-        <Image
-          src="/logo.PNG"
-          alt="FIGA Logo"
-          width={280}
-          height={280}
-          className="logo-login"
-        />
+        <div className="flex justify-center ">
+          <Logo />
+        </div>
         <form onSubmit={handleLogin} className="text-black">
           <div className="email-password-container">
             <label className="block text-gray-700 font-bold">Email</label>

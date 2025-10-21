@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../styles/dashboard.css";
 import { crearReserva } from "@/app/lib/api";
+import LogoNav from "./LogoNav";
+import { set } from "react-hook-form";
 
 export default function ReservaForm() {
   const [formData, setFormData] = useState({
@@ -34,9 +36,11 @@ export default function ReservaForm() {
 
   const router = useRouter();
   const [guardando, setGuardando] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (guardando || saved) return; // Prevenir múltiples envíos
     setGuardando(true);
 
     const response = await crearReserva(formData);
@@ -66,9 +70,11 @@ export default function ReservaForm() {
         chofer: "",
         buseta: 0,
       });
+      setSaved(true);
+      setGuardando(false);
       setTimeout(() => {
         router.push("/dashboard");
-      }, 2000);
+      }, 1000);
     } else {
       alert("Error al guardar la reserva");
     }
@@ -78,7 +84,10 @@ export default function ReservaForm() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
-      <h1 className="text-2xl font-bold mb-4">Nueva Reserva</h1>
+      <LogoNav />
+      <h1 className="text-2xl font-bold mb-4 font-sans text-gray-600">
+        Nueva Reserva
+      </h1>
       <form onSubmit={handleSubmit} className="p-4 border rounded space-y-4">
         <div className="grid grid-cols-8 gap-4">
           <div className="col-span-2">
@@ -273,10 +282,14 @@ export default function ReservaForm() {
         <div className="grid grid-cols-4 gap-4">
           <button
             type="submit"
-            disabled={guardando}
+            disabled={guardando || saved}
             className="submitbtn w-full py-2 rounded-lg font-semibold transition duration-300 col-span-2"
           >
-            {guardando ? "Guardando..." : "Guardar reserva"}
+            {guardando
+              ? "Guardando..."
+              : saved
+              ? "Reserva guardada"
+              : "Guardar reserva"}
           </button>
           <button
             type="button"
