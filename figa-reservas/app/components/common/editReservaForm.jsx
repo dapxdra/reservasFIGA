@@ -4,11 +4,13 @@ import { actualizarReserva } from "@/app/lib/api.js";
 import { useRouter } from "next/navigation";
 import "../../styles/dashboard.css";
 import LogoNav from "./LogoNav";
-import { set } from "react-hook-form";
+import { useReservasData } from "../../context/ReservasDataContext.js";
 
 export default function EditReservaForm({ reservaInicial }) {
   const [reserva, setReserva] = useState(reservaInicial);
   const router = useRouter();
+
+  const { invalidateCache } = useReservasData();
 
   const [guardando, setGuardando] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -21,6 +23,9 @@ export default function EditReservaForm({ reservaInicial }) {
       const response = await actualizarReserva(reserva.id, reserva);
       if (response.error) throw new Error(response.error);
       alert("Reserva actualizada con éxito");
+
+      invalidateCache();
+
       setSaved(true);
       setGuardando(false);
 

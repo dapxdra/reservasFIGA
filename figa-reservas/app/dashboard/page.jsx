@@ -21,6 +21,7 @@ import { formatearHora } from "../utils/formatearHora";
 import { cancelarReserva } from "../lib/api.js";
 import Logo from "../components/common/Logo.jsx";
 import Loading from "../components/common/Loading.jsx";
+import { useReservasData } from "../context/ReservasDataContext.js";
 
 const Modal = lazy(() => import("../components/common/modal"));
 
@@ -38,11 +39,12 @@ export default function DashboardPage() {
     itinId: "",
     proveedor: "",
   });
-  const { reservas, filteredReservas } = useReservas(
+  const { filteredReservas, isLoading } = useReservas(
     filtro,
     searchQuery,
     filters
   );
+  const { invalidateCache, removesReservaFromCache } = useReservasData();
   const [revisadas, setRevisadas] = useState({}); // useReservasRevisadas();
   const [currentPage, setCurrentPage] = useState(1);
   const reservasPorPagina = 8;
@@ -142,6 +144,7 @@ export default function DashboardPage() {
     );
     if (!confirm) return;
     await cancelarReserva(id);
+    removesReservaFromCache(id);
     setFiltro("activas");
   };
 
@@ -204,353 +207,334 @@ export default function DashboardPage() {
     () => filteredReservas.slice(indexOfFirst, indexOfLast),
     [filteredReservas, indexOfFirst, indexOfLast]
   );
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
-    <div /* className="flex flex-col w-full justify-center min-h-screen bg-white" */
-    >
-      {/* Tabla */}
-      {!reservas.length ? (
-        <Loading />
-      ) : (
-        reservas.length > 0 && (
-          <>
-            <div className="w-full min-h-screen bg-white flex flex-col items-center">
-              <nav className="w-full flex items-center justify-between bg-gray-50 border border-gray-200 shadow-sm rounded-xl px-4 py-3 mb-6">
-                <div className="flex items-center gap-4">
+    <div>
+      <div className="w-full min-h-screen bg-white flex flex-col items-center">
+        <nav className="w-full flex items-center justify-between bg-gray-50 border border-gray-200 shadow-sm rounded-xl px-4 py-3 mb-6">
+          <div className="flex items-center gap-4">
+            <input
+              type="text"
+              title="Buscar por ID, ItinId, Cliente o Agencia"
+              placeholder="Buscar..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="input-search border border-gray-300 rounded-md px-3 py-2 text-black min-w-[160px] max-w-[220px] focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+            <button
+              onClick={() => setShowModal(true)}
+              className="filter-button text-black px-3 py-2 rounded-md  hover:bg-blue-100 border border-blue-200"
+              title="Filtros Avanzados"
+            >
+              Filtros
+            </button>
+
+            {showModal && (
+              <Suspense fallback={<div>Cargando...</div>}>
+                <Modal
+                  onClose={() => setShowModal(false)}
+                  className="text-black"
+                >
+                  <h2 className="text-lg font-bold mb-2 col-span-8 ">
+                    Filtros Avanzados
+                  </h2>
+                  <label className="col-span-1">Fecha Inicio:</label>
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) =>
+                      setFilters({
+                        ...filters,
+                        startDate: e.target.value,
+                      })
+                    }
+                    className="p-2 border w-full mb-2 datepicker col-span-3"
+                  />
+                  <label className="col-span-1">Fecha Fin:</label>
+                  <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) =>
+                      setFilters({ ...filters, endDate: e.target.value })
+                    }
+                    className="p-2 border w-full mb-2 datepicker col-span-3"
+                  />
+                  <label className="col-span-1">Mes:</label>
+                  <select
+                    value={filters.month}
+                    onChange={(e) =>
+                      setFilters({ ...filters, month: e.target.value })
+                    }
+                    className="p-2 border w-full mb-2 col-span-7"
+                  >
+                    <option value="">Selecciona un mes</option>
+                    <option value="01">Enero</option>
+                    <option value="02">Febrero</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Mayo</option>
+                    <option value="06">Junio</option>
+                    <option value="07">Julio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                  <label className="col-span-2">Cliente:</label>
                   <input
                     type="text"
-                    title="Buscar por ID, ItinId, Cliente o Agencia"
-                    placeholder="Buscar..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="input-search border border-gray-300 rounded-md px-3 py-2 text-black min-w-[160px] max-w-[220px] focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    value={filters.cliente}
+                    onChange={(e) =>
+                      setFilters({ ...filters, cliente: e.target.value })
+                    }
+                    className="p-2 border w-full mb-2 col-span-6"
                   />
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="filter-button text-black px-3 py-2 rounded-md  hover:bg-blue-100 border border-blue-200"
-                    title="Filtros Avanzados"
-                  >
-                    Filtros
-                  </button>
-
-                  {showModal && (
-                    <Suspense fallback={<div>Cargando...</div>}>
-                      <Modal
-                        onClose={() => setShowModal(false)}
-                        className="text-black"
-                      >
-                        <h2 className="text-lg font-bold mb-2 col-span-8 ">
-                          Filtros Avanzados
-                        </h2>
-                        <label className="col-span-1">Fecha Inicio:</label>
-                        <input
-                          type="date"
-                          value={filters.startDate}
-                          onChange={(e) =>
-                            setFilters({
-                              ...filters,
-                              startDate: e.target.value,
-                            })
-                          }
-                          className="p-2 border w-full mb-2 datepicker col-span-3"
-                        />
-                        <label className="col-span-1">Fecha Fin:</label>
-                        <input
-                          type="date"
-                          value={filters.endDate}
-                          onChange={(e) =>
-                            setFilters({ ...filters, endDate: e.target.value })
-                          }
-                          className="p-2 border w-full mb-2 datepicker col-span-3"
-                        />
-                        <label className="col-span-1">Mes:</label>
-                        <select
-                          value={filters.month}
-                          onChange={(e) =>
-                            setFilters({ ...filters, month: e.target.value })
-                          }
-                          className="p-2 border w-full mb-2 col-span-7"
-                        >
-                          <option value="">Selecciona un mes</option>
-                          <option value="01">Enero</option>
-                          <option value="02">Febrero</option>
-                          <option value="03">Marzo</option>
-                          <option value="04">Abril</option>
-                          <option value="05">Mayo</option>
-                          <option value="06">Junio</option>
-                          <option value="07">Julio</option>
-                          <option value="08">Agosto</option>
-                          <option value="09">Septiembre</option>
-                          <option value="10">Octubre</option>
-                          <option value="11">Noviembre</option>
-                          <option value="12">Diciembre</option>
-                        </select>
-                        <label className="col-span-2">Cliente:</label>
-                        <input
-                          type="text"
-                          value={filters.cliente}
-                          onChange={(e) =>
-                            setFilters({ ...filters, cliente: e.target.value })
-                          }
-                          className="p-2 border w-full mb-2 col-span-6"
-                        />
-                        <label className="col-span-2">Agencia:</label>
-                        <input
-                          type="text"
-                          value={filters.proveedor}
-                          onChange={(e) =>
-                            setFilters({
-                              ...filters,
-                              proveedor: e.target.value,
-                            })
-                          }
-                          className="p-2 border w-full mb-2 col-span-6"
-                        />
-                        <label className="col-span-1">ItinId:</label>
-                        <input
-                          type="text"
-                          value={filters.itinId}
-                          onChange={(e) =>
-                            setFilters({ ...filters, itinId: e.target.value })
-                          }
-                          className="p-2 border w-full mb-2 col-span-3"
-                        />
-
-                        <label className="col-span-1">ID:</label>
-                        <input
-                          type="text"
-                          value={filters.id}
-                          onChange={(e) =>
-                            setFilters({ ...filters, id: e.target.value })
-                          }
-                          className="p-2 border w-full mb-2 col-span-3"
-                        />
-
-                        <button
-                          onClick={() => setShowModal(false)}
-                          className="applyFilters-button col-span-8"
-                          title="Aplicar Filtros"
-                        ></button>
-                      </Modal>
-                    </Suspense>
-                  )}
-                </div>
-                <div
-                  className="flex-none items-center ml-px-4 cursor-pointer"
-                  role="button"
-                  title="Ir al dashboard (ver activas)"
-                  onClick={() => {
-                    setFiltro("activas");
-                    setSearchQuery("");
-                    setFilters({
-                      startDate: "",
-                      endDate: "",
-                      month: "",
-                      cliente: "",
-                      id: "",
-                      itinId: "",
-                      proveedor: "",
-                    });
-                    router.push("/dashboard");
-                  }}
-                >
-                  <Logo />
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      exportToExcel(
-                        filteredReservas,
-                        `Reservas_FIGA_${
-                          new Date().toISOString().split("T")[0]
-                        }`
-                      )
+                  <label className="col-span-2">Agencia:</label>
+                  <input
+                    type="text"
+                    value={filters.proveedor}
+                    onChange={(e) =>
+                      setFilters({
+                        ...filters,
+                        proveedor: e.target.value,
+                      })
                     }
-                    //className="border rounded-md text-black button-export"
-                    className="button-export px-3 py-2 rounded-md hover:bg-yellow-100 border"
-                    title="Exportar"
-                  >
-                    Exportar
-                  </button>
-                  {/* Botón de Crear Reserva */}
-                  <button
-                    onClick={handleNavigate}
-                    title="Crear Reserva"
-                    //className="border rounded-md text-black button-create"
-                    className="button-create px-3 py-2 rounded-md hover:bg-green-100 border border-green-200"
-                  ></button>
-                  <button
-                    onClick={toggleCanceladas}
-                    className={`button-canceladas px-3 py-2 rounded-md hover:bg-green-100 border ${
-                      verCanceladas
-                        ? "button-activo icon-activas"
-                        : "icon-canceladas"
-                    }`}
-                    aria-label={
-                      verCanceladas ? "Ver Activas" : "Ver Canceladas"
+                    className="p-2 border w-full mb-2 col-span-6"
+                  />
+                  <label className="col-span-1">ItinId:</label>
+                  <input
+                    type="text"
+                    value={filters.itinId}
+                    onChange={(e) =>
+                      setFilters({ ...filters, itinId: e.target.value })
                     }
-                    title={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
-                  ></button>
-                  <button
-                    onClick={toggleAntiguas}
-                    className={`button-antiguas px-3 py-2 rounded-md hover:bg-green-100 border ${
-                      filtro === "antiguas"
-                        ? "button-activo icon-activas"
-                        : "icon-antiguas"
-                    }`}
-                    title={
-                      filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"
+                    className="p-2 border w-full mb-2 col-span-3"
+                  />
+
+                  <label className="col-span-1">ID:</label>
+                  <input
+                    type="text"
+                    value={filters.id}
+                    onChange={(e) =>
+                      setFilters({ ...filters, id: e.target.value })
                     }
-                  ></button>
+                    className="p-2 border w-full mb-2 col-span-3"
+                  />
+
                   <button
-                    onClick={toggleFuturas}
-                    className={`button-futuras px-3 py-2 rounded-md hover:bg-green-100 border ${
-                      filtro === "futuras"
-                        ? "button-activo icon-activas"
-                        : "icon-futuras"
-                    }`}
-                    title={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
+                    onClick={() => setShowModal(false)}
+                    className="applyFilters-button col-span-8"
+                    title="Aplicar Filtros"
                   ></button>
-                  <button
-                    onClick={logout}
-                    title="Cerrar Sesión"
-                    className="button-logout px-3 py-2 rounded-md hover:bg-red-300 border"
-                  ></button>
-                </div>
-              </nav>
-              <div className="w-full shadow-sm rounded border>">
-                <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Fecha</th>
-                      <th>Agencia</th>
-                      <th>ItinId</th>
-                      <th>PickUp</th>
-                      <th>DropOff</th>
-                      <th>Hora</th>
-                      <th>Adultos</th>
-                      <th>Niños</th>
-                      <th>Cliente</th>
-                      <th>Nota</th>
-                      <th>Chofer</th>
-                      <th>Buseta</th>
-                      <th>Precio</th>
-                      <th>Pago</th>
-                      <th>FechaPago</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredReservas.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={17}
-                          className="text-center py-4 text-gray-500"
-                        >
-                          No se encontraron reservas con los filtros aplicados.
-                        </td>
-                      </tr>
-                    ) : (
-                      reservasPaginadas.map((reserva) => (
-                        <tr key={reserva.id} className="border-t">
-                          <td>{reserva.id}</td>
-                          <td>{handleFormatDate(reserva.fecha)}</td>
-                          <td>{reserva.proveedor}</td>
-                          <td>{reserva.itinId}</td>
-                          <td>{reserva.pickUp}</td>
-                          <td>{reserva.dropOff}</td>
-                          <td>{handleFormatearHora(reserva.hora)}</td>
-                          <td>{reserva.AD}</td>
-                          <td>{reserva.NI}</td>
-                          <td>{reserva.cliente}</td>
-                          <td className="max-w-xs overflow-x-auto">
-                            {reserva.nota}
-                          </td>
-                          <td>{reserva.chofer}</td>
-                          <td>{reserva.buseta}</td>
-                          <td>{reserva.precio}</td>
-                          <td>{reserva.pago ? "Sí" : "No"}</td>
-                          <td>{reserva.fechaPago}</td>
-                          <td className="actions">
-                            <button
-                              onClick={() => handleCancelar(reserva.id)}
-                              className="actionbutton-cancel"
-                              title="Cancelar Reserva"
-                            ></button>
-                            <button
-                              onClick={() => {
-                                localStorage.setItem("dashboardFiltro", filtro);
-                                localStorage.setItem(
-                                  "dashboardSearchQuery",
-                                  searchQuery
-                                );
-                                localStorage.setItem(
-                                  "dashboardFilters",
-                                  JSON.stringify(filters)
-                                );
+                </Modal>
+              </Suspense>
+            )}
+          </div>
+          <div
+            className="flex-none items-center ml-px-4 cursor-pointer"
+            role="button"
+            title="Ir al dashboard (ver activas)"
+            onClick={() => {
+              setFiltro("activas");
+              setSearchQuery("");
+              setFilters({
+                startDate: "",
+                endDate: "",
+                month: "",
+                cliente: "",
+                id: "",
+                itinId: "",
+                proveedor: "",
+              });
+              invalidateCache();
+              router.push("/dashboard");
+            }}
+          >
+            <Logo />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                exportToExcel(
+                  filteredReservas,
+                  `Reservas_FIGA_${new Date().toISOString().split("T")[0]}`
+                )
+              }
+              //className="border rounded-md text-black button-export"
+              className="button-export px-3 py-2 rounded-md hover:bg-yellow-100 border"
+              title="Exportar"
+            >
+              Exportar
+            </button>
+            {/* Botón de Crear Reserva */}
+            <button
+              onClick={handleNavigate}
+              title="Crear Reserva"
+              //className="border rounded-md text-black button-create"
+              className="button-create px-3 py-2 rounded-md hover:bg-green-100 border border-green-200"
+            ></button>
+            <button
+              onClick={toggleCanceladas}
+              className={`button-canceladas px-3 py-2 rounded-md hover:bg-green-100 border ${
+                verCanceladas ? "button-activo icon-activas" : "icon-canceladas"
+              }`}
+              aria-label={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
+              title={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
+            ></button>
+            <button
+              onClick={toggleAntiguas}
+              className={`button-antiguas px-3 py-2 rounded-md hover:bg-green-100 border ${
+                filtro === "antiguas"
+                  ? "button-activo icon-activas"
+                  : "icon-antiguas"
+              }`}
+              title={filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"}
+            ></button>
+            <button
+              onClick={toggleFuturas}
+              className={`button-futuras px-3 py-2 rounded-md hover:bg-green-100 border ${
+                filtro === "futuras"
+                  ? "button-activo icon-activas"
+                  : "icon-futuras"
+              }`}
+              title={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
+            ></button>
+            <button
+              onClick={logout}
+              title="Cerrar Sesión"
+              className="button-logout px-3 py-2 rounded-md hover:bg-red-300 border"
+            ></button>
+          </div>
+        </nav>
+        <div className="w-full shadow-sm rounded border>">
+          <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Agencia</th>
+                <th>ItinId</th>
+                <th>PickUp</th>
+                <th>DropOff</th>
+                <th>Hora</th>
+                <th>Adultos</th>
+                <th>Niños</th>
+                <th>Cliente</th>
+                <th>Nota</th>
+                <th>Chofer</th>
+                <th>Buseta</th>
+                <th>Precio</th>
+                <th>Pago</th>
+                <th>FechaPago</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredReservas.length === 0 ? (
+                <tr>
+                  <td colSpan={17} className="text-center py-4 text-gray-500">
+                    No se encontraron reservas con los filtros aplicados.
+                  </td>
+                </tr>
+              ) : (
+                reservasPaginadas.map((reserva) => (
+                  <tr key={reserva.id} className="border-t">
+                    <td>{reserva.id}</td>
+                    <td>{handleFormatDate(reserva.fecha)}</td>
+                    <td>{reserva.proveedor}</td>
+                    <td>{reserva.itinId}</td>
+                    <td>{reserva.pickUp}</td>
+                    <td>{reserva.dropOff}</td>
+                    <td>{handleFormatearHora(reserva.hora)}</td>
+                    <td>{reserva.AD}</td>
+                    <td>{reserva.NI}</td>
+                    <td>{reserva.cliente}</td>
+                    <td className="max-w-xs overflow-x-auto">{reserva.nota}</td>
+                    <td>{reserva.chofer}</td>
+                    <td>{reserva.buseta}</td>
+                    <td>{reserva.precio}</td>
+                    <td>{reserva.pago ? "Sí" : "No"}</td>
+                    <td>{reserva.fechaPago}</td>
+                    <td className="actions">
+                      <button
+                        onClick={() => handleCancelar(reserva.id)}
+                        className="actionbutton-cancel"
+                        title="Cancelar Reserva"
+                      ></button>
+                      <button
+                        onClick={() => {
+                          localStorage.setItem("dashboardFiltro", filtro);
+                          localStorage.setItem(
+                            "dashboardSearchQuery",
+                            searchQuery
+                          );
+                          localStorage.setItem(
+                            "dashboardFilters",
+                            JSON.stringify(filters)
+                          );
 
-                                router.push(`/reservas/edit/${reserva.id}`);
-                              }}
-                              className="actionbutton-edit"
-                              title="Editar Reserva"
-                            ></button>
-                            <input
-                              type="checkbox"
-                              checked={revisadas[reserva.id] || false}
-                              onChange={() => toggleRevisada(reserva.id)}
-                              className="actionbutton-check"
-                              title="Marcar como revisada"
-                            />
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {/* Paginación */}
-              <div className="table-pagination flex justify-center items-center gap-2 flex-wrap mt-4">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="disabled:opacity-50"
-                >
-                  Ant
-                </button>
+                          router.push(`/reservas/edit/${reserva.id}`);
+                        }}
+                        className="actionbutton-edit"
+                        title="Editar Reserva"
+                      ></button>
+                      <input
+                        type="checkbox"
+                        checked={revisadas[reserva.id] || false}
+                        onChange={() => toggleRevisada(reserva.id)}
+                        className="actionbutton-check"
+                        title="Marcar como revisada"
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Paginación */}
+        <div className="table-pagination flex justify-center items-center gap-2 flex-wrap mt-4">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="disabled:opacity-50"
+          >
+            Ant
+          </button>
 
-                {[...Array(totalPages)].map((_, i) => {
-                  const page = i + 1;
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-1 py-1 rounded ${
-                        currentPage === page
-                          ? "bg-gray-300 text-black opacity-75"
-                          : "bg-gray-100 hover:bg-gray-200 opacity-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
+          {[...Array(totalPages)].map((_, i) => {
+            const page = i + 1;
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-1 py-1 rounded ${
+                  currentPage === page
+                    ? "bg-gray-300 text-black opacity-75"
+                    : "bg-gray-100 hover:bg-gray-200 opacity-50"
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
 
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="disabled:opacity-50"
-                >
-                  Sig
-                </button>
-              </div>
-            </div>
-          </>
-        )
-      )}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="disabled:opacity-50"
+          >
+            Sig
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

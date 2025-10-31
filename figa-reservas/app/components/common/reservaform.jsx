@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import "../../styles/dashboard.css";
 import { crearReserva } from "@/app/lib/api";
 import LogoNav from "./LogoNav";
-import { set } from "react-hook-form";
+import { useReservasData } from "../../context/ReservasDataContext.js";
 
 export default function ReservaForm() {
+  const { invalidateCache } = useReservasData();
   const [formData, setFormData] = useState({
     cliente: "",
     fecha: "",
@@ -55,6 +56,7 @@ export default function ReservaForm() {
           " Proveedor: " +
           formData.proveedor
       );
+      invalidateCache();
       setFormData({
         itinId: 0,
         cliente: "",

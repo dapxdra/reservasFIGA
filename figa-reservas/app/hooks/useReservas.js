@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { getReservas } from "../lib/api";
+import { useState, useEffect, useMemo } from "react";
+//import { getReservas } from "../lib/api";
+import { useReservasData } from "../context/ReservasDataContext";
 
 // Detecta formatos comunes
 const isDMY = (s) => typeof s === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(s);
@@ -62,18 +63,18 @@ function addDaysYmd(ymd, days) {
 }
 
 export function useReservas(filtro, searchQuery, filters) {
+  const { getReservas: fetchCachedReservas, isLoading } = useReservasData();
   const [reservas, setReservas] = useState([]);
-  const [filteredReservas, setFilteredReservas] = useState([]);
 
   useEffect(() => {
-    async function fetchData() {
-      const data = await getReservas({ filtro, searchQuery, ...filters });
+    async function load() {
+      const data = await fetchCachedReservas();
       setReservas(Array.isArray(data) ? data : []);
     }
-    fetchData();
-  }, [filtro, searchQuery, filters]);
+    load();
+  }, []);
 
-  useEffect(() => {
+  const filteredReservas = useMemo(() => {
     // Base inicial
     let base = [...reservas];
 
@@ -127,16 +128,13 @@ export function useReservas(filtro, searchQuery, filters) {
         filtro === "canceladas"
           ? advanced
           : advanced.filter((r) => !r.cancelada);
-      setFilteredReservas(
-        searchBase.filter(
-          (r) =>
-            r.id?.toString().toLowerCase().includes(q) ||
-            r.itinId?.toString().toLowerCase().includes(q) ||
-            r.cliente?.toLowerCase().includes(q) ||
-            r.proveedor?.toLowerCase().includes(q)
-        )
+      return searchBase.filter(
+        (r) =>
+          r.id?.toString().toLowerCase().includes(q) ||
+          r.itinId?.toString().toLowerCase().includes(q) ||
+          r.cliente?.toLowerCase().includes(q) ||
+          r.proveedor?.toLowerCase().includes(q)
       );
-      return;
     }
 
     // 3) Filtro principal sobre advanced
@@ -159,8 +157,8 @@ export function useReservas(filtro, searchQuery, filters) {
       result = result.filter((r) => r.cancelada);
     }
 
-    setFilteredReservas(result);
+    return result;
   }, [reservas, filtro, searchQuery, filters]);
 
-  return { reservas, filteredReservas, setReservas };
+  return { reservas, filteredReservas, setReservas, isLoading };
 }

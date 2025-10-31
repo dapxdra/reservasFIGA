@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { UserProvider } from "./context/UserContext";
 import "./globals.css";
 import { ReservasRevisadasProvider } from "./context/ReservasContext";
+import { ReservasDataProvider } from "./context/ReservasDataContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,9 @@ export default function RootLayout({ children }) {
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <UserProvider>
-          <ReservasRevisadasProvider>{children}</ReservasRevisadasProvider>
+          <ReservasDataProvider>
+            <ReservasRevisadasProvider>{children}</ReservasRevisadasProvider>
+          </ReservasDataProvider>
         </UserProvider>
       </body>
     </html>
