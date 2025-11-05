@@ -360,6 +360,15 @@ export default function DashboardPage() {
             <Logo />
           </div>
           <div className="flex items-center gap-2">
+            {/* Espacio para el botón de Reportes */}
+            <button
+              onClick={() => router.push("/reportes")}
+              className="button-reports px-3 py-2 rounded-md hover:bg-blue-100 border border-blue-200"
+              title="Ver Reportes"
+            >
+              Reportes
+            </button>
+            {/* Espacio para el botón de exportar */}
             <button
               onClick={() =>
                 exportToExcel(

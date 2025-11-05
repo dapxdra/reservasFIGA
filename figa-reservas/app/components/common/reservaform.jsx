@@ -6,6 +6,8 @@ import "../../styles/dashboard.css";
 import { crearReserva } from "@/app/lib/api";
 import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
+import { getTodayCR } from "../../utils/getTodayCR.js";
+import { get } from "react-hook-form";
 
 export default function ReservaForm() {
   const { invalidateCache } = useReservasData();
@@ -151,7 +153,7 @@ export default function ReservaForm() {
               <input
                 type="date"
                 name="fecha"
-                min={new Date().toISOString().split("T")[0]}
+                min={getTodayCR()}
                 onChange={handleChange}
                 className="datepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 required
