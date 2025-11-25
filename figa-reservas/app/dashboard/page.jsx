@@ -22,6 +22,8 @@ import { cancelarReserva } from "../lib/api.js";
 import Logo from "../components/common/Logo.jsx";
 import Loading from "../components/common/Loading.jsx";
 import { useReservasData } from "../context/ReservasDataContext.js";
+import { notifySuccess, notifyError, confirmToast } from "../utils/notify.js";
+import toast from "react-hot-toast";
 
 const Modal = lazy(() => import("../components/common/modal"));
 
@@ -39,7 +41,7 @@ export default function DashboardPage() {
     itinId: "",
     proveedor: "",
   });
-  const { filteredReservas, isLoading } = useReservas(
+  const { reservas, filteredReservas, isLoading, setReservas } = useReservas(
     filtro,
     searchQuery,
     filters
@@ -81,7 +83,7 @@ export default function DashboardPage() {
     const resetTimer = () => {
       clearTimeout(logoutTimer.current);
       logoutTimer.current = setTimeout(async () => {
-        alert("Tu sesión ha expirado por inactividad.");
+        notifyError("Tu sesión ha expirado por inactividad.");
         await logout();
       }, INACTIVITY_LIMIT);
     };
@@ -139,12 +141,29 @@ export default function DashboardPage() {
   const handleFormatearHora = (hora) => formatearHora(hora);
 
   const handleCancelar = async (id) => {
-    const confirm = window.confirm(
-      "¿Estás seguro de que deseas cancelar esta reserva?"
+    const confirm = await confirmToast(
+      "¿Estás seguro de que deseas cancelar esta reserva?",
+      { okText: "Sí, cancelar", cancelText: "No" }
     );
     if (!confirm) return;
-    await cancelarReserva(id);
-    removesReservaFromCache(id);
+    await toast.promise(cancelarReserva(id), {
+      loading: "Cancelando reserva...",
+      success: "Reserva cancelada con éxito",
+      error: "Error al cancelar la reserva",
+    });
+    // actualización optimista
+    setReservas((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              cancelada: true,
+              canceledAt: r.canceledAt || new Date().toISOString(),
+            }
+          : r
+      )
+    );
+    // si estabas viendo activas, se ocultará sola en filteredReservas
     setFiltro("activas");
   };
 
@@ -153,41 +172,53 @@ export default function DashboardPage() {
   }, []);
 
   const exportToExcel = (data, fileName) => {
-    const dataForExcel = data.map((r) => ({
-      ID: r.id,
-      Fecha: r.fecha ? new Date(r.fecha).toISOString().split("T")[0] : "",
-      Agencia: r.proveedor,
-      ItinId: r.itinId,
-      PickUp: r.pickUp,
-      DropOff: r.dropOff,
-      Hora: r.hora,
-      Adultos: r.AD,
-      Niños: r.NI,
-      Cliente: r.cliente,
-      Nota: r.nota,
-      Chofer: r.chofer,
-      Buseta: r.buseta,
-      Precio: r.precio,
-      Pago: r.pago ? "Sí" : "No",
-      FechaPago: r.fechaPago
-        ? new Date(r.fechaPago).toISOString().split("T")[0]
-        : "",
-      Cancelada: r.cancelada ? "Sí" : "No",
-      CreatedAt: r.createdAt
-        ? new Date(r.createdAt).toISOString().split("T")[0]
-        : "",
-    }));
-    const workSheet = XLSX.utils.json_to_sheet(dataForExcel);
-    const workBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workBook, workSheet, "Reservas");
-    const excelBuffer = XLSX.write(workBook, {
-      bookType: "xlsx",
-      type: "binary",
-    });
-    const blob = new Blob([s2ab(excelBuffer)], {
-      type: "application/octet-stream",
-    });
-    saveAs(blob, `${fileName}.xlsx`);
+    try {
+      toast.loading("Generando archivo Excel...", { id: "export" });
+
+      const dataForExcel = data.map((r) => ({
+        ID: r.id,
+        Fecha: r.fecha ? new Date(r.fecha).toISOString().split("T")[0] : "",
+        Agencia: r.proveedor,
+        ItinId: r.itinId,
+        PickUp: r.pickUp,
+        DropOff: r.dropOff,
+        Hora: r.hora,
+        Adultos: r.AD,
+        Niños: r.NI,
+        Cliente: r.cliente,
+        Nota: r.nota,
+        Chofer: r.chofer,
+        Buseta: r.buseta,
+        Precio: r.precio,
+        Pago: r.pago ? "Sí" : "No",
+        FechaPago: r.fechaPago
+          ? new Date(r.fechaPago).toISOString().split("T")[0]
+          : "",
+        Cancelada: r.cancelada ? "Sí" : "No",
+        CreatedAt: r.createdAt
+          ? new Date(r.createdAt).toISOString().split("T")[0]
+          : "",
+        CanceledAt: r.canceledAt
+          ? new Date(r.canceledAt).toISOString().split("T")[0]
+          : "",
+      }));
+      const workSheet = XLSX.utils.json_to_sheet(dataForExcel);
+      const workBook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workBook, workSheet, "Reservas");
+      const excelBuffer = XLSX.write(workBook, {
+        bookType: "xlsx",
+        type: "binary",
+      });
+      const blob = new Blob([s2ab(excelBuffer)], {
+        type: "application/octet-stream",
+      });
+      saveAs(blob, `${fileName}.xlsx`);
+
+      toast.success("Archivo Excel generado con éxito", { id: "export" });
+    } catch (error) {
+      console.error("Error al exportar a Excel:", error);
+      toast.error("Error al generar el archivo Excel", { id: "export" });
+    }
   };
 
   const s2ab = (s) => {

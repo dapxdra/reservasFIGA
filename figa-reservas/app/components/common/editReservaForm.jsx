@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import "../../styles/dashboard.css";
 import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
+import { notifySuccess, notifyError } from "../../utils/notify.js";
+import toast from "react-hot-toast";
+import { set } from "react-hook-form";
 
 export default function EditReservaForm({ reservaInicial }) {
   const [reserva, setReserva] = useState(reservaInicial);
@@ -19,26 +22,28 @@ export default function EditReservaForm({ reservaInicial }) {
     e.preventDefault();
     if (guardando || saved) return; // Prevenir múltiples envíos
     setGuardando(true);
-    try {
-      const response = await actualizarReserva(reserva.id, reserva);
-      if (response.error) throw new Error(response.error);
-      alert("Reserva actualizada con éxito");
 
-      invalidateCache();
+    const promise = actualizarReserva(reserva.id, reserva).then((response) => {
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response;
+    });
 
-      setSaved(true);
-      setGuardando(false);
+    await toast.promise(promise, {
+      loading: "Actualizando reserva...",
+      success: () => {
+        invalidateCache();
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1000);
+        return "Reserva actualizada con éxito";
+      },
+      error: "Error al actualizar la reserva",
+    });
 
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
-    } catch (error) {
-      console.error("Error al actualizar la reserva:", error);
-      alert("Error al actualizar la reserva");
-      setGuardando(false);
-    }
+    setGuardando(false);
   };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-black bg-white p-4">
       <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
@@ -280,9 +285,10 @@ export default function EditReservaForm({ reservaInicial }) {
           <div className="grid grid-cols-4 gap-4">
             <button
               type="submit"
+              disabled={guardando}
               className="submitbtn w-full py-2 rounded-lg font-semibold transition duration-300 col-span-2"
             >
-              Actualizar
+              {guardando ? "Actualizando..." : "Actualizar"}
             </button>
             <button
               type="button"

@@ -1,4 +1,5 @@
 import { db } from "../../../lib/firebaseadmin.jsx";
+import admin from "firebase-admin";
 
 // Función segura para las respuestas JSON
 function jsonResponse(data = {}, status = 200) {
@@ -65,8 +66,13 @@ export async function DELETE(req, { params }) {
     if (!reservaDoc.exists) {
       return jsonResponse({ message: "Reserva no encontrada" }, 404);
     }
+    const data = reservaDoc.data();
+    const updates = { cancelada: true };
+    if (!data.canceledAt) {
+      updates.canceledAt = new Date().toString();
+    }
 
-    await reservaRef.update({ cancelada: true });
+    await reservaRef.update(updates);
     return jsonResponse({ message: "Reserva marcada como cancelada" });
   } catch (error) {
     console.error("Error al cancelar la reserva:", error.message);
@@ -90,7 +96,13 @@ export async function PATCH(req) {
       return jsonResponse({ message: "Reserva no encontrada" }, 404);
     }
 
-    await reservaRef.update({ cancelada });
+    const prev = reservaDoc.data();
+    const updates = { cancelada };
+    if (!prev.canceledAt && cancelada) {
+      updates.canceledAt = new Date().toString();
+    }
+
+    await reservaRef.update(updates);
     return jsonResponse({ message: "Reserva actualizada correctamente" });
   } catch (error) {
     console.error("Error al actualizar la reserva:", error.message);

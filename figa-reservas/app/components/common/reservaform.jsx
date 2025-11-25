@@ -8,6 +8,8 @@ import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
 import { getTodayCR } from "../../utils/getTodayCR.js";
 import { get } from "react-hook-form";
+import { notifySuccess, notifyError } from "@/app/utils/notify.js";
+import toast from "react-hot-toast";
 
 export default function ReservaForm() {
   const { invalidateCache } = useReservasData();
@@ -46,42 +48,24 @@ export default function ReservaForm() {
     if (guardando || saved) return; // Prevenir múltiples envíos
     setGuardando(true);
 
-    const response = await crearReserva(formData);
-
-    if (!response.error) {
-      alert(
-        " Reserva creada con éxito:  " +
-          " ItinId: " +
-          formData.itinId +
-          " Cliente: " +
-          formData.cliente +
-          " Proveedor: " +
-          formData.proveedor
-      );
-      invalidateCache();
-      setFormData({
-        itinId: 0,
-        cliente: "",
-        fecha: "",
-        hora: "",
-        dropOff: "",
-        pickUp: "",
-        proveedor: "",
-        nota: "",
-        precio: 0,
-        AD: 0,
-        NI: 0,
-        chofer: "",
-        buseta: 0,
-      });
-      setSaved(true);
-      setGuardando(false);
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
-    } else {
-      alert("Error al guardar la reserva");
-    }
+    const promise = crearReserva(formData).then((response) => {
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response;
+    });
+    await toast.promise(promise, {
+      loading: "Guardando reserva...",
+      success: (data) => {
+        invalidateCache();
+        setSaved(true);
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1000);
+        return `Reserva creada: Cliente: ${formData.cliente} - ItinID: ${formData.itinId} - Proveedor: ${formData.proveedor}`;
+      },
+      error: (err) => `Error al guardar la reserva: ${err.message}`,
+    });
 
     setGuardando(false);
   };

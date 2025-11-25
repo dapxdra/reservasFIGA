@@ -57,6 +57,7 @@ export function monthIndex(ymd) {
 export function sumPrecioByMonth(reservas, year) {
   const out = new Array(12).fill(0);
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
     if (year && yearOf(ymd) !== String(year)) return;
@@ -67,12 +68,16 @@ export function sumPrecioByMonth(reservas, year) {
 
 export function sumPrecioByPeriod(reservas, startDate, endDate) {
   const filtered = filterByDateRange(reservas, { startDate, endDate });
-  return filtered.reduce((acc, r) => acc + normalizePrecio(r.precio), 0);
+  return filtered.reduce(
+    (acc, r) => (r.cancelada ? acc : acc + normalizePrecio(r.precio)),
+    0
+  );
 }
 
 export function sumPrecioByYear(reservas) {
   const map = {};
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
     const y = yearOf(ymd);
@@ -86,6 +91,7 @@ export function sumPrecioByYear(reservas) {
 export function countsByMonth(reservas, year) {
   const out = new Array(12).fill(0);
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
     if (year && yearOf(ymd) !== String(year)) return;
@@ -95,12 +101,15 @@ export function countsByMonth(reservas, year) {
 }
 
 export function countByPeriod(reservas, startDate, endDate) {
-  return filterByDateRange(reservas, { startDate, endDate }).length;
+  return filterByDateRange(reservas, { startDate, endDate }).filter(
+    (r) => !r.cancelada
+  ).length;
 }
 
 export function countsByYear(reservas) {
   const map = {};
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
     const y = yearOf(ymd);
@@ -182,6 +191,7 @@ export function hourLabel12(hour) {
 export function pagadasByMonth(reservas, year) {
   const out = new Array(12).fill(0);
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     if (!r.pago) return; // Solo pagas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
@@ -194,6 +204,7 @@ export function pagadasByMonth(reservas, year) {
 export function noPagadasByMonth(reservas, year) {
   const out = new Array(12).fill(0);
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     if (r.pago) return; // Solo NO pagas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
@@ -205,17 +216,18 @@ export function noPagadasByMonth(reservas, year) {
 
 export function pagadasByPeriod(reservas, startDate, endDate) {
   const filtered = filterByDateRange(reservas, { startDate, endDate });
-  return filtered.filter((r) => r.pago).length;
+  return filtered.filter((r) => !r.cancelada && r.pago).length;
 }
 
 export function noPagadasByPeriod(reservas, startDate, endDate) {
   const filtered = filterByDateRange(reservas, { startDate, endDate });
-  return filtered.filter((r) => !r.pago).length;
+  return filtered.filter((r) => !r.cancelada && !r.pago).length;
 }
 
 export function pagadasByYear(reservas) {
   const map = {};
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     if (!r.pago) return; // Solo pagas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;
@@ -230,6 +242,7 @@ export function pagadasByYear(reservas) {
 export function noPagadasByYear(reservas) {
   const map = {};
   reservas.forEach((r) => {
+    if (r.cancelada) return; // Solo no canceladas
     if (r.pago) return; // Solo NO pagas
     const ymd = toYMD(r.fecha);
     if (!ymd) return;

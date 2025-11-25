@@ -17,25 +17,7 @@ export default function EditReserva() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   const [reserva, setReserva] = useState(null);
-  /* const [reserva, setReserva] = useState({
-    itinId: "",
-    proveedor: "",
-    cliente: "",
-    precio: "",
-    fecha: "",
-    hora: "",
-    pickUp: "",
-    dropOff: "",
-    AD: "",
-    NI: "",
-    pago: false,
-    chofer: "",
-    buseta: "",
-    fechaPago: "",
-    nota: "",
-    chofer: "",
-    buseta: "",
-  }); */
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) router.push("/login");

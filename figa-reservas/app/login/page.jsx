@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase.jsx";
-import Image from "next/image";
 import Logo from "../components/common/Logo.jsx";
+import { notifySuccess, notifyError } from "../utils/notify";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,15 +29,26 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard"); // Redirigir después del login
-    } catch (err) {
-      setError("Credenciales incorrectas. Intenta de nuevo.");
-      console.error("Error de inicio de sesión:", err);
-    }
+    const promise = signInWithEmailAndPassword(auth, email, password).then(
+      () => {
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 500);
+      }
+    );
+
+    await toast.promise(promise, {
+      loading: "Iniciando sesión...",
+      success: "¡Bienvenido!",
+      error: (err) => {
+        console.error(
+          "Error al iniciar sesión. Verifica tus credenciales.",
+          err
+        );
+        return "Error al iniciar sesión. Verifica tus credenciales.";
+      },
+    });
   };
 
   return (

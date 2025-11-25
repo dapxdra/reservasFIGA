@@ -9,6 +9,8 @@ import { saveAs } from "file-saver";
 import Logo from "../components/common/Logo.jsx";
 import Loading from "../components/common/Loading.jsx";
 import { useReservasData } from "../context/ReservasDataContext";
+import { notifySuccess, notifyError } from "../utils/notify";
+import toast from "react-hot-toast";
 import {
   sumPrecioByMonth,
   sumPrecioByPeriod,
@@ -171,180 +173,196 @@ export default function ReportesPage() {
   const toggle = (key) => setSelected((s) => ({ ...s, [key]: !s[key] }));
 
   const exportarExcel = () => {
-    const wb = XLSX.utils.book_new();
+    try {
+      toast.loading("Generando archivo Excel...", { id: "export-Reportes" });
 
-    if (selected.sumPrecioMensual) {
-      const rows = monthNames.map((m, i) => ({
-        Mes: m,
-        TotalPrecio: precioPorMes[i],
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Precio por Mes");
-    }
-    if (selected.sumPrecioPeriodo) {
-      const rows = [
-        {
-          Inicio: startDate || "-",
-          Fin: endDate || "-",
-          TotalPrecio: precioPeriodo,
-        },
-      ];
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Precio por Periodo");
-    }
-    if (selected.sumPrecioAnual) {
-      const rows = precioPorAnio.map((r) => ({
-        Año: r.year,
-        TotalPrecio: r.total,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Precio por Año");
-    }
-    if (selected.countMensual) {
-      const rows = monthNames.map((m, i) => ({
-        Mes: m,
-        Cantidad: cantPorMes[i],
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Cant. por Mes");
-    }
-    if (selected.countPeriodo) {
-      const rows = [
-        {
-          Inicio: startDate || "-",
-          Fin: endDate || "-",
-          Cantidad: cantPeriodo,
-        },
-      ];
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Cant. por Periodo");
-    }
-    if (selected.countAnual) {
-      const rows = cantPorAnio.map((r) => ({ Año: r.year, Cantidad: r.count }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Cant. por Año");
-    }
+      const wb = XLSX.utils.book_new();
 
-    if (selected.canceladasMensual) {
-      const rows = monthNames.map((m, i) => ({
-        Mes: m,
-        Canceladas: canceladasPorMes[i],
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Mes");
-    }
-    if (selected.canceladasPeriodo) {
-      const rows = [
-        {
-          Inicio: startDate || "-",
-          Fin: endDate || "-",
-          Canceladas: canceladasPeriodo,
-        },
-      ];
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Periodo");
-    }
-    if (selected.canceladasAnual) {
-      const rows = canceladasPorAnio.map((r) => ({
-        Año: r.year,
-        Canceladas: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Año");
-    }
+      if (selected.sumPrecioMensual) {
+        const rows = monthNames.map((m, i) => ({
+          Mes: m,
+          TotalPrecio: precioPorMes[i],
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Precio por Mes");
+      }
+      if (selected.sumPrecioPeriodo) {
+        const rows = [
+          {
+            Inicio: startDate || "-",
+            Fin: endDate || "-",
+            TotalPrecio: precioPeriodo,
+          },
+        ];
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Precio por Periodo");
+      }
+      if (selected.sumPrecioAnual) {
+        const rows = precioPorAnio.map((r) => ({
+          Año: r.year,
+          TotalPrecio: r.total,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Precio por Año");
+      }
+      if (selected.countMensual) {
+        const rows = monthNames.map((m, i) => ({
+          Mes: m,
+          Cantidad: cantPorMes[i],
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Cant. por Mes");
+      }
+      if (selected.countPeriodo) {
+        const rows = [
+          {
+            Inicio: startDate || "-",
+            Fin: endDate || "-",
+            Cantidad: cantPeriodo,
+          },
+        ];
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Cant. por Periodo");
+      }
+      if (selected.countAnual) {
+        const rows = cantPorAnio.map((r) => ({
+          Año: r.year,
+          Cantidad: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Cant. por Año");
+      }
 
-    if (selected.pagadasMensual) {
-      const rows = monthNames.map((m, i) => ({
-        Mes: m,
-        Pagas: pagadasPorMes[i],
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Pagas por Mes");
-    }
-    if (selected.noPagadasMensual) {
-      const rows = monthNames.map((m, i) => ({
-        Mes: m,
-        NoPagas: noPagadasPorMes[i],
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Mes");
-    }
-    if (selected.pagadasPeriodo) {
-      const rows = [
-        {
-          Inicio: startDate || "-",
-          Fin: endDate || "-",
-          Pagas: pagadasPeriodo,
-        },
-      ];
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Pagas por Periodo");
-    }
-    if (selected.noPagadasPeriodo) {
-      const rows = [
-        {
-          Inicio: startDate || "-",
-          Fin: endDate || "-",
-          NoPagas: noPagadasPeriodo,
-        },
-      ];
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Periodo");
-    }
-    if (selected.pagadasAnual) {
-      const rows = pagadasPorAnio.map((r) => ({
-        Año: r.year,
-        Pagas: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Pagas por Año");
-    }
-    if (selected.noPagadasAnual) {
-      const rows = noPagadasPorAnio.map((r) => ({
-        Año: r.year,
-        NoPagas: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Año");
-    }
+      if (selected.canceladasMensual) {
+        const rows = monthNames.map((m, i) => ({
+          Mes: m,
+          Canceladas: canceladasPorMes[i],
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Mes");
+      }
+      if (selected.canceladasPeriodo) {
+        const rows = [
+          {
+            Inicio: startDate || "-",
+            Fin: endDate || "-",
+            Canceladas: canceladasPeriodo,
+          },
+        ];
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Periodo");
+      }
+      if (selected.canceladasAnual) {
+        const rows = canceladasPorAnio.map((r) => ({
+          Año: r.year,
+          Canceladas: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Año");
+      }
 
-    if (selected.topPickUp) {
-      const rows = topPickUps.map((r) => ({
-        Lugar: r.name,
-        Cantidad: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Top PickUp");
-    }
-    if (selected.topDropOff) {
-      const rows = topDropOffs.map((r) => ({
-        Lugar: r.name,
-        Cantidad: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Top DropOff");
-    }
-    if (selected.topHoras) {
-      const rows = topHorasList.map((r) => ({
-        Hora: hourLabel12(r.hour),
-        Cantidad: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Top Horas");
-    }
-    if (selected.topProveedores) {
-      const rows = topProveedores.map((r) => ({
-        Proveedor: r.name,
-        Cantidad: r.count,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Top Proveedores");
-    }
+      if (selected.pagadasMensual) {
+        const rows = monthNames.map((m, i) => ({
+          Mes: m,
+          Pagas: pagadasPorMes[i],
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Pagas por Mes");
+      }
+      if (selected.noPagadasMensual) {
+        const rows = monthNames.map((m, i) => ({
+          Mes: m,
+          NoPagas: noPagadasPorMes[i],
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Mes");
+      }
+      if (selected.pagadasPeriodo) {
+        const rows = [
+          {
+            Inicio: startDate || "-",
+            Fin: endDate || "-",
+            Pagas: pagadasPeriodo,
+          },
+        ];
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Pagas por Periodo");
+      }
+      if (selected.noPagadasPeriodo) {
+        const rows = [
+          {
+            Inicio: startDate || "-",
+            Fin: endDate || "-",
+            NoPagas: noPagadasPeriodo,
+          },
+        ];
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Periodo");
+      }
+      if (selected.pagadasAnual) {
+        const rows = pagadasPorAnio.map((r) => ({
+          Año: r.year,
+          Pagas: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Pagas por Año");
+      }
+      if (selected.noPagadasAnual) {
+        const rows = noPagadasPorAnio.map((r) => ({
+          Año: r.year,
+          NoPagas: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Año");
+      }
 
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([buffer], { type: "application/octet-stream" });
-    const today = new Date().toISOString().split("T")[0];
-    saveAs(blob, `Reportes_FIGA_${today}.xlsx`);
+      if (selected.topPickUp) {
+        const rows = topPickUps.map((r) => ({
+          Lugar: r.name,
+          Cantidad: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Top PickUp");
+      }
+      if (selected.topDropOff) {
+        const rows = topDropOffs.map((r) => ({
+          Lugar: r.name,
+          Cantidad: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Top DropOff");
+      }
+      if (selected.topHoras) {
+        const rows = topHorasList.map((r) => ({
+          Hora: hourLabel12(r.hour),
+          Cantidad: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Top Horas");
+      }
+      if (selected.topProveedores) {
+        const rows = topProveedores.map((r) => ({
+          Proveedor: r.name,
+          Cantidad: r.count,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Top Proveedores");
+      }
+
+      const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([buffer], { type: "application/octet-stream" });
+      const today = new Date().toISOString().split("T")[0];
+      saveAs(blob, `Reportes_FIGA_${today}.xlsx`);
+
+      toast.success("Archivo Excel generado correctamente.", {
+        id: "export-Reportes",
+      });
+    } catch (error) {
+      console.error("Error al exportar a Excel:", error);
+      toast.error("Error al generar el archivo Excel.", {
+        id: "export-Reportes",
+      });
+    }
   };
 
   if (isLoading && reservas.length === 0) {

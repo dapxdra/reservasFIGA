@@ -8,6 +8,7 @@ export async function getReservas(params) {
 // Cancelar una reserva
 export async function cancelarReserva(id) {
   const res = await fetch(`/api/reservas/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Error al cancelar la reserva");
   return res.json();
 }
 
