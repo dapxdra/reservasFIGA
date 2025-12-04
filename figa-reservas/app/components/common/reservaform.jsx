@@ -10,7 +10,7 @@ import { getTodayCR } from "../../utils/getTodayCR.js";
 import { get } from "react-hook-form";
 import { notifySuccess, notifyError } from "@/app/utils/notify.js";
 import toast from "react-hot-toast";
-import PlaceAutocomplete from "./PlaceAutocomplete";
+import PlaceAutocomplete from "./PlaceAutocomplete.jsx";
 
 export default function ReservaForm() {
   const { invalidateCache } = useReservasData();

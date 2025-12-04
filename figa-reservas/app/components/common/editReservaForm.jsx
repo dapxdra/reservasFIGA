@@ -7,7 +7,7 @@ import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
 import { notifySuccess, notifyError } from "../../utils/notify.js";
 import toast from "react-hot-toast";
-import PlaceAutocomplete from "./PlaceAutocomplete";
+import PlaceAutocomplete from "./placeAutocomplete.jsx";
 import { set } from "react-hook-form";
 
 export default function EditReservaForm({ reservaInicial }) {
