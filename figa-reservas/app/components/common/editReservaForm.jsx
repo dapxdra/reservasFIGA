@@ -7,6 +7,7 @@ import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
 import { notifySuccess, notifyError } from "../../utils/notify.js";
 import toast from "react-hot-toast";
+import PlaceAutocomplete from "./PlaceAutocomplete";
 import { set } from "react-hook-form";
 
 export default function EditReservaForm({ reservaInicial }) {
@@ -146,34 +147,26 @@ export default function EditReservaForm({ reservaInicial }) {
               </label>
             </div>
             <div className="col-span-2">
-              <label htmlFor="pickUp" className="text-sm font-semibold">
-                PickUp
-                <input
-                  type="text"
-                  name="pickUp"
-                  placeholder="PickUp"
-                  value={reserva.pickUp || ""}
-                  onChange={(e) =>
-                    setReserva({ ...reserva, pickUp: e.target.value })
-                  }
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                />
-              </label>
+              <PlaceAutocomplete
+                label="Pick Up"
+                type="text"
+                name="pickUp"
+                placeholder="Ej: Aeropuerto Juan Santamaría, Hotel..."
+                value={reserva.pickUp || ""}
+                onSelect={(name) => setReserva({ ...reserva, pickUp: name })}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
             </div>
             <div className="col-span-2">
-              <label htmlFor="dropOff" className="text-sm font-semibold">
-                DropOff
-                <input
-                  type="text"
-                  name="dropOff"
-                  placeholder="DropOff"
-                  value={reserva.dropOff || ""}
-                  onChange={(e) =>
-                    setReserva({ ...reserva, dropOff: e.target.value })
-                  }
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                />
-              </label>
+              <PlaceAutocomplete
+                label="Drop Off"
+                type="text"
+                name="dropOff"
+                placeholder="Ej: Hotel Hilton, Monteverde..."
+                value={reserva.dropOff || ""}
+                onSelect={(name) => setReserva({ ...reserva, dropOff: name })}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
             </div>
             <div className="col-span-2">
               <label htmlFor="adultos" className="text-sm font-semibold">

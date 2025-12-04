@@ -10,6 +10,7 @@ import { getTodayCR } from "../../utils/getTodayCR.js";
 import { get } from "react-hook-form";
 import { notifySuccess, notifyError } from "@/app/utils/notify.js";
 import toast from "react-hot-toast";
+import PlaceAutocomplete from "./PlaceAutocomplete";
 
 export default function ReservaForm() {
   const { invalidateCache } = useReservasData();
@@ -156,30 +157,28 @@ export default function ReservaForm() {
             </label>
           </div>
           <div className="col-span-2">
-            <label htmlFor="pickUp" className="text-sm font-semibold">
-              Pick Up
-              <input
-                type="text"
-                name="pickUp"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                required
-              />
-            </label>
+            <PlaceAutocomplete
+              label="Pick Up"
+              name="pickUp"
+              value={formData.pickUp}
+              onSelect={(name) => {
+                setFormData((prev) => ({ ...prev, pickUp: name }));
+              }}
+              placeholder="Ej: Aeropuerto Juan Santamaría, Hotel..."
+              required
+            />
           </div>
           <div className="col-span-2">
-            <label htmlFor="dropOff" className="text-sm font-semibold">
-              Drop Off
-              <input
-                type="text"
-                name="dropOff"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                required
-              />
-            </label>
+            <PlaceAutocomplete
+              label="Drop Off"
+              name="dropOff"
+              value={formData.dropOff}
+              onSelect={(name) => {
+                setFormData((prev) => ({ ...prev, dropOff: name }));
+              }}
+              placeholder="Ej: Hotel Hilton, Monteverde..."
+              required
+            />
           </div>
 
           <div className="col-span-2">

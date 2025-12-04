@@ -60,27 +60,62 @@ export default function ReportesPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const [selected, setSelected] = useState({
-    sumPrecioMensual: true,
-    sumPrecioPeriodo: true,
-    sumPrecioAnual: true,
-    topPickUp: true,
-    topDropOff: true,
-    topHoras: true,
-    topProveedores: true,
-    countPeriodo: true,
-    countMensual: true,
-    countAnual: true,
-    canceladasMensual: true,
-    canceladasPeriodo: true,
-    canceladasAnual: true,
-    pagadasMensual: true,
-    noPagadasMensual: true,
-    pagadasPeriodo: true,
-    noPagadasPeriodo: true,
-    pagadasAnual: true,
-    noPagadasAnual: true,
+  const [selected, setSelected] = useState(() => {
+    try {
+      const saved = localStorage.getItem("reportesSelected");
+      return saved
+        ? JSON.parse(saved)
+        : {
+            sumPrecioMensual: true,
+            sumPrecioPeriodo: true,
+            sumPrecioAnual: true,
+            topPickUp: true,
+            topDropOff: true,
+            topHoras: true,
+            topProveedores: true,
+            countPeriodo: true,
+            countMensual: true,
+            countAnual: true,
+            canceladasMensual: true,
+            canceladasPeriodo: true,
+            canceladasAnual: true,
+            pagadasMensual: true,
+            noPagadasMensual: true,
+            pagadasPeriodo: true,
+            noPagadasPeriodo: true,
+            pagadasAnual: true,
+            noPagadasAnual: true,
+          };
+    } catch {
+      return {
+        sumPrecioMensual: true,
+        sumPrecioPeriodo: true,
+        sumPrecioAnual: true,
+        topPickUp: true,
+        topDropOff: true,
+        topHoras: true,
+        topProveedores: true,
+        countPeriodo: true,
+        countMensual: true,
+        countAnual: true,
+        canceladasMensual: true,
+        canceladasPeriodo: true,
+        canceladasAnual: true,
+        pagadasMensual: true,
+        noPagadasMensual: true,
+        pagadasPeriodo: true,
+        noPagadasPeriodo: true,
+        pagadasAnual: true,
+        noPagadasAnual: true,
+      };
+    }
   });
+  const fmt2 = (n) =>
+    Number(n).toLocaleString("es-CR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  const fmt0 = (n) => Number(n).toLocaleString("es-CR");
 
   const [showSelectors, setShowSelectors] = useState(false);
 
@@ -372,11 +407,12 @@ export default function ReportesPage() {
       </div>
     );
   }
+  const noData = !isLoading && reservas.length === 0;
 
   return (
     <div className="w-full min-h-screen bg-white flex flex-col items-center text-black">
-      <nav className="w-full flex items-center bg-gray-80 border border-gray-200 shadow-sm rounded-xl mb-[10px] gap-2">
-        <div className="flex items-center gap-2">
+      <nav className="sticky top-0 z-40 w-full flex items-center bg-white/95 backdrop-blur border border-gray-200 shadow-sm rounded-xl mb-[10px] gap-2 px-3 py-2">
+        <div className="flex items-end gap-3 flex-wrap">
           <div className="flex flex-col">
             <label className="text-xs text-gray-600">
               Año (para vistas mensuales)
@@ -431,7 +467,7 @@ export default function ReportesPage() {
         >
           <Logo />
         </div>
-        <div className="flex items-center justify-end gap-4 flex-grow">
+        <div className="flex items-center justify-end gap-3 flex-grow">
           <button
             onClick={() => setShowSelectors((s) => !s)}
             className="button-menuselect px-3 py-2 rounded-md border hover:bg-blue-100"
@@ -489,28 +525,37 @@ export default function ReportesPage() {
         </div>
       )}
 
+      {noData && (
+        <div className="w-full max-w-2xl border rounded p-4 text-center text-gray-600">
+          No hay reservas para mostrar. Ajusta el rango de fechas o el año, o
+          intenta recargar.
+        </div>
+      )}
+
       <div className="w-full grid md:grid-cols-3 gap-6">
         {selected.sumPrecioMensual && (
           <section className="w-full col-span-3">
             <h2 className="text-base text-center font-semibold mb-2">
               Precio por Mes (Año {year})
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  {monthNames.map((m) => (
-                    <th key={m}>{m}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {precioPorMes.map((v, i) => (
-                    <td key={i}>{v.toFixed(2)}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    {monthNames.map((m) => (
+                      <th key={m}>{m}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {precioPorMes.map((v, i) => (
+                      <td key={i}>{fmt2(v)}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -519,11 +564,16 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Precio por Periodo
             </h2>
-            <div className="border rounded p-3">
-              Total: <strong>{precioPeriodo.toFixed(2)}</strong>
-              <div className="text-xs text-gray-500">
-                Rango: {startDate || "-"} a {endDate || "-"}
+            <div className="border rounded p-3 flex items-center justify-between">
+              <div>
+                Total: <strong>{fmt2(precioPeriodo)}</strong>
+                <div className="text-xs text-gray-500">
+                  Rango: {startDate || "-"} a {endDate || "-"}
+                </div>
               </div>
+              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded px-2 py-1">
+                {cantPeriodo} reservas
+              </span>
             </div>
           </section>
         )}
@@ -533,22 +583,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Precio por Año
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>Total Precio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {precioPorAnio.map((r) => (
-                  <tr key={r.year}>
-                    <td>{r.year}</td>
-                    <td>{r.total.toFixed(2)}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Año</th>
+                    <th>Total Precio</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {precioPorAnio.map((r) => (
+                    <tr key={r.year}>
+                      <td>{r.year}</td>
+                      <td>{fmt2(r.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -557,22 +609,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Cantidad por Mes (Año {year})
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  {monthNames.map((m) => (
-                    <th key={m}>{m}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {cantPorMes.map((v, i) => (
-                    <td key={i}>{v}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    {monthNames.map((m) => (
+                      <th key={m}>{m}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {cantPorMes.map((v, i) => (
+                      <td key={i}>{fmt0(v)}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -581,10 +635,12 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Cantidad por Periodo
             </h2>
-            <div className="border rounded p-3">
-              Total: <strong>{cantPeriodo}</strong>
-              <div className="text-xs text-gray-500">
-                Rango: {startDate || "-"} a {endDate || "-"}
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <div className="border rounded p-3">
+                Total: <strong>{cantPeriodo}</strong>
+                <div className="text-xs text-gray-500">
+                  Rango: {startDate || "-"} a {endDate || "-"}
+                </div>
               </div>
             </div>
           </section>
@@ -595,22 +651,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Cantidad por Año
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cantPorAnio.map((r) => (
-                  <tr key={r.year}>
-                    <td>{r.year}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Año</th>
+                    <th>Cantidad</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cantPorAnio.map((r) => (
+                    <tr key={r.year}>
+                      <td>{r.year}</td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -619,22 +677,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Canceladas por Mes (Año {year})
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  {monthNames.map((m) => (
-                    <th key={m}>{m}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {canceladasPorMes.map((v, i) => (
-                    <td key={i}>{v}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    {monthNames.map((m) => (
+                      <th key={m}>{m}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {canceladasPorMes.map((v, i) => (
+                      <td key={i}>{fmt0(v)}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -643,10 +703,12 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Canceladas por Periodo
             </h2>
-            <div className="border rounded p-3">
-              Total: <strong>{canceladasPeriodo}</strong>
-              <div className="text-xs text-gray-500">
-                Rango: {startDate || "-"} a {endDate || "-"}
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <div className="border rounded p-3">
+                Total: <strong>{canceladasPeriodo}</strong>
+                <div className="text-xs text-gray-500">
+                  Rango: {startDate || "-"} a {endDate || "-"}
+                </div>
               </div>
             </div>
           </section>
@@ -657,22 +719,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Canceladas por Año
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>Canceladas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {canceladasPorAnio.map((r) => (
-                  <tr key={r.year}>
-                    <td>{r.year}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Año</th>
+                    <th>Canceladas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {canceladasPorAnio.map((r) => (
+                    <tr key={r.year}>
+                      <td>{r.year}</td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -681,22 +745,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Pagas por Mes (Año {year})
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  {monthNames.map((m) => (
-                    <th key={m}>{m}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {pagadasPorMes.map((v, i) => (
-                    <td key={i}>{v}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
+                <thead>
+                  <tr>
+                    {monthNames.map((m) => (
+                      <th key={m}>{m}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {pagadasPorMes.map((v, i) => (
+                      <td key={i}>{fmt0(v)}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -705,10 +771,12 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Pagas por Periodo
             </h2>
-            <div className="border rounded p-3">
-              Total: <strong>{pagadasPeriodo}</strong>
-              <div className="text-xs text-gray-500">
-                Rango: {startDate || "-"} a {endDate || "-"}
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <div className="border rounded p-3">
+                Total: <strong>{pagadasPeriodo}</strong>
+                <div className="text-xs text-gray-500">
+                  Rango: {startDate || "-"} a {endDate || "-"}
+                </div>
               </div>
             </div>
           </section>
@@ -719,22 +787,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Pagas por Año
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>Pagas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagadasPorAnio.map((r) => (
-                  <tr key={r.year}>
-                    <td>{r.year}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Año</th>
+                    <th>Pagas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pagadasPorAnio.map((r) => (
+                    <tr key={r.year}>
+                      <td>{r.year}</td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -743,7 +813,7 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               No Pagas por Mes (Año {year})
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
+            <table className="dashboard-table min-w-full table-auto text-sm">
               <thead>
                 <tr>
                   {monthNames.map((m) => (
@@ -754,7 +824,7 @@ export default function ReportesPage() {
               <tbody>
                 <tr>
                   {noPagadasPorMes.map((v, i) => (
-                    <td key={i}>{v}</td>
+                    <td key={i}>{fmt0(v)}</td>
                   ))}
                 </tr>
               </tbody>
@@ -767,10 +837,12 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               No Pagas por Periodo
             </h2>
-            <div className="border rounded p-3">
-              Total: <strong>{noPagadasPeriodo}</strong>
-              <div className="text-xs text-gray-500">
-                Rango: {startDate || "-"} a {endDate || "-"}
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <div className="border rounded p-3">
+                Total: <strong>{noPagadasPeriodo}</strong>
+                <div className="text-xs text-gray-500">
+                  Rango: {startDate || "-"} a {endDate || "-"}
+                </div>
               </div>
             </div>
           </section>
@@ -781,22 +853,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               No Pagas por Año
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>No Pagas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {noPagadasPorAnio.map((r) => (
-                  <tr key={r.year}>
-                    <td>{r.year}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Año</th>
+                    <th>No Pagas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {noPagadasPorAnio.map((r) => (
+                    <tr key={r.year}>
+                      <td>{r.year}</td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -805,22 +879,26 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Top Lugares (PickUp)
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Lugar</th>
-                  <th>Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topPickUps.map((r) => (
-                  <tr key={r.name}>
-                    <td className="max-w-xs overflow-x-auto">{r.name}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Lugar</th>
+                    <th>Cantidad</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {topPickUps.map((r) => (
+                    <tr key={r.name}>
+                      <td className="max-w-xs truncate" title={r.name}>
+                        {r.name}
+                      </td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -829,22 +907,26 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Top Lugares (DropOff)
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow sm">
-              <thead>
-                <tr>
-                  <th>Lugar</th>
-                  <th>Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topDropOffs.map((r) => (
-                  <tr key={r.name}>
-                    <td className="max-w-xs overflow-x-auto">{r.name}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Lugar</th>
+                    <th>Cantidad</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {topDropOffs.map((r) => (
+                    <tr key={r.name}>
+                      <td className="max-w-xs truncate" title={r.name}>
+                        {r.name}
+                      </td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -853,22 +935,26 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Top Proveedores
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Proveedor</th>
-                  <th>Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topProveedores.map((r) => (
-                  <tr key={r.name}>
-                    <td className="max-w-xs overflow-x-auto">{r.name}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Proveedor</th>
+                    <th>Cantidad</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {topProveedores.map((r) => (
+                    <tr key={r.name}>
+                      <td className="max-w-xs truncate" title={r.name}>
+                        {r.name}
+                      </td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
@@ -877,22 +963,24 @@ export default function ReportesPage() {
             <h2 className="text-base text-center font-semibold mb-2">
               Top Horas
             </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-              <thead>
-                <tr>
-                  <th>Hora</th>
-                  <th>Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topHorasList.map((r) => (
-                  <tr key={r.hour}>
-                    <td>{hourLabel12(r.hour)}</td>
-                    <td>{r.count}</td>
+            <div className="overflow-x-auto rounded border shadow-sm">
+              <table className="dashboard-table min-w-full table-auto text-sm">
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th>Cantidad</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {topHorasList.map((r) => (
+                    <tr key={r.hour}>
+                      <td>{hourLabel12(r.hour)}</td>
+                      <td>{fmt0(r.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
       </div>
