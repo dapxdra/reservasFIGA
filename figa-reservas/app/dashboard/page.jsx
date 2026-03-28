@@ -13,7 +13,7 @@ import { auth } from "../lib/firebase.jsx";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import "../styles/dashboard.css";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useReservas } from "../hooks/useReservas";
 import { formatDate } from "../utils/formatDate";
@@ -171,7 +171,7 @@ export default function DashboardPage() {
     setCurrentPage(newPage);
   }, []);
 
-  const exportToExcel = (data, fileName) => {
+  const exportToExcel = async (data, fileName) => {
     try {
       toast.loading("Generando archivo Excel...", { id: "export" });
 
@@ -202,15 +202,21 @@ export default function DashboardPage() {
           ? new Date(r.canceledAt).toISOString().split("T")[0]
           : "",
       }));
-      const workSheet = XLSX.utils.json_to_sheet(dataForExcel);
-      const workBook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workBook, workSheet, "Reservas");
-      const excelBuffer = XLSX.write(workBook, {
-        bookType: "xlsx",
-        type: "binary",
-      });
-      const blob = new Blob([s2ab(excelBuffer)], {
-        type: "application/octet-stream",
+      const workBook = new ExcelJS.Workbook();
+      const workSheet = workBook.addWorksheet("Reservas");
+      if (dataForExcel.length > 0) {
+        const headers = Object.keys(dataForExcel[0]);
+        workSheet.columns = headers.map((header) => ({
+          header,
+          key: header,
+          width: Math.max(14, String(header).length + 2),
+        }));
+        dataForExcel.forEach((row) => workSheet.addRow(row));
+      }
+
+      const excelBuffer = await workBook.xlsx.writeBuffer();
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       saveAs(blob, `${fileName}.xlsx`);
 
@@ -219,15 +225,6 @@ export default function DashboardPage() {
       console.error("Error al exportar a Excel:", error);
       toast.error("Error al generar el archivo Excel", { id: "export" });
     }
-  };
-
-  const s2ab = (s) => {
-    const buf = new ArrayBuffer(s.length);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < s.length; i++) {
-      view[i] = s.charCodeAt(i) & 0xff;
-    }
-    return buf;
   };
 
   // --- Paginación ---
