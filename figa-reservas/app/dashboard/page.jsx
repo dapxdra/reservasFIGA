@@ -16,51 +16,473 @@ import "../styles/dashboard.css";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useReservas } from "../hooks/useReservas";
-import { formatDate } from "../utils/formatDate";
-import { formatearHora } from "../utils/formatearHora";
 import { cancelarReserva } from "../lib/api.js";
 import Logo from "../components/common/Logo.jsx";
 import Loading from "../components/common/Loading.jsx";
 import { useReservasData } from "../context/ReservasDataContext.js";
-import { notifySuccess, notifyError, confirmToast } from "../utils/notify.js";
+import { notifyError, confirmToast } from "../utils/notify.js";
 import toast from "react-hot-toast";
 
 const Modal = lazy(() => import("../components/common/modal"));
 
+const reservasPorPagina = 8;
+const INACTIVITY_LIMIT = 10 * 60 * 1000;
+const EMPTY_FILTERS = {
+  startDate: "",
+  endDate: "",
+  month: "",
+  cliente: "",
+  id: "",
+  itinId: "",
+  proveedor: "",
+};
+
+function DashboardIcon({ name, size = 18, className = "" }) {
+  const commonProps = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    strokeWidth: 1.8,
+  };
+
+  const icons = {
+    search: (
+      <>
+        <circle cx="11" cy="11" r="6.5" {...commonProps} />
+        <path d="M16 16l4 4" {...commonProps} />
+      </>
+    ),
+    filter: (
+      <path d="M4 5h16l-6.8 7.5v5.5l-2.4 1.5v-7L4 5z" {...commonProps} />
+    ),
+    fileText: (
+      <>
+        <path d="M8 3.5h6l4 4V20H8z" {...commonProps} />
+        <path d="M14 3.5V8h4" {...commonProps} />
+        <path d="M10.5 11.5h5" {...commonProps} />
+        <path d="M10.5 15h5" {...commonProps} />
+      </>
+    ),
+    download: (
+      <>
+        <path d="M12 4.5v10" {...commonProps} />
+        <path d="M8.5 11l3.5 3.5 3.5-3.5" {...commonProps} />
+        <path d="M5 19.5h14" {...commonProps} />
+      </>
+    ),
+    trash: (
+      <>
+        <path d="M5 7.5h14" {...commonProps} />
+        <path d="M9 7.5V5h6v2.5" {...commonProps} />
+        <path d="M7.5 7.5l1 12h7l1-12" {...commonProps} />
+        <path d="M10 11v5" {...commonProps} />
+        <path d="M14 11v5" {...commonProps} />
+      </>
+    ),
+    undo: (
+      <>
+        <path d="M9 7L4.5 11.5 9 16" {...commonProps} />
+        <path d="M5.5 11.5H14a5.5 5.5 0 110 11h-2" {...commonProps} />
+      </>
+    ),
+    arrowRightCircle: (
+      <>
+        <circle cx="12" cy="12" r="9" {...commonProps} />
+        <path d="M10 8.5l3.5 3.5L10 15.5" {...commonProps} />
+        <path d="M9 12h5" {...commonProps} />
+      </>
+    ),
+    plus: (
+      <>
+        <path d="M12 5v14" {...commonProps} />
+        <path d="M5 12h14" {...commonProps} />
+      </>
+    ),
+    power: (
+      <>
+        <path d="M12 3.5v8" {...commonProps} />
+        <path d="M7 6.5a7 7 0 1010 0" {...commonProps} />
+      </>
+    ),
+    menu: (
+      <>
+        <path d="M4 7h16" {...commonProps} />
+        <path d="M4 12h16" {...commonProps} />
+        <path d="M4 17h16" {...commonProps} />
+      </>
+    ),
+    calendar: (
+      <>
+        <rect x="4.5" y="6" width="15" height="13" rx="2" {...commonProps} />
+        <path d="M8 4v4" {...commonProps} />
+        <path d="M16 4v4" {...commonProps} />
+        <path d="M4.5 9.5h15" {...commonProps} />
+      </>
+    ),
+    chart: (
+      <>
+        <path d="M5 19V9" {...commonProps} />
+        <path d="M11 19V5" {...commonProps} />
+        <path d="M17 19v-7" {...commonProps} />
+        <path d="M3 19h18" {...commonProps} />
+      </>
+    ),
+    settings: (
+      <>
+        <circle cx="12" cy="12" r="3" {...commonProps} />
+        <path d="M12 4v2" {...commonProps} />
+        <path d="M12 18v2" {...commonProps} />
+        <path d="M4 12h2" {...commonProps} />
+        <path d="M18 12h2" {...commonProps} />
+        <path d="M6.5 6.5l1.5 1.5" {...commonProps} />
+        <path d="M16 16l1.5 1.5" {...commonProps} />
+        <path d="M6.5 17.5L8 16" {...commonProps} />
+        <path d="M16 8l1.5-1.5" {...commonProps} />
+      </>
+    ),
+    pencil: (
+      <>
+        <path d="M5 19l3.5-.8L18 8.7 14.3 5 4.8 14.5 4 18z" {...commonProps} />
+        <path d="M12.8 6.5l3.7 3.7" {...commonProps} />
+      </>
+    ),
+    circleDot: (
+      <>
+        <circle cx="12" cy="12" r="7" {...commonProps} />
+        <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+      </>
+    ),
+    mapPin: (
+      <>
+        <path d="M12 20s6-5.6 6-10a6 6 0 10-12 0c0 4.4 6 10 6 10z" {...commonProps} />
+        <circle cx="12" cy="10" r="2" {...commonProps} />
+      </>
+    ),
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="8" {...commonProps} />
+        <path d="M12 8v4.5l3 1.5" {...commonProps} />
+      </>
+    ),
+    users: (
+      <>
+        <circle cx="9" cy="9" r="2.5" {...commonProps} />
+        <circle cx="16" cy="10" r="2" {...commonProps} />
+        <path d="M4.5 18a4.5 4.5 0 019 0" {...commonProps} />
+        <path d="M13 18a3.5 3.5 0 017 0" {...commonProps} />
+      </>
+    ),
+    car: (
+      <>
+        <path d="M6.5 16.5L8 11h8l1.5 5.5" {...commonProps} />
+        <path d="M5 16.5h14" {...commonProps} />
+        <path d="M7.5 16.5v2" {...commonProps} />
+        <path d="M16.5 16.5v2" {...commonProps} />
+        <circle cx="8" cy="16.5" r="1.5" {...commonProps} />
+        <circle cx="16" cy="16.5" r="1.5" {...commonProps} />
+      </>
+    ),
+    check: <path d="M5.5 12.5l4 4L18.5 7" {...commonProps} />,
+  };
+
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+    >
+      {icons[name]}
+    </svg>
+  );
+}
+
+function formatDashboardDate(value) {
+  if (!value) return "-";
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(date);
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatPrice(value) {
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue)) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(numericValue);
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  return String(value);
+}
+
+function getAgencyInitials(proveedor) {
+  if (!proveedor) return "--";
+  const words = proveedor.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+}
+
+function getAgencyTheme(proveedor) {
+  const normalized = (proveedor || "").toLowerCase();
+
+  if (normalized.includes("expedia")) return "agency-blue";
+  if (normalized.includes("booking")) return "agency-orange";
+  if (normalized.includes("direct")) return "agency-purple";
+  if (normalized.includes("despegar")) return "agency-emerald";
+
+  return "agency-slate";
+}
+
+function getPaginationSummary(total, currentPage, perPage) {
+  if (total === 0) return "Mostrando 0 a 0 de 0 resultados";
+  const start = (currentPage - 1) * perPage + 1;
+  const end = Math.min(currentPage * perPage, total);
+  return `Mostrando ${start} a ${end} de ${total} resultados`;
+}
+
+function ReservationTableRow({
+  reserva,
+  revisada,
+  onToggleRevisada,
+  onEdit,
+  onCancel,
+}) {
+  const paid = Boolean(reserva.pago);
+  const agencyTheme = getAgencyTheme(reserva.proveedor);
+
+  return (
+    <tr>
+      <td className="dashboard-id-cell">#{reserva.id}</td>
+      <td>{formatDashboardDate(reserva.fecha)}</td>
+      <td>
+        <div className="agency-cell">
+          <span className={`agency-avatar ${agencyTheme}`}>
+            {getAgencyInitials(reserva.proveedor)}
+          </span>
+          <span>{reserva.proveedor || "-"}</span>
+        </div>
+      </td>
+      <td>{reserva.itinId || "-"}</td>
+      <td>{reserva.pickUp || "-"}</td>
+      <td>{reserva.dropOff || "-"}</td>
+      <td>{reserva.hora || "-"}</td>
+      <td>{reserva.AD ?? "-"}</td>
+      <td>{reserva.NI ?? "-"}</td>
+      <td>{reserva.cliente || "-"}</td>
+      <td>
+        {reserva.nota ? (
+          <span className="dashboard-badge dashboard-badge-outline">
+            {reserva.nota}
+          </span>
+        ) : (
+          <span className="dashboard-dash">-</span>
+        )}
+      </td>
+      <td>{reserva.chofer || "-"}</td>
+      <td>{reserva.buseta || "-"}</td>
+      <td className="dashboard-price">{formatPrice(reserva.precio)}</td>
+      <td>
+        <span
+          className={`dashboard-badge ${
+            paid ? "dashboard-badge-success" : "dashboard-badge-warning"
+          }`}
+        >
+          {paid ? "Pagado" : "Pendiente"}
+        </span>
+      </td>
+      <td>{paid ? formatDashboardDate(reserva.fechaPago) : "-"}</td>
+      <td className="text-right">
+        <div className="row-actions">
+          <button
+            onClick={onEdit}
+            className="row-action-btn"
+            title="Editar Reserva"
+            aria-label="Editar Reserva"
+          >
+            <DashboardIcon name="pencil" size={15} />
+          </button>
+          <button
+            onClick={onCancel}
+            className="row-action-btn row-action-danger"
+            title="Cancelar Reserva"
+            aria-label="Cancelar Reserva"
+          >
+            <DashboardIcon name="trash" size={15} />
+          </button>
+          <button
+            onClick={onToggleRevisada}
+            className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
+            title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+            aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+          >
+            <DashboardIcon name="check" size={15} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel }) {
+  const paid = Boolean(reserva.pago);
+  const agencyTheme = getAgencyTheme(reserva.proveedor);
+
+  return (
+    <article className="reservation-card">
+      <div className="rc-header">
+        <div className="rc-id-date">
+          <div className="rc-id-row">
+            <span className="rc-id">#{reserva.id}</span>
+            <span className="rc-date">{formatDashboardDate(reserva.fecha)}</span>
+          </div>
+          <span className="rc-itin">Itin: {reserva.itinId || "-"}</span>
+        </div>
+        <div className="rc-status-block">
+          <span
+            className={`dashboard-badge ${
+              paid ? "dashboard-badge-success" : "dashboard-badge-warning"
+            }`}
+          >
+            {paid ? "Pagado" : "Pendiente"}
+          </span>
+          {paid && reserva.fechaPago ? (
+            <span className="rc-status-date">
+              {formatDashboardDate(reserva.fechaPago)}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="rc-client-agency">
+        <div className="rc-client">{reserva.cliente || "-"}</div>
+        <div className="rc-agency">
+          <span className={`agency-avatar ${agencyTheme}`}>
+            {getAgencyInitials(reserva.proveedor)}
+          </span>
+          <span>{reserva.proveedor || "-"}</span>
+        </div>
+      </div>
+
+      <div className="rc-route">
+        <div className="route-point">
+          <DashboardIcon name="circleDot" size={14} className="route-icon" />
+          <span>{reserva.pickUp || "-"}</span>
+        </div>
+        <div className="route-line" />
+        <div className="route-point">
+          <DashboardIcon name="mapPin" size={14} className="route-icon" />
+          <span>{reserva.dropOff || "-"}</span>
+        </div>
+      </div>
+
+      <div className="rc-details">
+        <div className="rc-detail-item">
+          <DashboardIcon name="clock" size={14} className="detail-icon" />
+          <span>{reserva.hora || "-"}</span>
+        </div>
+        <div className="rc-detail-item">
+          <DashboardIcon name="users" size={14} className="detail-icon" />
+          <span>
+            {reserva.AD ?? 0}A, {reserva.NI ?? 0}N
+          </span>
+        </div>
+        <div className="rc-detail-item">
+          <DashboardIcon name="car" size={14} className="detail-icon" />
+          <span>
+            {reserva.chofer || "-"}
+            {reserva.buseta ? ` (${reserva.buseta})` : ""}
+          </span>
+        </div>
+        <div className="rc-detail-item price">{formatPrice(reserva.precio)}</div>
+      </div>
+
+      <div className="rc-footer">
+        <div className="rc-tags">
+          {reserva.nota ? (
+            <span className="dashboard-badge dashboard-badge-outline">
+              {reserva.nota}
+            </span>
+          ) : null}
+          {revisada ? (
+            <span className="dashboard-badge dashboard-badge-outline">Revisada</span>
+          ) : null}
+        </div>
+        <div className="rc-actions">
+          <button
+            onClick={onToggleRevisada}
+            className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
+            title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+            aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+          >
+            <DashboardIcon name="check" size={14} />
+          </button>
+          <button
+            onClick={onEdit}
+            className="row-action-btn"
+            title="Editar Reserva"
+            aria-label="Editar Reserva"
+          >
+            <DashboardIcon name="pencil" size={14} />
+          </button>
+          <button
+            onClick={onCancel}
+            className="row-action-btn row-action-danger"
+            title="Cancelar Reserva"
+            aria-label="Cancelar Reserva"
+          >
+            <DashboardIcon name="trash" size={14} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
   const [filtro, setFiltro] = useState("activas");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState({
-    startDate: "",
-    endDate: "",
-    month: "",
-    cliente: "",
-    id: "",
-    itinId: "",
-    proveedor: "",
-  });
-  const { reservas, filteredReservas, isLoading, setReservas } = useReservas(
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const { filteredReservas, isLoading, setReservas } = useReservas(
     filtro,
     searchQuery,
     filters
   );
-  const { invalidateCache, removesReservaFromCache } = useReservasData();
-  const [revisadas, setRevisadas] = useState({}); // useReservasRevisadas();
+  const { invalidateCache } = useReservasData();
+  const [revisadas, setRevisadas] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
-  const reservasPorPagina = 8;
   const [showModal, setShowModal] = useState(false);
   const logoutTimer = useRef(null);
-  const INACTIVITY_LIMIT = 10 * 60 * 1000;
 
-  // --- useEffect de autenticación y recuperación de filtros ---
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         router.push("/login");
-      } else {
-        setUser(user);
       }
     });
 
@@ -68,17 +490,30 @@ export default function DashboardPage() {
       const storedFiltro = localStorage.getItem("dashboardFiltro");
       const storedSearchQuery = localStorage.getItem("dashboardSearchQuery");
       const storedFilters = localStorage.getItem("dashboardFilters");
+      const storedRevisadas = localStorage.getItem("reservasRevisadas");
+
       if (storedFiltro) setFiltro(storedFiltro);
       if (storedSearchQuery) setSearchQuery(storedSearchQuery);
       if (storedFilters) setFilters(JSON.parse(storedFilters));
-      const storedRevisadas = localStorage.getItem("reservasRevisadas");
       if (storedRevisadas) setRevisadas(JSON.parse(storedRevisadas));
     }
 
     return () => unsubscribe();
   }, [router]);
 
-  // --- useEffect de inactividad ---
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    localStorage.setItem("dashboardFiltro", filtro);
+    localStorage.setItem("dashboardSearchQuery", searchQuery);
+    localStorage.setItem("dashboardFilters", JSON.stringify(filters));
+  }, [filtro, searchQuery, filters]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("reservasRevisadas", JSON.stringify(revisadas));
+  }, [revisadas]);
+
   useEffect(() => {
     const resetTimer = () => {
       clearTimeout(logoutTimer.current);
@@ -103,7 +538,15 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // --- Funciones auxiliares ---
+  const totalPages = Math.ceil(filteredReservas.length / reservasPorPagina);
+
+  useEffect(() => {
+    const nextPage = Math.max(1, totalPages || 1);
+    if (currentPage > nextPage) {
+      setCurrentPage(nextPage);
+    }
+  }, [currentPage, totalPages]);
+
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
@@ -113,63 +556,83 @@ export default function DashboardPage() {
     router.push("/reservas");
   };
 
-  const toggleRevisada = (id) => {
-    const updated = { ...revisadas, [id]: !revisadas[id] };
-    setRevisadas(updated);
-    localStorage.setItem("reservasRevisadas", JSON.stringify(updated));
+  const openDatePicker = (event) => {
+    if (typeof event.currentTarget.showPicker === "function") {
+      event.currentTarget.showPicker();
+    }
   };
 
-  const verCanceladas = filtro === "canceladas";
+  const handleResetDashboard = () => {
+    setFiltro("activas");
+    setSearchQuery("");
+    setFilters(EMPTY_FILTERS);
+    setCurrentPage(1);
+    invalidateCache();
+    router.push("/dashboard");
+  };
+
+  const handleEditReserva = (id) => {
+    localStorage.setItem("dashboardFiltro", filtro);
+    localStorage.setItem("dashboardSearchQuery", searchQuery);
+    localStorage.setItem("dashboardFilters", JSON.stringify(filters));
+    router.push(`/reservas/edit/${id}`);
+  };
+
+  const toggleRevisada = (id) => {
+    setRevisadas((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const toggleCanceladas = () => {
+    setCurrentPage(1);
     setFiltro((prev) => (prev === "canceladas" ? "activas" : "canceladas"));
   };
 
   const toggleAntiguas = () => {
-    setFiltro((prevFiltro) =>
-      prevFiltro === "antiguas" ? "activas" : "antiguas"
-    );
+    setCurrentPage(1);
+    setFiltro((prev) => (prev === "antiguas" ? "activas" : "antiguas"));
   };
 
   const toggleFuturas = () => {
-    setFiltro((prevFiltro) =>
-      prevFiltro === "futuras" ? "activas" : "futuras"
-    );
+    setCurrentPage(1);
+    setFiltro((prev) => (prev === "futuras" ? "activas" : "futuras"));
   };
-
-  const handleFormatDate = (fecha) => formatDate(fecha);
-  const handleFormatearHora = (hora) => formatearHora(hora);
 
   const handleCancelar = async (id) => {
     const confirm = await confirmToast(
       "¿Estás seguro de que deseas cancelar esta reserva?",
       { okText: "Sí, cancelar", cancelText: "No" }
     );
+
     if (!confirm) return;
+
     await toast.promise(cancelarReserva(id), {
       loading: "Cancelando reserva...",
       success: "Reserva cancelada con éxito",
       error: "Error al cancelar la reserva",
     });
-    // actualización optimista
+
     setReservas((prev) =>
-      prev.map((r) =>
-        r.id === id
+      prev.map((reserva) =>
+        reserva.id === id
           ? {
-              ...r,
+              ...reserva,
               cancelada: true,
-              canceledAt: r.canceledAt || new Date().toISOString(),
+              canceledAt: reserva.canceledAt || new Date().toISOString(),
             }
-          : r
+          : reserva
       )
     );
-    // si estabas viendo activas, se ocultará sola en filteredReservas
+    invalidateCache();
     setFiltro("activas");
   };
 
-  const handlePageChange = useCallback((newPage) => {
-    setCurrentPage(newPage);
-  }, []);
+  const handlePageChange = useCallback(
+    (newPage) => {
+      if (newPage < 1 || newPage > totalPages) return;
+      setCurrentPage(newPage);
+    },
+    [totalPages]
+  );
 
   const exportToExcel = async (data, fileName) => {
     try {
@@ -202,8 +665,10 @@ export default function DashboardPage() {
           ? new Date(r.canceledAt).toISOString().split("T")[0]
           : "",
       }));
+
       const workBook = new ExcelJS.Workbook();
       const workSheet = workBook.addWorksheet("Reservas");
+
       if (dataForExcel.length > 0) {
         const headers = Object.keys(dataForExcel[0]);
         workSheet.columns = headers.map((header) => ({
@@ -218,8 +683,8 @@ export default function DashboardPage() {
       const blob = new Blob([excelBuffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      saveAs(blob, `${fileName}.xlsx`);
 
+      saveAs(blob, `${fileName}.xlsx`);
       toast.success("Archivo Excel generado con éxito", { id: "export" });
     } catch (error) {
       console.error("Error al exportar a Excel:", error);
@@ -227,176 +692,71 @@ export default function DashboardPage() {
     }
   };
 
-  // --- Paginación ---
-  const totalPages = Math.ceil(filteredReservas.length / reservasPorPagina);
   const indexOfLast = currentPage * reservasPorPagina;
   const indexOfFirst = indexOfLast - reservasPorPagina;
   const reservasPaginadas = useMemo(
     () => filteredReservas.slice(indexOfFirst, indexOfLast),
     [filteredReservas, indexOfFirst, indexOfLast]
   );
+
+  const paginationSummary = getPaginationSummary(
+    filteredReservas.length,
+    currentPage,
+    reservasPorPagina
+  );
+
   if (isLoading) {
     return <Loading />;
   }
 
   return (
-    <div>
-      <div className="w-full min-h-screen bg-white flex flex-col items-center">
-        <nav className="w-full flex items-center justify-between bg-gray-50 border border-gray-200 shadow-sm rounded-xl px-4 py-3 mb-6">
-          <div className="flex items-center gap-4">
-            <input
-              type="text"
-              title="Buscar por ID, ItinId, Cliente o Agencia"
-              placeholder="Buscar..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="input-search border border-gray-300 rounded-md px-3 py-2 text-black min-w-[160px] max-w-[220px] focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
+    <div className="dashboard-shell">
+      <div className="dashboard-app">
+        <header className="dashboard-header desktop-only">
+          <div className="header-left-zone">
+            <div className="search-box">
+              <DashboardIcon name="search" size={16} className="search-icon" />
+              <input
+                type="text"
+                title="Buscar por ID, ItinId, Cliente o Agencia"
+                placeholder="Buscar reservas..."
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
             <button
               onClick={() => setShowModal(true)}
-              className="filter-button text-black px-3 py-2 rounded-md  hover:bg-blue-100 border border-blue-200"
+              className="icon-btn has-border"
               title="Filtros Avanzados"
+              aria-label="Filtros Avanzados"
             >
-              Filtros
+              <DashboardIcon name="filter" size={18} />
             </button>
-
-            {showModal && (
-              <Suspense fallback={<div>Cargando...</div>}>
-                <Modal
-                  onClose={() => setShowModal(false)}
-                  className="text-black"
-                >
-                  <h2 className="text-lg font-bold mb-2 col-span-8 ">
-                    Filtros Avanzados
-                  </h2>
-                  <label className="col-span-1">Fecha Inicio:</label>
-                  <input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) =>
-                      setFilters({
-                        ...filters,
-                        startDate: e.target.value,
-                      })
-                    }
-                    className="p-2 border w-full mb-2 datepicker col-span-3"
-                  />
-                  <label className="col-span-1">Fecha Fin:</label>
-                  <input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) =>
-                      setFilters({ ...filters, endDate: e.target.value })
-                    }
-                    className="p-2 border w-full mb-2 datepicker col-span-3"
-                  />
-                  <label className="col-span-1">Mes:</label>
-                  <select
-                    value={filters.month}
-                    onChange={(e) =>
-                      setFilters({ ...filters, month: e.target.value })
-                    }
-                    className="p-2 border w-full mb-2 col-span-7"
-                  >
-                    <option value="">Selecciona un mes</option>
-                    <option value="01">Enero</option>
-                    <option value="02">Febrero</option>
-                    <option value="03">Marzo</option>
-                    <option value="04">Abril</option>
-                    <option value="05">Mayo</option>
-                    <option value="06">Junio</option>
-                    <option value="07">Julio</option>
-                    <option value="08">Agosto</option>
-                    <option value="09">Septiembre</option>
-                    <option value="10">Octubre</option>
-                    <option value="11">Noviembre</option>
-                    <option value="12">Diciembre</option>
-                  </select>
-                  <label className="col-span-2">Cliente:</label>
-                  <input
-                    type="text"
-                    value={filters.cliente}
-                    onChange={(e) =>
-                      setFilters({ ...filters, cliente: e.target.value })
-                    }
-                    className="p-2 border w-full mb-2 col-span-6"
-                  />
-                  <label className="col-span-2">Agencia:</label>
-                  <input
-                    type="text"
-                    value={filters.proveedor}
-                    onChange={(e) =>
-                      setFilters({
-                        ...filters,
-                        proveedor: e.target.value,
-                      })
-                    }
-                    className="p-2 border w-full mb-2 col-span-6"
-                  />
-                  <label className="col-span-1">ItinId:</label>
-                  <input
-                    type="text"
-                    value={filters.itinId}
-                    onChange={(e) =>
-                      setFilters({ ...filters, itinId: e.target.value })
-                    }
-                    className="p-2 border w-full mb-2 col-span-3"
-                  />
-
-                  <label className="col-span-1">ID:</label>
-                  <input
-                    type="text"
-                    value={filters.id}
-                    onChange={(e) =>
-                      setFilters({ ...filters, id: e.target.value })
-                    }
-                    className="p-2 border w-full mb-2 col-span-3"
-                  />
-
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="applyFilters-button col-span-8"
-                    title="Aplicar Filtros"
-                  ></button>
-                </Modal>
-              </Suspense>
-            )}
           </div>
-          <div
-            className="flex-none items-center ml-px-4 cursor-pointer"
-            role="button"
-            title="Ir al dashboard (ver activas)"
-            onClick={() => {
-              setFiltro("activas");
-              setSearchQuery("");
-              setFilters({
-                startDate: "",
-                endDate: "",
-                month: "",
-                cliente: "",
-                id: "",
-                itinId: "",
-                proveedor: "",
-              });
-              invalidateCache();
-              router.push("/dashboard");
-            }}
+
+          <button
+            className="header-center-zone"
+            onClick={handleResetDashboard}
+            title="Ir al dashboard"
+            aria-label="Ir al dashboard"
           >
-            <Logo />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Espacio para el botón de Reportes */}
+            <span className="dashboard-logo-frame">
+              <Logo />
+            </span>
+          </button>
+
+          <div className="header-right-zone">
             <button
               onClick={() => router.push("/reportes")}
-              className="button-reports px-3 py-2 rounded-md hover:bg-blue-100 border border-blue-200"
+              className="icon-btn"
               title="Ver Reportes"
+              aria-label="Ver Reportes"
             >
-              Reportes
+              <DashboardIcon name="fileText" size={18} />
             </button>
-            {/* Espacio para el botón de exportar */}
             <button
               onClick={() =>
                 exportToExcel(
@@ -404,173 +764,403 @@ export default function DashboardPage() {
                   `Reservas_FIGA_${new Date().toISOString().split("T")[0]}`
                 )
               }
-              //className="border rounded-md text-black button-export"
-              className="button-export px-3 py-2 rounded-md hover:bg-yellow-100 border"
+              className="icon-btn"
               title="Exportar"
+              aria-label="Exportar"
             >
-              Exportar
+              <DashboardIcon name="download" size={18} />
             </button>
-            {/* Botón de Crear Reserva */}
+            <button
+              onClick={toggleCanceladas}
+              className={`icon-btn ${filtro === "canceladas" ? "is-active" : ""}`}
+              title={filtro === "canceladas" ? "Ver Activas" : "Ver Canceladas"}
+              aria-label={filtro === "canceladas" ? "Ver Activas" : "Ver Canceladas"}
+            >
+              <DashboardIcon name="trash" size={18} />
+            </button>
+            <button
+              onClick={toggleAntiguas}
+              className={`icon-btn ${filtro === "antiguas" ? "is-active" : ""}`}
+              title={filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"}
+              aria-label={filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"}
+            >
+              <DashboardIcon name="undo" size={18} />
+            </button>
+            <button
+              onClick={toggleFuturas}
+              className={`icon-btn ${filtro === "futuras" ? "is-active" : ""}`}
+              title={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
+              aria-label={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
+            >
+              <DashboardIcon name="arrowRightCircle" size={18} />
+            </button>
+            <div className="header-divider" />
             <button
               onClick={handleNavigate}
               title="Crear Reserva"
-              //className="border rounded-md text-black button-create"
-              className="button-create px-3 py-2 rounded-md hover:bg-green-100 border border-green-200"
-            ></button>
-            <button
-              onClick={toggleCanceladas}
-              className={`button-canceladas px-3 py-2 rounded-md hover:bg-green-100 border ${
-                verCanceladas ? "button-activo icon-activas" : "icon-canceladas"
-              }`}
-              aria-label={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
-              title={verCanceladas ? "Ver Activas" : "Ver Canceladas"}
-            ></button>
-            <button
-              onClick={toggleAntiguas}
-              className={`button-antiguas px-3 py-2 rounded-md hover:bg-green-100 border ${
-                filtro === "antiguas"
-                  ? "button-activo icon-activas"
-                  : "icon-antiguas"
-              }`}
-              title={filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"}
-            ></button>
-            <button
-              onClick={toggleFuturas}
-              className={`button-futuras px-3 py-2 rounded-md hover:bg-green-100 border ${
-                filtro === "futuras"
-                  ? "button-activo icon-activas"
-                  : "icon-futuras"
-              }`}
-              title={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
-            ></button>
+              aria-label="Crear Reserva"
+              className="primary-btn"
+            >
+              <DashboardIcon name="plus" size={16} />
+              <span>Nueva Reserva</span>
+            </button>
             <button
               onClick={logout}
               title="Cerrar Sesión"
-              className="button-logout px-3 py-2 rounded-md hover:bg-red-300 border"
-            ></button>
+              aria-label="Cerrar Sesión"
+              className="icon-btn power-btn"
+            >
+              <DashboardIcon name="power" size={18} />
+            </button>
           </div>
-        </nav>
-        <div className="w-full shadow-sm rounded border>">
-          <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Fecha</th>
-                <th>Agencia</th>
-                <th>ItinId</th>
-                <th>PickUp</th>
-                <th>DropOff</th>
-                <th>Hora</th>
-                <th>Adultos</th>
-                <th>Niños</th>
-                <th>Cliente</th>
-                <th>Nota</th>
-                <th>Chofer</th>
-                <th>Buseta</th>
-                <th>Precio</th>
-                <th>Pago</th>
-                <th>FechaPago</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+        </header>
+
+        <header className="mobile-header mobile-only">
+          <button
+            onClick={() => setShowModal(true)}
+            className="icon-btn"
+            title="Abrir filtros"
+            aria-label="Abrir filtros"
+          >
+            <DashboardIcon name="menu" size={24} />
+          </button>
+
+          <button
+            className="mobile-logo-button"
+            onClick={handleResetDashboard}
+            title="Ir al dashboard"
+            aria-label="Ir al dashboard"
+          >
+            <span className="dashboard-logo-frame mobile-logo-frame">
+              <Logo />
+            </span>
+          </button>
+
+          <button
+            onClick={logout}
+            title="Cerrar Sesión"
+            aria-label="Cerrar Sesión"
+            className="icon-btn power-btn"
+          >
+            <DashboardIcon name="power" size={20} />
+          </button>
+        </header>
+
+        <section className="search-section mobile-only">
+          <div className="search-row">
+            <div className="search-box search-box-mobile">
+              <DashboardIcon name="search" size={16} className="search-icon" />
+              <input
+                type="text"
+                title="Buscar por ID, ItinId, Cliente o Agencia"
+                placeholder="Buscar reservas..."
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="icon-btn has-border"
+              title="Filtros Avanzados"
+              aria-label="Filtros Avanzados"
+            >
+              <DashboardIcon name="filter" size={18} />
+            </button>
+          </div>
+
+          <div className="actions-scroll">
+            <button
+              onClick={handleNavigate}
+              title="Crear Reserva"
+              aria-label="Crear Reserva"
+              className="primary-btn"
+            >
+              <DashboardIcon name="plus" size={16} />
+              <span>Nueva Reserva</span>
+            </button>
+            <button
+              onClick={() => router.push("/reportes")}
+              className="icon-btn has-border"
+              title="Ver Reportes"
+              aria-label="Ver Reportes"
+            >
+              <DashboardIcon name="fileText" size={18} />
+            </button>
+            <button
+              onClick={() =>
+                exportToExcel(
+                  filteredReservas,
+                  `Reservas_FIGA_${new Date().toISOString().split("T")[0]}`
+                )
+              }
+              className="icon-btn has-border"
+              title="Exportar"
+              aria-label="Exportar"
+            >
+              <DashboardIcon name="download" size={18} />
+            </button>
+            <button
+              onClick={toggleCanceladas}
+              className={`icon-btn has-border ${filtro === "canceladas" ? "is-active" : ""}`}
+              title={filtro === "canceladas" ? "Ver Activas" : "Ver Canceladas"}
+              aria-label={filtro === "canceladas" ? "Ver Activas" : "Ver Canceladas"}
+            >
+              <DashboardIcon name="trash" size={18} />
+            </button>
+            <button
+              onClick={toggleAntiguas}
+              className={`icon-btn has-border ${filtro === "antiguas" ? "is-active" : ""}`}
+              title={filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"}
+              aria-label={filtro === "antiguas" ? "Ver Activas" : "Ver Antiguas"}
+            >
+              <DashboardIcon name="undo" size={18} />
+            </button>
+            <button
+              onClick={toggleFuturas}
+              className={`icon-btn has-border ${filtro === "futuras" ? "is-active" : ""}`}
+              title={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
+              aria-label={filtro === "futuras" ? "Ver Activas" : "Ver Futuras"}
+            >
+              <DashboardIcon name="arrowRightCircle" size={18} />
+            </button>
+          </div>
+        </section>
+
+        <main className="dashboard-main">
+          <div className="page-header">
+            <h1 className="page-title">Reservas Recientes</h1>
+          </div>
+
+          <section className="table-card desktop-only">
+            <div className="table-responsive">
+              <table className="dashboard-table data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Agencia</th>
+                    <th>ItinId</th>
+                    <th>PickUp</th>
+                    <th>DropOff</th>
+                    <th>Hora</th>
+                    <th>Adultos</th>
+                    <th>Niños</th>
+                    <th>Cliente</th>
+                    <th>Nota</th>
+                    <th>Chofer</th>
+                    <th>Buseta</th>
+                    <th>Precio</th>
+                    <th>Pago</th>
+                    <th>FechaPago</th>
+                    <th className="text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReservas.length === 0 ? (
+                    <tr>
+                      <td colSpan={17} className="empty-state-cell">
+                        No se encontraron reservas con los filtros aplicados.
+                      </td>
+                    </tr>
+                  ) : (
+                    reservasPaginadas.map((reserva) => (
+                      <ReservationTableRow
+                        key={reserva.id}
+                        reserva={reserva}
+                        revisada={Boolean(revisadas[reserva.id])}
+                        onToggleRevisada={() => toggleRevisada(reserva.id)}
+                        onEdit={() => handleEditReserva(reserva.id)}
+                        onCancel={() => handleCancelar(reserva.id)}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pagination">
+              <span className="pagination-info">{paginationSummary}</span>
+              <div className="pagination-actions">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || totalPages === 0}
+                  className="btn-outline"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="btn-outline"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="mobile-only">
+            <div className="reservation-list">
               {filteredReservas.length === 0 ? (
-                <tr>
-                  <td colSpan={17} className="text-center py-4 text-gray-500">
-                    No se encontraron reservas con los filtros aplicados.
-                  </td>
-                </tr>
+                <article className="reservation-card empty-card">
+                  No se encontraron reservas con los filtros aplicados.
+                </article>
               ) : (
                 reservasPaginadas.map((reserva) => (
-                  <tr key={reserva.id} className="border-t">
-                    <td>{reserva.id}</td>
-                    <td>{handleFormatDate(reserva.fecha)}</td>
-                    <td>{reserva.proveedor}</td>
-                    <td>{reserva.itinId}</td>
-                    <td>{reserva.pickUp}</td>
-                    <td>{reserva.dropOff}</td>
-                    <td>{handleFormatearHora(reserva.hora)}</td>
-                    <td>{reserva.AD}</td>
-                    <td>{reserva.NI}</td>
-                    <td>{reserva.cliente}</td>
-                    <td className="max-w-xs overflow-x-auto">{reserva.nota}</td>
-                    <td>{reserva.chofer}</td>
-                    <td>{reserva.buseta}</td>
-                    <td>{reserva.precio}</td>
-                    <td>{reserva.pago ? "Sí" : "No"}</td>
-                    <td>{reserva.fechaPago}</td>
-                    <td className="actions">
-                      <button
-                        onClick={() => handleCancelar(reserva.id)}
-                        className="actionbutton-cancel"
-                        title="Cancelar Reserva"
-                      ></button>
-                      <button
-                        onClick={() => {
-                          localStorage.setItem("dashboardFiltro", filtro);
-                          localStorage.setItem(
-                            "dashboardSearchQuery",
-                            searchQuery
-                          );
-                          localStorage.setItem(
-                            "dashboardFilters",
-                            JSON.stringify(filters)
-                          );
-
-                          router.push(`/reservas/edit/${reserva.id}`);
-                        }}
-                        className="actionbutton-edit"
-                        title="Editar Reserva"
-                      ></button>
-                      <input
-                        type="checkbox"
-                        checked={revisadas[reserva.id] || false}
-                        onChange={() => toggleRevisada(reserva.id)}
-                        className="actionbutton-check"
-                        title="Marcar como revisada"
-                      />
-                    </td>
-                  </tr>
+                  <ReservationCard
+                    key={reserva.id}
+                    reserva={reserva}
+                    revisada={Boolean(revisadas[reserva.id])}
+                    onToggleRevisada={() => toggleRevisada(reserva.id)}
+                    onEdit={() => handleEditReserva(reserva.id)}
+                    onCancel={() => handleCancelar(reserva.id)}
+                  />
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-        {/* Paginación */}
-        <div className="table-pagination flex justify-center items-center gap-2 flex-wrap mt-4">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="disabled:opacity-50"
-          >
-            Ant
-          </button>
+            </div>
 
-          {[...Array(totalPages)].map((_, i) => {
-            const page = i + 1;
-            return (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-1 py-1 rounded ${
-                  currentPage === page
-                    ? "bg-gray-300 text-black opacity-75"
-                    : "bg-gray-100 hover:bg-gray-200 opacity-50"
-                }`}
+            <div className="pagination-mobile">
+              <span className="pagination-info">{paginationSummary}</span>
+              <div className="pagination-actions mobile-pagination-actions">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || totalPages === 0}
+                  className="btn-outline"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="btn-outline"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        {showModal && (
+          <Suspense fallback={<div className="modal-loading">Cargando...</div>}>
+            <Modal onClose={() => setShowModal(false)}>
+              <h2 className="filter-modal-title col-span-8">Filtros Avanzados</h2>
+              <label className="col-span-4 sm:col-span-2">Fecha Inicio</label>
+              <input
+                type="date"
+                value={filters.startDate}
+                onClick={openDatePicker}
+                onFocus={openDatePicker}
+                onKeyDown={(event) => event.preventDefault()}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    startDate: event.target.value,
+                  })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
+              />
+              <label className="col-span-4 sm:col-span-2">Fecha Fin</label>
+              <input
+                type="date"
+                value={filters.endDate}
+                onClick={openDatePicker}
+                onFocus={openDatePicker}
+                onKeyDown={(event) => event.preventDefault()}
+                onChange={(event) =>
+                  setFilters({ ...filters, endDate: event.target.value })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
+              />
+              <label className="col-span-4 sm:col-span-2">Mes</label>
+              <select
+                value={filters.month}
+                onChange={(event) =>
+                  setFilters({ ...filters, month: event.target.value })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
               >
-                {page}
-              </button>
-            );
-          })}
-
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="disabled:opacity-50"
-          >
-            Sig
-          </button>
-        </div>
+                <option value="">Selecciona un mes</option>
+                <option value="01">Enero</option>
+                <option value="02">Febrero</option>
+                <option value="03">Marzo</option>
+                <option value="04">Abril</option>
+                <option value="05">Mayo</option>
+                <option value="06">Junio</option>
+                <option value="07">Julio</option>
+                <option value="08">Agosto</option>
+                <option value="09">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+              <label className="col-span-4 sm:col-span-2">Cliente</label>
+              <input
+                type="text"
+                value={filters.cliente}
+                onChange={(event) =>
+                  setFilters({ ...filters, cliente: event.target.value })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
+              />
+              <label className="col-span-4 sm:col-span-2">Agencia</label>
+              <input
+                type="text"
+                value={filters.proveedor}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    proveedor: event.target.value,
+                  })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
+              />
+              <label className="col-span-4 sm:col-span-2">ItinId</label>
+              <input
+                type="text"
+                value={filters.itinId}
+                onChange={(event) =>
+                  setFilters({ ...filters, itinId: event.target.value })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
+              />
+              <label className="col-span-4 sm:col-span-2">ID</label>
+              <input
+                type="text"
+                value={filters.id}
+                onChange={(event) =>
+                  setFilters({ ...filters, id: event.target.value })
+                }
+                className="filter-field col-span-8 sm:col-span-6"
+              />
+              <div className="filter-modal-actions col-span-8">
+                <button
+                  onClick={() => {
+                    setCurrentPage(1);
+                    setShowModal(false);
+                  }}
+                  className="btn-outline"
+                  title="Aplicar Filtros"
+                >
+                  Aplicar filtros
+                </button>
+                <button
+                  onClick={() => {
+                    setFilters(EMPTY_FILTERS);
+                    setCurrentPage(1);
+                  }}
+                  className="btn-outline"
+                  title="Limpiar Filtros"
+                >
+                  Limpiar
+                </button>
+              </div>
+            </Modal>
+          </Suspense>
+        )}
       </div>
     </div>
   );
