@@ -544,6 +544,15 @@ export default function DashboardPage() {
     reservasPorPagina
   );
 
+  const pageTitle =
+    filtro === "canceladas"
+      ? "Reservas Canceladas"
+      : filtro === "antiguas"
+      ? "Reservas Antiguas"
+      : filtro === "futuras"
+      ? "Reservas Futuras"
+      : "Reservas Activas";
+
   if (isLoading) {
     return <Loading />;
   }
@@ -770,7 +779,7 @@ export default function DashboardPage() {
 
         <main className="dashboard-main">
           <div className="page-header">
-            <h1 className="page-title">Reservas Recientes</h1>
+            <h1 className="page-title">{pageTitle}</h1>
           </div>
 
           <section className="table-card desktop-only">
