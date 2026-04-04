@@ -79,6 +79,31 @@ function formatPrice(value) {
   return String(value);
 }
 
+function formatDashboardTime(value) {
+  if (!value) return "-";
+
+  const rawValue = String(value).trim();
+
+  const match24h = rawValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+  if (match24h) {
+    const hour24 = Number(match24h[1]);
+    const minutes = match24h[2];
+    const period = hour24 >= 12 ? "PM" : "AM";
+    const hour12 = hour24 % 12 || 12;
+    return `${hour12}:${minutes} ${period}`;
+  }
+
+  const match12h = rawValue.match(/^([1-9]|1[0-2]):([0-5]\d)\s*([AaPp][Mm])$/);
+  if (match12h) {
+    const hours = match12h[1];
+    const minutes = match12h[2];
+    const period = match12h[3].toUpperCase();
+    return `${hours}:${minutes} ${period}`;
+  }
+
+  return rawValue;
+}
+
 function getAgencyInitials(proveedor) {
   if (!proveedor) return "--";
   const words = proveedor.trim().split(/\s+/).filter(Boolean);
@@ -129,7 +154,7 @@ function ReservationTableRow({
       <td>{reserva.itinId || "-"}</td>
       <td>{reserva.pickUp || "-"}</td>
       <td>{reserva.dropOff || "-"}</td>
-      <td>{reserva.hora || "-"}</td>
+      <td>{formatDashboardTime(reserva.hora)}</td>
       <td>{reserva.AD ?? "-"}</td>
       <td>{reserva.NI ?? "-"}</td>
       <td>{reserva.cliente || "-"}</td>
@@ -242,7 +267,7 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
       <div className="rc-details">
         <div className="rc-detail-item">
           <DashboardIcon name="clock" size={14} className="detail-icon" />
-          <span>{reserva.hora || "-"}</span>
+          <span>{formatDashboardTime(reserva.hora)}</span>
         </div>
         <div className="rc-detail-item">
           <DashboardIcon name="users" size={14} className="detail-icon" />
