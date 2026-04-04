@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase.jsx";
 import "../styles/dashboard.css";
+import "../styles/reportes.css";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import Logo from "../components/common/Logo.jsx";
@@ -118,6 +119,19 @@ export default function ReportesPage() {
   const fmt0 = (n) => Number(n).toLocaleString("es-CR");
 
   const [showSelectors, setShowSelectors] = useState(false);
+  const [pendingStartDate, setPendingStartDate] = useState("");
+  const [pendingEndDate, setPendingEndDate] = useState("");
+
+  const openDatePicker = (e) => {
+    if (typeof e.currentTarget.showPicker === "function") {
+      e.currentTarget.showPicker();
+    }
+  };
+
+  const handleFiltrar = () => {
+    setStartDate(pendingStartDate);
+    setEndDate(pendingEndDate);
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
@@ -206,6 +220,20 @@ export default function ReportesPage() {
   );
 
   const toggle = (key) => setSelected((s) => ({ ...s, [key]: !s[key] }));
+
+  const hasPeriod = Boolean(startDate && endDate);
+  const kpiIngresos = hasPeriod
+    ? precioPeriodo
+    : precioPorMes.reduce((a, b) => a + b, 0);
+  const kpiReservas = hasPeriod
+    ? cantPeriodo
+    : cantPorMes.reduce((a, b) => a + b, 0);
+  const kpiCanceladas = hasPeriod
+    ? canceladasPeriodo
+    : canceladasPorMes.reduce((a, b) => a + b, 0);
+  const kpiNoPagadas = hasPeriod
+    ? noPagadasPeriodo
+    : noPagadasPorMes.reduce((a, b) => a + b, 0);
 
   const exportarExcel = async () => {
     try {
@@ -403,421 +431,198 @@ export default function ReportesPage() {
   };
 
   if (isLoading && reservas.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+    return <Loading />;
   }
   const noData = !isLoading && reservas.length === 0;
 
   return (
-    <div className="w-full min-h-screen bg-white flex flex-col items-center text-black">
-      <nav className="sticky top-0 z-40 w-full flex items-center bg-white/95 backdrop-blur border border-gray-200 shadow-sm rounded-xl mb-[10px] gap-2 px-3 py-2">
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600">
-              Año (para vistas mensuales)
-            </label>
+    <div className="reportes-shell">
+      {/* â”€â”€ Desktop header â”€â”€ */}
+      <header className="reportes-header desktop-only">
+        <div className="rpt-header-left">
+          <button
+            className="rpt-logo-btn"
+            onClick={() => router.push("/dashboard")}
+            title="Ir al dashboard"
+            aria-label="Ir al dashboard"
+          >
+            <Logo />
+          </button>
+          <h1 className="rpt-page-title">Reportes Generales</h1>
+        </div>
+
+        <div className="rpt-header-right">
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Año</span>
             <select
+              className="rpt-filter-select"
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              className="p-2 border rounded text-black"
               title="Año de referencia"
             >
-              {[
-                currentYear - 2,
-                currentYear - 1,
-                currentYear,
-                currentYear + 1,
-              ].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
+              {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(
+                (y) => (
+                  <option key={y} value={y}>{y}</option>
+                )
+              )}
             </select>
           </div>
 
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600">Inicio</label>
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Inicio</span>
             <input
               type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="p-2 border rounded text-black datepicker"
-              title="Fecha inicio (opcional)"
+              className="rpt-filter-input"
+              value={pendingStartDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingStartDate(e.target.value)}
+              title="Fecha inicio"
             />
           </div>
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600">Fin</label>
+
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Fin</span>
             <input
               type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="p-2 border rounded text-black datepicker"
-              title="Fecha fin (opcional)"
+              className="rpt-filter-input"
+              value={pendingEndDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingEndDate(e.target.value)}
+              title="Fecha fin"
             />
           </div>
-        </div>
-        <div
-          className="flex flex-grow justify-center items-center cursor-pointer"
-          role="button"
-          title="Ir al dashboard (ver activas)"
-          onClick={() => {
-            router.push("/dashboard");
-          }}
-        >
-          <Logo />
-        </div>
-        <div className="flex items-center justify-end gap-3 flex-grow">
-          <button
-            onClick={() => setShowSelectors((s) => !s)}
-            className="button-menuselect px-3 py-2 rounded-md border hover:bg-blue-100"
-            title="Mostrar/ocultar selectores de reportes"
-          >
-            {showSelectors ? "Ocultar selectores" : "Ver selectores"}
+
+          <button className="rpt-btn-filter" onClick={handleFiltrar}>
+            Filtrar
           </button>
-          <button
-            onClick={exportarExcel}
-            className="button-export px-3 py-2 rounded-md hover:bg-yellow-100 border"
-            title="Exportar reportes seleccionados"
-          >
+          <button className="rpt-btn-export" onClick={exportarExcel}>
             Exportar
           </button>
         </div>
-      </nav>
-      {showSelectors && (
-        <div className="w-full bg-white border rounded-md shadow-sm p-4 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3">
-            {[
-              ["sumPrecioMensual", "Precio x Mes"],
-              ["sumPrecioPeriodo", "Precio x Periodo"],
-              ["sumPrecioAnual", "Precio x Año"],
-              ["countMensual", "Cantidad x Mes"],
-              ["countPeriodo", "Cantidad x Periodo"],
-              ["countAnual", "Cantidad x Año"],
-              ["canceladasMensual", "Canceladas x Mes"],
-              ["canceladasPeriodo", "Canceladas x Periodo"],
-              ["canceladasAnual", "Canceladas x Año"],
-              ["pagadasMensual", "Pagas x Mes"],
-              ["pagadasPeriodo", "Pagas x Periodo"],
-              ["pagadasAnual", "Pagas x Año"],
-              ["noPagadasMensual", "No Pagas x Mes"],
-              ["noPagadasPeriodo", "No Pagas x Periodo"],
-              ["noPagadasAnual", "No Pagas x Año"],
-              ["topPickUp", "Top PickUp"],
-              ["topDropOff", "Top DropOff"],
-              ["topHoras", "Top Horas"],
-              ["topProveedores", "Top Proveedores"],
-            ].map(([k, label]) => (
-              <label
-                key={k}
-                className="flex items-center justify-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!selected[k]}
-                  onChange={() => toggle(k)}
-                  className="cursor-pointer"
-                />
-                <span>{label}</span>
-              </label>
-            ))}
+      </header>
+
+      {/* â”€â”€ Mobile header â”€â”€ */}
+      <header className="rpt-mobile-header mobile-only">
+        <button
+          className="rpt-logo-btn"
+          onClick={() => router.push("/dashboard")}
+          title="Ir al dashboard"
+          aria-label="Ir al dashboard"
+        >
+          <Logo />
+        </button>
+        <h1 className="rpt-mobile-title">Reportes Generales</h1>
+      </header>
+
+      {/* â”€â”€ Mobile filters â”€â”€ */}
+      <section className="rpt-mobile-filters mobile-only">
+        <div className="rpt-filter-group">
+          <span className="rpt-filter-label">Año</span>
+          <select
+            className="rpt-filter-select rpt-filter-fw"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          >
+            {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(
+              (y) => (
+                <option key={y} value={y}>{y}</option>
+              )
+            )}
+          </select>
+        </div>
+
+        <div className="rpt-mobile-filter-row">
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Inicio</span>
+            <input
+              type="date"
+              className="rpt-filter-input"
+              value={pendingStartDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingStartDate(e.target.value)}
+            />
+          </div>
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Fin</span>
+            <input
+              type="date"
+              className="rpt-filter-input"
+              value={pendingEndDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingEndDate(e.target.value)}
+            />
           </div>
         </div>
-      )}
 
-      {noData && (
-        <div className="w-full max-w-2xl border rounded p-4 text-center text-gray-600">
-          No hay reservas para mostrar. Ajusta el rango de fechas o el año, o
-          intenta recargar.
+        <div className="rpt-mobile-actions">
+          <button className="rpt-btn-filter" onClick={handleFiltrar}>
+            Filtrar
+          </button>
+          <button className="rpt-btn-export" onClick={exportarExcel}>
+            Exportar
+          </button>
         </div>
-      )}
+      </section>
 
-      <div className="w-full grid md:grid-cols-3 gap-6">
-        {selected.sumPrecioMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Precio por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {precioPorMes.map((v, i) => (
-                      <td key={i}>{fmt2(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+      {/* â”€â”€ Main content â”€â”€ */}
+      <main className="reportes-main">
+        {noData && (
+          <div className="rpt-no-data">
+            No hay reservas para mostrar. Ajusta el rango de fechas o el año, o
+            intenta recargar.
+          </div>
         )}
 
-        {selected.sumPrecioPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Precio por Periodo
-            </h2>
-            <div className="border rounded p-3 flex items-center justify-between">
-              <div>
-                Total: <strong>{fmt2(precioPeriodo)}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded px-2 py-1">
-                {cantPeriodo} reservas
-              </span>
-            </div>
-          </section>
-        )}
+        {/* KPI cards */}
+        <div className="rpt-kpi-row">
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-green" />
+            <p className="rpt-kpi-label">Ingresos Totales</p>
+            <p className="rpt-kpi-value">${fmt2(kpiIngresos)}</p>
+            <p className="rpt-kpi-sub">
+              {hasPeriod ? "Periodo seleccionado" : `Año ${year}`}
+            </p>
+          </div>
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-blue" />
+            <p className="rpt-kpi-label">Total Reservas</p>
+            <p className="rpt-kpi-value">{fmt0(kpiReservas)}</p>
+            <p className="rpt-kpi-sub">Reservas exitosas</p>
+          </div>
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-red" />
+            <p className="rpt-kpi-label">Canceladas</p>
+            <p className="rpt-kpi-value">{fmt0(kpiCanceladas)}</p>
+            <p className="rpt-kpi-sub">
+              {hasPeriod ? "En el periodo" : `En el año ${year}`}
+            </p>
+          </div>
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-yellow" />
+            <p className="rpt-kpi-label">No Pagadas</p>
+            <p className="rpt-kpi-value">{fmt0(kpiNoPagadas)}</p>
+            <p className="rpt-kpi-sub">Pendientes de cobro</p>
+          </div>
+        </div>
 
-        {selected.sumPrecioAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Precio por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Total Precio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {precioPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt2(r.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.countMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Cantidad por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {cantPorMes.map((v, i) => (
-                      <td key={i}>{fmt0(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.countPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Cantidad por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{cantPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {selected.countAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Cantidad por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cantPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.canceladasMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Canceladas por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {canceladasPorMes.map((v, i) => (
-                      <td key={i}>{fmt0(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.canceladasPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Canceladas por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{canceladasPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {selected.canceladasAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Canceladas por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Canceladas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {canceladasPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.pagadasMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Pagas por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {pagadasPorMes.map((v, i) => (
-                      <td key={i}>{fmt0(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.pagadasPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Pagas por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{pagadasPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {selected.pagadasAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Pagas por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Pagas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagadasPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.noPagadasMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              No Pagas por Mes (Año {year})
-            </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm">
+        {/* Resumen Mensual */}
+        <section className="rpt-section">
+          <div className="rpt-section-header">
+            <h2 className="rpt-section-title">Resumen Mensual ({year})</h2>
+          </div>
+          <div className="rpt-table-wrap">
+            <table className="rpt-table">
               <thead>
                 <tr>
+                  <th className="rpt-th-metric">Métrica</th>
                   {monthNames.map((m) => (
                     <th key={m}>{m}</th>
                   ))}
@@ -825,167 +630,130 @@ export default function ReportesPage() {
               </thead>
               <tbody>
                 <tr>
+                  <td className="rpt-metric-label">Ingresos ($)</td>
+                  {precioPorMes.map((v, i) => (
+                    <td key={i}>{fmt2(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="rpt-metric-label">Reservas</td>
+                  {cantPorMes.map((v, i) => (
+                    <td key={i}>{fmt0(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="rpt-metric-label">Canceladas</td>
+                  {canceladasPorMes.map((v, i) => (
+                    <td key={i}>{fmt0(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="rpt-metric-label">No Pagadas</td>
                   {noPagadasPorMes.map((v, i) => (
                     <td key={i}>{fmt0(v)}</td>
                   ))}
                 </tr>
               </tbody>
             </table>
-          </section>
-        )}
+          </div>
+        </section>
 
-        {selected.noPagadasPeriodo && (
-          <section className="w-full justify-center">
-            <h2 className="text-base text-center font-semibold mb-2">
-              No Pagas por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{noPagadasPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
+        {/* Top Estadísticas */}
+        <section className="rpt-section">
+          <div className="rpt-section-header">
+            <h2 className="rpt-section-title">Top Estadísticas</h2>
+          </div>
+          <div className="rpt-top-grid">
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Lugares (PickUp)</h3>
+              {topPickUps.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
                 </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Lugares (DropOff)</h3>
+              {topDropOffs.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Proveedores</h3>
+              {topProveedores.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Horas</h3>
+              {topHorasList.map((r) => (
+                <div key={r.hour} className="rpt-top-row">
+                  <span className="rpt-top-name">{hourLabel12(r.hour)}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Configurar exportación */}
+        <section className="rpt-section">
+          <button
+            className="rpt-section-header rpt-section-toggle"
+            onClick={() => setShowSelectors((s) => !s)}
+            type="button"
+            aria-expanded={showSelectors}
+          >
+            <h2 className="rpt-section-title">Configurar exportación</h2>
+            <span className="rpt-toggle-caret">{showSelectors ? "â–²" : "â–¼"}</span>
+          </button>
+          {showSelectors && (
+            <div className="rpt-selectors-body">
+              <div className="rpt-selectors-grid">
+                {[
+                  ["sumPrecioMensual", "Precio x Mes"],
+                  ["sumPrecioPeriodo", "Precio x Periodo"],
+                  ["sumPrecioAnual", "Precio x Año"],
+                  ["countMensual", "Cantidad x Mes"],
+                  ["countPeriodo", "Cantidad x Periodo"],
+                  ["countAnual", "Cantidad x Año"],
+                  ["canceladasMensual", "Canceladas x Mes"],
+                  ["canceladasPeriodo", "Canceladas x Periodo"],
+                  ["canceladasAnual", "Canceladas x Año"],
+                  ["pagadasMensual", "Pagas x Mes"],
+                  ["pagadasPeriodo", "Pagas x Periodo"],
+                  ["pagadasAnual", "Pagas x Año"],
+                  ["noPagadasMensual", "No Pagas x Mes"],
+                  ["noPagadasPeriodo", "No Pagas x Periodo"],
+                  ["noPagadasAnual", "No Pagas x Año"],
+                  ["topPickUp", "Top PickUp"],
+                  ["topDropOff", "Top DropOff"],
+                  ["topHoras", "Top Horas"],
+                  ["topProveedores", "Top Proveedores"],
+                ].map(([k, label]) => (
+                  <label key={k} className="rpt-selector-item">
+                    <input
+                      type="checkbox"
+                      checked={!!selected[k]}
+                      onChange={() => toggle(k)}
+                      className="rpt-selector-check"
+                      aria-label={label}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
               </div>
             </div>
-          </section>
-        )}
-
-        {selected.noPagadasAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              No Pagas por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>No Pagas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {noPagadasPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topPickUp && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Lugares (PickUp)
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Lugar</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topPickUps.map((r) => (
-                    <tr key={r.name}>
-                      <td className="max-w-xs truncate" title={r.name}>
-                        {r.name}
-                      </td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topDropOff && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Lugares (DropOff)
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Lugar</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topDropOffs.map((r) => (
-                    <tr key={r.name}>
-                      <td className="max-w-xs truncate" title={r.name}>
-                        {r.name}
-                      </td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topProveedores && (
-          <section className="w-full col-span-1">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Proveedores
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Proveedor</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topProveedores.map((r) => (
-                    <tr key={r.name}>
-                      <td className="max-w-xs truncate" title={r.name}>
-                        {r.name}
-                      </td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topHoras && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Horas
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Hora</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topHorasList.map((r) => (
-                    <tr key={r.hour}>
-                      <td>{hourLabel12(r.hour)}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-      </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
