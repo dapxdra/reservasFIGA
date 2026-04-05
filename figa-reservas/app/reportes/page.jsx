@@ -256,157 +256,166 @@ export default function ReportesPage() {
         safeRows.forEach((row) => ws.addRow(row));
       };
 
+      const monthCells = (values) =>
+        monthNames.reduce((acc, month, idx) => {
+          acc[month] = values[idx] ?? 0;
+          return acc;
+        }, {});
+
+      const mensualRows = [];
+      const periodoRows = [];
+      const anualRows = [];
+
       if (selected.sumPrecioMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          TotalPrecio: precioPorMes[i],
-        }));
-        addSheet("Precio por Mes", rows);
-      }
-      if (selected.sumPrecioPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            TotalPrecio: precioPeriodo,
-          },
-        ];
-        addSheet("Precio por Periodo", rows);
-      }
-      if (selected.sumPrecioAnual) {
-        const rows = precioPorAnio.map((r) => ({
-          Año: r.year,
-          TotalPrecio: r.total,
-        }));
-        addSheet("Precio por Año", rows);
+        mensualRows.push({ Metrica: "Ingresos ($)", ...monthCells(precioPorMes) });
       }
       if (selected.countMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          Cantidad: cantPorMes[i],
-        }));
-        addSheet("Cant. por Mes", rows);
+        mensualRows.push({ Metrica: "Reservas", ...monthCells(cantPorMes) });
       }
-      if (selected.countPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            Cantidad: cantPeriodo,
-          },
-        ];
-        addSheet("Cant. por Periodo", rows);
-      }
-      if (selected.countAnual) {
-        const rows = cantPorAnio.map((r) => ({
-          Año: r.year,
-          Cantidad: r.count,
-        }));
-        addSheet("Cant. por Año", rows);
-      }
-
       if (selected.canceladasMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          Canceladas: canceladasPorMes[i],
-        }));
-        addSheet("Canceladas por Mes", rows);
+        mensualRows.push({ Metrica: "Canceladas", ...monthCells(canceladasPorMes) });
       }
-      if (selected.canceladasPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            Canceladas: canceladasPeriodo,
-          },
-        ];
-        addSheet("Canceladas por Periodo", rows);
-      }
-      if (selected.canceladasAnual) {
-        const rows = canceladasPorAnio.map((r) => ({
-          Año: r.year,
-          Canceladas: r.count,
-        }));
-        addSheet("Canceladas por Año", rows);
-      }
-
       if (selected.pagadasMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          Pagas: pagadasPorMes[i],
-        }));
-        addSheet("Pagas por Mes", rows);
+        mensualRows.push({ Metrica: "Pagadas", ...monthCells(pagadasPorMes) });
       }
       if (selected.noPagadasMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          NoPagas: noPagadasPorMes[i],
-        }));
-        addSheet("No Pagas por Mes", rows);
-      }
-      if (selected.pagadasPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            Pagas: pagadasPeriodo,
-          },
-        ];
-        addSheet("Pagas por Periodo", rows);
-      }
-      if (selected.noPagadasPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            NoPagas: noPagadasPeriodo,
-          },
-        ];
-        addSheet("No Pagas por Periodo", rows);
-      }
-      if (selected.pagadasAnual) {
-        const rows = pagadasPorAnio.map((r) => ({
-          Año: r.year,
-          Pagas: r.count,
-        }));
-        addSheet("Pagas por Año", rows);
-      }
-      if (selected.noPagadasAnual) {
-        const rows = noPagadasPorAnio.map((r) => ({
-          Año: r.year,
-          NoPagas: r.count,
-        }));
-        addSheet("No Pagas por Año", rows);
+        mensualRows.push({ Metrica: "No Pagadas", ...monthCells(noPagadasPorMes) });
       }
 
+      if (selected.sumPrecioPeriodo) {
+        periodoRows.push({
+          Metrica: "Ingresos ($)",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: precioPeriodo,
+        });
+      }
+      if (selected.countPeriodo) {
+        periodoRows.push({
+          Metrica: "Reservas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: cantPeriodo,
+        });
+      }
+      if (selected.canceladasPeriodo) {
+        periodoRows.push({
+          Metrica: "Canceladas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: canceladasPeriodo,
+        });
+      }
+      if (selected.pagadasPeriodo) {
+        periodoRows.push({
+          Metrica: "Pagadas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: pagadasPeriodo,
+        });
+      }
+      if (selected.noPagadasPeriodo) {
+        periodoRows.push({
+          Metrica: "No Pagadas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: noPagadasPeriodo,
+        });
+      }
+
+      if (selected.sumPrecioAnual) {
+        anualRows.push(
+          ...precioPorAnio.map((r) => ({
+            Metrica: "Ingresos ($)",
+            Ano: r.year,
+            Valor: r.total,
+          }))
+        );
+      }
+      if (selected.countAnual) {
+        anualRows.push(
+          ...cantPorAnio.map((r) => ({
+            Metrica: "Reservas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
+      }
+      if (selected.canceladasAnual) {
+        anualRows.push(
+          ...canceladasPorAnio.map((r) => ({
+            Metrica: "Canceladas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
+      }
+      if (selected.pagadasAnual) {
+        anualRows.push(
+          ...pagadasPorAnio.map((r) => ({
+            Metrica: "Pagadas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
+      }
+      if (selected.noPagadasAnual) {
+        anualRows.push(
+          ...noPagadasPorAnio.map((r) => ({
+            Metrica: "No Pagadas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
+      }
+
+      if (mensualRows.length > 0) addSheet("Resumen Mensual", mensualRows);
+      if (periodoRows.length > 0) addSheet("Resumen Periodo", periodoRows);
+      if (anualRows.length > 0) addSheet("Resumen Anual", anualRows);
+
+      const topRows = [];
+
       if (selected.topPickUp) {
-        const rows = topPickUps.map((r) => ({
-          Lugar: r.name,
-          Cantidad: r.count,
-        }));
-        addSheet("Top PickUp", rows);
+        topRows.push(
+          ...topPickUps.map((r) => ({
+            Categoria: "Top Lugares (PickUp)",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
       }
+
       if (selected.topDropOff) {
-        const rows = topDropOffs.map((r) => ({
-          Lugar: r.name,
-          Cantidad: r.count,
-        }));
-        addSheet("Top DropOff", rows);
+        topRows.push(
+          ...topDropOffs.map((r) => ({
+            Categoria: "Top Lugares (DropOff)",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
       }
-      if (selected.topHoras) {
-        const rows = topHorasList.map((r) => ({
-          Hora: hourLabel12(r.hour),
-          Cantidad: r.count,
-        }));
-        addSheet("Top Horas", rows);
-      }
+
       if (selected.topProveedores) {
-        const rows = topProveedores.map((r) => ({
-          Proveedor: r.name,
-          Cantidad: r.count,
-        }));
-        addSheet("Top Proveedores", rows);
+        topRows.push(
+          ...topProveedores.map((r) => ({
+            Categoria: "Top Proveedores",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
       }
+
+      if (selected.topHoras) {
+        topRows.push(
+          ...topHorasList.map((r) => ({
+            Categoria: "Top Horas",
+            Detalle: hourLabel12(r.hour),
+            Cantidad: r.count,
+          }))
+        );
+      }
+
+      if (topRows.length > 0) addSheet("Top Estadisticas", topRows);
 
       if (wb.worksheets.length === 0) {
         throw new Error("No hay reportes seleccionados para exportar.");
@@ -712,7 +721,7 @@ export default function ReportesPage() {
             aria-expanded={showSelectors}
           >
             <h2 className="rpt-section-title">Configurar exportación</h2>
-            <span className="rpt-toggle-caret">{showSelectors ? "â–²" : "â–¼"}</span>
+            <span className="rpt-toggle-caret">{showSelectors ? "^" : "v"}</span>
           </button>
           {showSelectors && (
             <div className="rpt-selectors-body">
