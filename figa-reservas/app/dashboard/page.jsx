@@ -62,6 +62,23 @@ function formatDashboardDate(value) {
   }).format(date);
 }
 
+function formatExcelDate(value) {
+  if (!value) return "";
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 function formatPrice(value) {
   const numericValue = Number(value);
   if (Number.isFinite(numericValue)) {
@@ -504,7 +521,7 @@ export default function DashboardPage() {
 
       const dataForExcel = data.map((r) => ({
         ID: r.id,
-        Fecha: r.fecha ? new Date(r.fecha).toISOString().split("T")[0] : "",
+        Fecha: formatExcelDate(r.fecha),
         Agencia: r.proveedor,
         ItinId: r.itinId,
         PickUp: r.pickUp,
@@ -518,16 +535,10 @@ export default function DashboardPage() {
         Buseta: r.buseta,
         Precio: r.precio,
         Pago: r.pago ? "Sí" : "No",
-        FechaPago: r.fechaPago
-          ? new Date(r.fechaPago).toISOString().split("T")[0]
-          : "",
+        FechaPago: formatExcelDate(r.fechaPago),
         Cancelada: r.cancelada ? "Sí" : "No",
-        CreatedAt: r.createdAt
-          ? new Date(r.createdAt).toISOString().split("T")[0]
-          : "",
-        CanceledAt: r.canceledAt
-          ? new Date(r.canceledAt).toISOString().split("T")[0]
-          : "",
+        CreatedAt: formatExcelDate(r.createdAt),
+        CanceledAt: formatExcelDate(r.canceledAt),
       }));
 
       const workBook = new ExcelJS.Workbook();
