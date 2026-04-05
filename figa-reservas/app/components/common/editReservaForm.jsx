@@ -6,7 +6,7 @@ import "../../styles/forms.css";
 import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
 import toast from "react-hot-toast";
-import PlaceAutocomplete from "./PlaceAutocomplete";
+import PlaceAutocomplete from "./placeAutocomplete";
 import TimePickerField from "./TimePickerField";
 
 export default function EditReservaForm({ reservaInicial }) {

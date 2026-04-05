@@ -8,7 +8,7 @@ import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
 import { getTodayCR } from "../../utils/getTodayCR.js";
 import toast from "react-hot-toast";
-import PlaceAutocomplete from "./PlaceAutocomplete";
+import PlaceAutocomplete from "./placeAutocomplete";
 import TimePickerField from "./TimePickerField";
 
 export default function ReservaForm() {
