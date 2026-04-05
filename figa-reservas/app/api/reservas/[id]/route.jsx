@@ -9,8 +9,21 @@ function jsonResponse(data = {}, status = 200) {
   });
 }
 
+function ensureDb() {
+  if (!db) {
+    return jsonResponse(
+      { message: "Firebase Admin no está configurado en el servidor" },
+      500
+    );
+  }
+  return null;
+}
+
 // Método GET para obtener una reserva por ID
 export async function GET(req, { params }) {
+  const dbError = ensureDb();
+  if (dbError) return dbError;
+
   const re = await params;
   if (!re?.id) {
     return jsonResponse({ error: "ID no proporcionado" }, 400);
@@ -32,6 +45,9 @@ export async function GET(req, { params }) {
 
 // Método PUT para actualizar una reserva
 export async function PUT(req, { params }) {
+  const dbError = ensureDb();
+  if (dbError) return dbError;
+
   const re = await params;
   if (!re?.id) {
     return jsonResponse({ error: "ID no proporcionado" }, 400);
@@ -54,6 +70,9 @@ export async function PUT(req, { params }) {
 
 // Método DELETE para marcar una reserva como cancelada
 export async function DELETE(req, { params }) {
+  const dbError = ensureDb();
+  if (dbError) return dbError;
+
   const re = await params;
   if (!re?.id) {
     return jsonResponse({ error: "ID no proporcionado" }, 400);
@@ -83,6 +102,9 @@ export async function DELETE(req, { params }) {
 // Método PATCH para actualizar campos específicos
 export async function PATCH(req) {
   try {
+    const dbError = ensureDb();
+    if (dbError) return dbError;
+
     const { id, cancelada } = await req.json();
 
     if (!id || cancelada === undefined) {

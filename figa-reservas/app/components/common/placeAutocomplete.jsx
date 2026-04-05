@@ -9,6 +9,8 @@ export default function PlaceAutocomplete({
   placeholder = "Buscar lugar...",
   required = false,
   name = "",
+  inputClassName = "",
+  helperTextClassName = "",
 }) {
   const [text, setText] = useState(value || "");
   const [suggestions, setSuggestions] = useState([]);
@@ -116,7 +118,10 @@ export default function PlaceAutocomplete({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+        className={
+          inputClassName ||
+          "w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+        }
         type="text"
         required={required}
         autoComplete="off"
@@ -169,7 +174,7 @@ export default function PlaceAutocomplete({
         </ul>
       )}
 
-      <small className="text-gray-500 text-xs block mt-1">
+      <small className={helperTextClassName || "text-gray-500 text-xs block mt-1"}>
         Escribe y selecciona de la lista (usa ↑ ↓ Enter para seleccionar)
       </small>
     </div>

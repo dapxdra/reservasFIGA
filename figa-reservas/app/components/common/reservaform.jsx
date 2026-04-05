@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import "../../styles/dashboard.css";
+import "../../styles/forms.css";
 import { crearReserva } from "@/app/lib/api";
 import LogoNav from "./LogoNav";
 import { useReservasData } from "../../context/ReservasDataContext.js";
 import { getTodayCR } from "../../utils/getTodayCR.js";
-import { get } from "react-hook-form";
-import { notifySuccess, notifyError } from "@/app/utils/notify.js";
 import toast from "react-hot-toast";
-import PlaceAutocomplete from "./placeAutocomplete.jsx";
+import PlaceAutocomplete from "./PlaceAutocomplete";
+import TimePickerField from "./TimePickerField";
 
 export default function ReservaForm() {
   const { invalidateCache } = useReservasData();
@@ -33,11 +32,17 @@ export default function ReservaForm() {
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const openDatePicker = (event) => {
+    if (typeof event.currentTarget.showPicker === "function") {
+      event.currentTarget.showPicker();
+    }
   };
 
   const router = useRouter();
@@ -72,221 +77,250 @@ export default function ReservaForm() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+    <div className="form-shell">
       <LogoNav />
-      <h1 className="text-2xl font-bold mb-4 font-sans text-gray-600">
-        Nueva Reserva
-      </h1>
-      <form onSubmit={handleSubmit} className="p-4 border rounded space-y-4">
-        <div className="grid grid-cols-8 gap-4">
-          <div className="col-span-2">
-            <label htmlFor="itinId" className="text-sm font-semibold">
-              ItinID
-              <input
-                type="number"
-                name="itinId"
-                placeholder=""
-                onChange={handleChange}
-                required
-                className="w-full mt-1 p-2 border border-gray-300 rouded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="proveedor" className="text-sm font-semibold">
-              Agencia
-              <input
-                type="text"
-                name="proveedor"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="cliente" className="text-sm font-semibold">
-              Cliente
-              <input
-                type="text"
-                name="cliente"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                required
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="precio" className="text-sm font-semibold">
-              Precio
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="precio"
-                placeholder=""
-                onChange={handleChange}
-                required
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="fecha" className="text-sm font-semibold">
-              Fecha
-              <input
-                type="date"
-                name="fecha"
-                min={getTodayCR()}
-                onChange={handleChange}
-                className="datepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                required
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="hora" className="text-sm font-semibold">
-              Hora
-              <input
-                type="time"
-                name="hora"
-                onChange={handleChange}
-                className="timepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <PlaceAutocomplete
-              label="Pick Up"
-              name="pickUp"
-              value={formData.pickUp}
-              onSelect={(name) => {
-                setFormData((prev) => ({ ...prev, pickUp: name }));
-              }}
-              placeholder="Ej: Aeropuerto Juan Santamaría, Hotel..."
-              required
-            />
-          </div>
-          <div className="col-span-2">
-            <PlaceAutocomplete
-              label="Drop Off"
-              name="dropOff"
-              value={formData.dropOff}
-              onSelect={(name) => {
-                setFormData((prev) => ({ ...prev, dropOff: name }));
-              }}
-              placeholder="Ej: Hotel Hilton, Monteverde..."
-              required
-            />
-          </div>
+      <div className="form-container">
+        <h1 className="form-title">Nueva Reserva</h1>
+        
+        <form onSubmit={handleSubmit} className="form-wrapper">
+          {/* Detalles del Cliente */}
+          <section className="form-section form-section-client">
+            <h2 className="form-section-title">Detalles del Cliente</h2>
+            <div className="form-grid">
+              <div className="form-field">
+                <label className="form-label">Cliente</label>
+                <input
+                  type="text"
+                  name="cliente"
+                  value={formData.cliente}
+                  onChange={handleChange}
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Agencia</label>
+                <input
+                  type="text"
+                  name="proveedor"
+                  value={formData.proveedor}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">ItinID</label>
+                <input
+                  type="number"
+                  name="itinId"
+                  value={formData.itinId || ""}
+                  onChange={handleChange}
+                  required
+                  className="form-input"
+                />
+              </div>
+            </div>
+          </section>
 
-          <div className="col-span-2">
-            <label htmlFor="AD" className="text-sm font-semibold">
-              Adultos
-              <input
-                type="number"
-                name="AD"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
+          {/* Itinerario */}
+          <section className="form-section form-section-itinerary">
+            <h2 className="form-section-title">Itinerario</h2>
+            <div className="form-grid">
+              <div className="form-field form-field-full">
+                <label className="form-label">Pick Up</label>
+                <PlaceAutocomplete
+                  name="pickUp"
+                  value={formData.pickUp}
+                  onSelect={(name) => {
+                    setFormData((prev) => ({ ...prev, pickUp: name }));
+                  }}
+                  placeholder="Ej: Aeropuerto Juan Santamaría, Hotel..."
+                  required
+                  inputClassName="form-input"
+                  helperTextClassName="form-help"
+                />
+              </div>
+              <div className="form-field form-field-full">
+                <label className="form-label">Drop Off</label>
+                <PlaceAutocomplete
+                  name="dropOff"
+                  value={formData.dropOff}
+                  onSelect={(name) => {
+                    setFormData((prev) => ({ ...prev, dropOff: name }));
+                  }}
+                  placeholder="Ej: Hotel Hilton, Monteverde..."
+                  required
+                  inputClassName="form-input"
+                  helperTextClassName="form-help"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Fecha</label>
+                <input
+                  type="date"
+                  name="fecha"
+                  min={getTodayCR()}
+                  value={formData.fecha}
+                  onClick={openDatePicker}
+                  onFocus={openDatePicker}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Tab") {
+                      event.preventDefault();
+                    }
+                  }}
+                  onChange={handleChange}
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Hora</label>
+                <TimePickerField
+                  value={formData.hora}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, hora: value }))
+                  }
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Tarifas y Pasajeros */}
+          <section className="form-section form-section-rates">
+            <h2 className="form-section-title">Tarifas y Pasajeros</h2>
+            <div className="form-grid">
+              <div className="form-field">
+                <label className="form-label">Adultos</label>
+                <input
+                  type="number"
+                  name="AD"
+                  value={formData.AD}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Niños</label>
+                <input
+                  type="number"
+                  name="NI"
+                  value={formData.NI}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Precio</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="precio"
+                  value={formData.precio}
+                  onChange={handleChange}
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Fecha Pago</label>
+                <input
+                  type="date"
+                  name="fechaPago"
+                  value={formData.fechaPago}
+                  onClick={openDatePicker}
+                  onFocus={openDatePicker}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Tab") {
+                      event.preventDefault();
+                    }
+                  }}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Estado de Pago */}
+          <section className="form-section form-section-payment">
+            <h2 className="form-section-title">Estado de Pago</h2>
+            <div className="form-grid">
+              <div className="form-field form-checkbox">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="pago"
+                    checked={formData.pago}
+                    onChange={handleChange}
+                    className="checkbox-input"
+                  />
+                  <span>Reserva pagada</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          {/* Logística Adicional */}
+          <section className="form-section form-section-logistics">
+            <h2 className="form-section-title">Logística Adicional</h2>
+            <div className="form-grid">
+              <div className="form-field">
+                <label className="form-label">Chofer</label>
+                <input
+                  type="text"
+                  name="chofer"
+                  value={formData.chofer}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Buseta</label>
+                <input
+                  type="number"
+                  name="buseta"
+                  value={formData.buseta}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-field form-field-full">
+                <label className="form-label">Nota</label>
+                <textarea
+                  name="nota"
+                  value={formData.nota}
+                  onChange={handleChange}
+                  className="form-input form-textarea"
+                  rows="3"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Botones */}
+          <div className="form-actions">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="btn-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={guardando || saved}
+              className="btn-primary"
+            >
+              {guardando
+                ? "Guardando..."
+                : saved
+                ? "Reserva guardada"
+                : "Guardar reserva"}
+            </button>
           </div>
-          <div className="col-span-2">
-            <label htmlFor="NI" className="text-sm font-semibold">
-              Niños
-              <input
-                type="number"
-                name="NI"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-1">
-            <label htmlFor="pago" className="text-sm font-semibold">
-              Pago
-              <input
-                type="checkbox"
-                name="pago"
-                title="Pagado"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-            </label>
-          </div>
-          <div className="col-span-3">
-            <label htmlFor="fechaPago" className="text-sm font-semibold">
-              Fecha Pago
-              <input
-                type="date"
-                name="fechaPago"
-                placeholder=""
-                onChange={handleChange}
-                className="datepicker w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-black"
-              />
-            </label>
-          </div>
-          <div className="col-span-4">
-            <label htmlFor="nota" className="text-sm font-semibold">
-              Nota
-              <textarea
-                name="nota"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="chofer" className="text-sm font-semibold">
-              Chofer
-              <input
-                type="text"
-                name="chofer"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="buseta" className="text-sm font-semibold">
-              Buseta
-              <input
-                type="number"
-                name="buseta"
-                placeholder=""
-                onChange={handleChange}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
-            </label>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          <button
-            type="submit"
-            disabled={guardando || saved}
-            className="submitbtn w-full py-2 rounded-lg font-semibold transition duration-300 col-span-2"
-          >
-            {guardando
-              ? "Guardando..."
-              : saved
-              ? "Reserva guardada"
-              : "Guardar reserva"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="atrasbtn w-full  py-2 rounded-lg font-semibold transition duration-300 col-span-2"
-          >
-            Atrás
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

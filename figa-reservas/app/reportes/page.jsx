@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase.jsx";
 import "../styles/dashboard.css";
-import * as XLSX from "xlsx";
+import "../styles/reportes.css";
+import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import Logo from "../components/common/Logo.jsx";
 import Loading from "../components/common/Loading.jsx";
@@ -118,6 +119,19 @@ export default function ReportesPage() {
   const fmt0 = (n) => Number(n).toLocaleString("es-CR");
 
   const [showSelectors, setShowSelectors] = useState(false);
+  const [pendingStartDate, setPendingStartDate] = useState("");
+  const [pendingEndDate, setPendingEndDate] = useState("");
+
+  const openDatePicker = (e) => {
+    if (typeof e.currentTarget.showPicker === "function") {
+      e.currentTarget.showPicker();
+    }
+  };
+
+  const handleFiltrar = () => {
+    setStartDate(pendingStartDate);
+    setEndDate(pendingEndDate);
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
@@ -207,185 +221,210 @@ export default function ReportesPage() {
 
   const toggle = (key) => setSelected((s) => ({ ...s, [key]: !s[key] }));
 
-  const exportarExcel = () => {
+  const hasPeriod = Boolean(startDate && endDate);
+  const kpiIngresos = hasPeriod
+    ? precioPeriodo
+    : precioPorMes.reduce((a, b) => a + b, 0);
+  const kpiReservas = hasPeriod
+    ? cantPeriodo
+    : cantPorMes.reduce((a, b) => a + b, 0);
+  const kpiCanceladas = hasPeriod
+    ? canceladasPeriodo
+    : canceladasPorMes.reduce((a, b) => a + b, 0);
+  const kpiNoPagadas = hasPeriod
+    ? noPagadasPeriodo
+    : noPagadasPorMes.reduce((a, b) => a + b, 0);
+
+  const exportarExcel = async () => {
     try {
       toast.loading("Generando archivo Excel...", { id: "export-Reportes" });
 
-      const wb = XLSX.utils.book_new();
+      const wb = new ExcelJS.Workbook();
+
+      const addSheet = (name, rows) => {
+        const safeRows = Array.isArray(rows) ? rows : [];
+        if (safeRows.length === 0) return;
+
+        // Excel limita los nombres de hoja a 31 caracteres.
+        const ws = wb.addWorksheet(String(name).slice(0, 31));
+        const headers = Object.keys(safeRows[0]);
+        ws.columns = headers.map((header) => ({
+          header,
+          key: header,
+          width: Math.max(14, String(header).length + 2),
+        }));
+        safeRows.forEach((row) => ws.addRow(row));
+      };
+
+      const monthCells = (values) =>
+        monthNames.reduce((acc, month, idx) => {
+          acc[month] = values[idx] ?? 0;
+          return acc;
+        }, {});
+
+      const mensualRows = [];
+      const periodoRows = [];
+      const anualRows = [];
 
       if (selected.sumPrecioMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          TotalPrecio: precioPorMes[i],
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Precio por Mes");
-      }
-      if (selected.sumPrecioPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            TotalPrecio: precioPeriodo,
-          },
-        ];
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Precio por Periodo");
-      }
-      if (selected.sumPrecioAnual) {
-        const rows = precioPorAnio.map((r) => ({
-          Año: r.year,
-          TotalPrecio: r.total,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Precio por Año");
+        mensualRows.push({ Metrica: "Ingresos ($)", ...monthCells(precioPorMes) });
       }
       if (selected.countMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          Cantidad: cantPorMes[i],
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Cant. por Mes");
+        mensualRows.push({ Metrica: "Reservas", ...monthCells(cantPorMes) });
       }
-      if (selected.countPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            Cantidad: cantPeriodo,
-          },
-        ];
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Cant. por Periodo");
-      }
-      if (selected.countAnual) {
-        const rows = cantPorAnio.map((r) => ({
-          Año: r.year,
-          Cantidad: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Cant. por Año");
-      }
-
       if (selected.canceladasMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          Canceladas: canceladasPorMes[i],
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Mes");
+        mensualRows.push({ Metrica: "Canceladas", ...monthCells(canceladasPorMes) });
       }
-      if (selected.canceladasPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            Canceladas: canceladasPeriodo,
-          },
-        ];
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Periodo");
-      }
-      if (selected.canceladasAnual) {
-        const rows = canceladasPorAnio.map((r) => ({
-          Año: r.year,
-          Canceladas: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Canceladas por Año");
-      }
-
       if (selected.pagadasMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          Pagas: pagadasPorMes[i],
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Pagas por Mes");
+        mensualRows.push({ Metrica: "Pagadas", ...monthCells(pagadasPorMes) });
       }
       if (selected.noPagadasMensual) {
-        const rows = monthNames.map((m, i) => ({
-          Mes: m,
-          NoPagas: noPagadasPorMes[i],
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Mes");
+        mensualRows.push({ Metrica: "No Pagadas", ...monthCells(noPagadasPorMes) });
+      }
+
+      if (selected.sumPrecioPeriodo) {
+        periodoRows.push({
+          Metrica: "Ingresos ($)",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: precioPeriodo,
+        });
+      }
+      if (selected.countPeriodo) {
+        periodoRows.push({
+          Metrica: "Reservas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: cantPeriodo,
+        });
+      }
+      if (selected.canceladasPeriodo) {
+        periodoRows.push({
+          Metrica: "Canceladas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: canceladasPeriodo,
+        });
       }
       if (selected.pagadasPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            Pagas: pagadasPeriodo,
-          },
-        ];
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Pagas por Periodo");
+        periodoRows.push({
+          Metrica: "Pagadas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: pagadasPeriodo,
+        });
       }
       if (selected.noPagadasPeriodo) {
-        const rows = [
-          {
-            Inicio: startDate || "-",
-            Fin: endDate || "-",
-            NoPagas: noPagadasPeriodo,
-          },
-        ];
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Periodo");
+        periodoRows.push({
+          Metrica: "No Pagadas",
+          Inicio: startDate || "-",
+          Fin: endDate || "-",
+          Valor: noPagadasPeriodo,
+        });
+      }
+
+      if (selected.sumPrecioAnual) {
+        anualRows.push(
+          ...precioPorAnio.map((r) => ({
+            Metrica: "Ingresos ($)",
+            Ano: r.year,
+            Valor: r.total,
+          }))
+        );
+      }
+      if (selected.countAnual) {
+        anualRows.push(
+          ...cantPorAnio.map((r) => ({
+            Metrica: "Reservas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
+      }
+      if (selected.canceladasAnual) {
+        anualRows.push(
+          ...canceladasPorAnio.map((r) => ({
+            Metrica: "Canceladas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
       }
       if (selected.pagadasAnual) {
-        const rows = pagadasPorAnio.map((r) => ({
-          Año: r.year,
-          Pagas: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Pagas por Año");
+        anualRows.push(
+          ...pagadasPorAnio.map((r) => ({
+            Metrica: "Pagadas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
       }
       if (selected.noPagadasAnual) {
-        const rows = noPagadasPorAnio.map((r) => ({
-          Año: r.year,
-          NoPagas: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "No Pagas por Año");
+        anualRows.push(
+          ...noPagadasPorAnio.map((r) => ({
+            Metrica: "No Pagadas",
+            Ano: r.year,
+            Valor: r.count,
+          }))
+        );
       }
+
+      if (mensualRows.length > 0) addSheet("Resumen Mensual", mensualRows);
+      if (periodoRows.length > 0) addSheet("Resumen Periodo", periodoRows);
+      if (anualRows.length > 0) addSheet("Resumen Anual", anualRows);
+
+      const topRows = [];
 
       if (selected.topPickUp) {
-        const rows = topPickUps.map((r) => ({
-          Lugar: r.name,
-          Cantidad: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Top PickUp");
-      }
-      if (selected.topDropOff) {
-        const rows = topDropOffs.map((r) => ({
-          Lugar: r.name,
-          Cantidad: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Top DropOff");
-      }
-      if (selected.topHoras) {
-        const rows = topHorasList.map((r) => ({
-          Hora: hourLabel12(r.hour),
-          Cantidad: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Top Horas");
-      }
-      if (selected.topProveedores) {
-        const rows = topProveedores.map((r) => ({
-          Proveedor: r.name,
-          Cantidad: r.count,
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Top Proveedores");
+        topRows.push(
+          ...topPickUps.map((r) => ({
+            Categoria: "Top Lugares (PickUp)",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
       }
 
-      const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([buffer], { type: "application/octet-stream" });
+      if (selected.topDropOff) {
+        topRows.push(
+          ...topDropOffs.map((r) => ({
+            Categoria: "Top Lugares (DropOff)",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
+      }
+
+      if (selected.topProveedores) {
+        topRows.push(
+          ...topProveedores.map((r) => ({
+            Categoria: "Top Proveedores",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
+      }
+
+      if (selected.topHoras) {
+        topRows.push(
+          ...topHorasList.map((r) => ({
+            Categoria: "Top Horas",
+            Detalle: hourLabel12(r.hour),
+            Cantidad: r.count,
+          }))
+        );
+      }
+
+      if (topRows.length > 0) addSheet("Top Estadisticas", topRows);
+
+      if (wb.worksheets.length === 0) {
+        throw new Error("No hay reportes seleccionados para exportar.");
+      }
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
       const today = new Date().toISOString().split("T")[0];
       saveAs(blob, `Reportes_FIGA_${today}.xlsx`);
 
@@ -401,421 +440,198 @@ export default function ReportesPage() {
   };
 
   if (isLoading && reservas.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+    return <Loading />;
   }
   const noData = !isLoading && reservas.length === 0;
 
   return (
-    <div className="w-full min-h-screen bg-white flex flex-col items-center text-black">
-      <nav className="sticky top-0 z-40 w-full flex items-center bg-white/95 backdrop-blur border border-gray-200 shadow-sm rounded-xl mb-[10px] gap-2 px-3 py-2">
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600">
-              Año (para vistas mensuales)
-            </label>
+    <div className="reportes-shell">
+      {/* â”€â”€ Desktop header â”€â”€ */}
+      <header className="reportes-header desktop-only">
+        <div className="rpt-header-left">
+          <button
+            className="rpt-logo-btn"
+            onClick={() => router.push("/dashboard")}
+            title="Ir al dashboard"
+            aria-label="Ir al dashboard"
+          >
+            <Logo />
+          </button>
+          <h1 className="rpt-page-title">Reportes Generales</h1>
+        </div>
+
+        <div className="rpt-header-right">
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Año</span>
             <select
+              className="rpt-filter-select"
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              className="p-2 border rounded text-black"
               title="Año de referencia"
             >
-              {[
-                currentYear - 2,
-                currentYear - 1,
-                currentYear,
-                currentYear + 1,
-              ].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
+              {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(
+                (y) => (
+                  <option key={y} value={y}>{y}</option>
+                )
+              )}
             </select>
           </div>
 
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600">Inicio</label>
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Inicio</span>
             <input
               type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="p-2 border rounded text-black datepicker"
-              title="Fecha inicio (opcional)"
+              className="rpt-filter-input"
+              value={pendingStartDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingStartDate(e.target.value)}
+              title="Fecha inicio"
             />
           </div>
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600">Fin</label>
+
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Fin</span>
             <input
               type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="p-2 border rounded text-black datepicker"
-              title="Fecha fin (opcional)"
+              className="rpt-filter-input"
+              value={pendingEndDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingEndDate(e.target.value)}
+              title="Fecha fin"
             />
           </div>
-        </div>
-        <div
-          className="flex flex-grow justify-center items-center cursor-pointer"
-          role="button"
-          title="Ir al dashboard (ver activas)"
-          onClick={() => {
-            router.push("/dashboard");
-          }}
-        >
-          <Logo />
-        </div>
-        <div className="flex items-center justify-end gap-3 flex-grow">
-          <button
-            onClick={() => setShowSelectors((s) => !s)}
-            className="button-menuselect px-3 py-2 rounded-md border hover:bg-blue-100"
-            title="Mostrar/ocultar selectores de reportes"
-          >
-            {showSelectors ? "Ocultar selectores" : "Ver selectores"}
+
+          <button className="rpt-btn-filter" onClick={handleFiltrar}>
+            Filtrar
           </button>
-          <button
-            onClick={exportarExcel}
-            className="button-export px-3 py-2 rounded-md hover:bg-yellow-100 border"
-            title="Exportar reportes seleccionados"
-          >
+          <button className="rpt-btn-export" onClick={exportarExcel}>
             Exportar
           </button>
         </div>
-      </nav>
-      {showSelectors && (
-        <div className="w-full bg-white border rounded-md shadow-sm p-4 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3">
-            {[
-              ["sumPrecioMensual", "Precio x Mes"],
-              ["sumPrecioPeriodo", "Precio x Periodo"],
-              ["sumPrecioAnual", "Precio x Año"],
-              ["countMensual", "Cantidad x Mes"],
-              ["countPeriodo", "Cantidad x Periodo"],
-              ["countAnual", "Cantidad x Año"],
-              ["canceladasMensual", "Canceladas x Mes"],
-              ["canceladasPeriodo", "Canceladas x Periodo"],
-              ["canceladasAnual", "Canceladas x Año"],
-              ["pagadasMensual", "Pagas x Mes"],
-              ["pagadasPeriodo", "Pagas x Periodo"],
-              ["pagadasAnual", "Pagas x Año"],
-              ["noPagadasMensual", "No Pagas x Mes"],
-              ["noPagadasPeriodo", "No Pagas x Periodo"],
-              ["noPagadasAnual", "No Pagas x Año"],
-              ["topPickUp", "Top PickUp"],
-              ["topDropOff", "Top DropOff"],
-              ["topHoras", "Top Horas"],
-              ["topProveedores", "Top Proveedores"],
-            ].map(([k, label]) => (
-              <label
-                key={k}
-                className="flex items-center justify-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!selected[k]}
-                  onChange={() => toggle(k)}
-                  className="cursor-pointer"
-                />
-                <span>{label}</span>
-              </label>
-            ))}
+      </header>
+
+      {/* â”€â”€ Mobile header â”€â”€ */}
+      <header className="rpt-mobile-header mobile-only">
+        <button
+          className="rpt-logo-btn"
+          onClick={() => router.push("/dashboard")}
+          title="Ir al dashboard"
+          aria-label="Ir al dashboard"
+        >
+          <Logo />
+        </button>
+        <h1 className="rpt-mobile-title">Reportes Generales</h1>
+      </header>
+
+      {/* â”€â”€ Mobile filters â”€â”€ */}
+      <section className="rpt-mobile-filters mobile-only">
+        <div className="rpt-filter-group">
+          <span className="rpt-filter-label">Año</span>
+          <select
+            className="rpt-filter-select rpt-filter-fw"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          >
+            {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(
+              (y) => (
+                <option key={y} value={y}>{y}</option>
+              )
+            )}
+          </select>
+        </div>
+
+        <div className="rpt-mobile-filter-row">
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Inicio</span>
+            <input
+              type="date"
+              className="rpt-filter-input"
+              value={pendingStartDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingStartDate(e.target.value)}
+            />
+          </div>
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Fin</span>
+            <input
+              type="date"
+              className="rpt-filter-input"
+              value={pendingEndDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onKeyDown={(e) => { if (e.key !== "Tab") e.preventDefault(); }}
+              onChange={(e) => setPendingEndDate(e.target.value)}
+            />
           </div>
         </div>
-      )}
 
-      {noData && (
-        <div className="w-full max-w-2xl border rounded p-4 text-center text-gray-600">
-          No hay reservas para mostrar. Ajusta el rango de fechas o el año, o
-          intenta recargar.
+        <div className="rpt-mobile-actions">
+          <button className="rpt-btn-filter" onClick={handleFiltrar}>
+            Filtrar
+          </button>
+          <button className="rpt-btn-export" onClick={exportarExcel}>
+            Exportar
+          </button>
         </div>
-      )}
+      </section>
 
-      <div className="w-full grid md:grid-cols-3 gap-6">
-        {selected.sumPrecioMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Precio por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {precioPorMes.map((v, i) => (
-                      <td key={i}>{fmt2(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+      {/* â”€â”€ Main content â”€â”€ */}
+      <main className="reportes-main">
+        {noData && (
+          <div className="rpt-no-data">
+            No hay reservas para mostrar. Ajusta el rango de fechas o el año, o
+            intenta recargar.
+          </div>
         )}
 
-        {selected.sumPrecioPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Precio por Periodo
-            </h2>
-            <div className="border rounded p-3 flex items-center justify-between">
-              <div>
-                Total: <strong>{fmt2(precioPeriodo)}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded px-2 py-1">
-                {cantPeriodo} reservas
-              </span>
-            </div>
-          </section>
-        )}
+        {/* KPI cards */}
+        <div className="rpt-kpi-row">
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-green" />
+            <p className="rpt-kpi-label">Ingresos Totales</p>
+            <p className="rpt-kpi-value">${fmt2(kpiIngresos)}</p>
+            <p className="rpt-kpi-sub">
+              {hasPeriod ? "Periodo seleccionado" : `Año ${year}`}
+            </p>
+          </div>
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-blue" />
+            <p className="rpt-kpi-label">Total Reservas</p>
+            <p className="rpt-kpi-value">{fmt0(kpiReservas)}</p>
+            <p className="rpt-kpi-sub">Reservas exitosas</p>
+          </div>
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-red" />
+            <p className="rpt-kpi-label">Canceladas</p>
+            <p className="rpt-kpi-value">{fmt0(kpiCanceladas)}</p>
+            <p className="rpt-kpi-sub">
+              {hasPeriod ? "En el periodo" : `En el año ${year}`}
+            </p>
+          </div>
+          <div className="rpt-kpi-card">
+            <div className="rpt-kpi-icon rpt-kpi-icon-yellow" />
+            <p className="rpt-kpi-label">No Pagadas</p>
+            <p className="rpt-kpi-value">{fmt0(kpiNoPagadas)}</p>
+            <p className="rpt-kpi-sub">Pendientes de cobro</p>
+          </div>
+        </div>
 
-        {selected.sumPrecioAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Precio por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Total Precio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {precioPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt2(r.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.countMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Cantidad por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {cantPorMes.map((v, i) => (
-                      <td key={i}>{fmt0(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.countPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Cantidad por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{cantPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {selected.countAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Cantidad por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cantPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.canceladasMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Canceladas por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {canceladasPorMes.map((v, i) => (
-                      <td key={i}>{fmt0(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.canceladasPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Canceladas por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{canceladasPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {selected.canceladasAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Canceladas por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Canceladas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {canceladasPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.pagadasMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Pagas por Mes (Año {year})
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm rounded border shadow-sm">
-                <thead>
-                  <tr>
-                    {monthNames.map((m) => (
-                      <th key={m}>{m}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {pagadasPorMes.map((v, i) => (
-                      <td key={i}>{fmt0(v)}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.pagadasPeriodo && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Pagas por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{pagadasPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {selected.pagadasAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Pagas por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>Pagas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagadasPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.noPagadasMensual && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              No Pagas por Mes (Año {year})
-            </h2>
-            <table className="dashboard-table min-w-full table-auto text-sm">
+        {/* Resumen Mensual */}
+        <section className="rpt-section">
+          <div className="rpt-section-header">
+            <h2 className="rpt-section-title">Resumen Mensual ({year})</h2>
+          </div>
+          <div className="rpt-table-wrap">
+            <table className="rpt-table">
               <thead>
                 <tr>
+                  <th className="rpt-th-metric">Métrica</th>
                   {monthNames.map((m) => (
                     <th key={m}>{m}</th>
                   ))}
@@ -823,167 +639,130 @@ export default function ReportesPage() {
               </thead>
               <tbody>
                 <tr>
+                  <td className="rpt-metric-label">Ingresos ($)</td>
+                  {precioPorMes.map((v, i) => (
+                    <td key={i}>{fmt2(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="rpt-metric-label">Reservas</td>
+                  {cantPorMes.map((v, i) => (
+                    <td key={i}>{fmt0(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="rpt-metric-label">Canceladas</td>
+                  {canceladasPorMes.map((v, i) => (
+                    <td key={i}>{fmt0(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="rpt-metric-label">No Pagadas</td>
                   {noPagadasPorMes.map((v, i) => (
                     <td key={i}>{fmt0(v)}</td>
                   ))}
                 </tr>
               </tbody>
             </table>
-          </section>
-        )}
+          </div>
+        </section>
 
-        {selected.noPagadasPeriodo && (
-          <section className="w-full justify-center">
-            <h2 className="text-base text-center font-semibold mb-2">
-              No Pagas por Periodo
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <div className="border rounded p-3">
-                Total: <strong>{noPagadasPeriodo}</strong>
-                <div className="text-xs text-gray-500">
-                  Rango: {startDate || "-"} a {endDate || "-"}
+        {/* Top Estadísticas */}
+        <section className="rpt-section">
+          <div className="rpt-section-header">
+            <h2 className="rpt-section-title">Top Estadísticas</h2>
+          </div>
+          <div className="rpt-top-grid">
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Lugares (PickUp)</h3>
+              {topPickUps.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
                 </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Lugares (DropOff)</h3>
+              {topDropOffs.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Proveedores</h3>
+              {topProveedores.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Horas</h3>
+              {topHorasList.map((r) => (
+                <div key={r.hour} className="rpt-top-row">
+                  <span className="rpt-top-name">{hourLabel12(r.hour)}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Configurar exportación */}
+        <section className="rpt-section">
+          <button
+            className="rpt-section-header rpt-section-toggle"
+            onClick={() => setShowSelectors((s) => !s)}
+            type="button"
+            aria-expanded={showSelectors}
+          >
+            <h2 className="rpt-section-title">Configurar exportación</h2>
+            <span className="rpt-toggle-caret">{showSelectors ? "^" : "v"}</span>
+          </button>
+          {showSelectors && (
+            <div className="rpt-selectors-body">
+              <div className="rpt-selectors-grid">
+                {[
+                  ["sumPrecioMensual", "Precio x Mes"],
+                  ["sumPrecioPeriodo", "Precio x Periodo"],
+                  ["sumPrecioAnual", "Precio x Año"],
+                  ["countMensual", "Cantidad x Mes"],
+                  ["countPeriodo", "Cantidad x Periodo"],
+                  ["countAnual", "Cantidad x Año"],
+                  ["canceladasMensual", "Canceladas x Mes"],
+                  ["canceladasPeriodo", "Canceladas x Periodo"],
+                  ["canceladasAnual", "Canceladas x Año"],
+                  ["pagadasMensual", "Pagas x Mes"],
+                  ["pagadasPeriodo", "Pagas x Periodo"],
+                  ["pagadasAnual", "Pagas x Año"],
+                  ["noPagadasMensual", "No Pagas x Mes"],
+                  ["noPagadasPeriodo", "No Pagas x Periodo"],
+                  ["noPagadasAnual", "No Pagas x Año"],
+                  ["topPickUp", "Top PickUp"],
+                  ["topDropOff", "Top DropOff"],
+                  ["topHoras", "Top Horas"],
+                  ["topProveedores", "Top Proveedores"],
+                ].map(([k, label]) => (
+                  <label key={k} className="rpt-selector-item">
+                    <input
+                      type="checkbox"
+                      checked={!!selected[k]}
+                      onChange={() => toggle(k)}
+                      className="rpt-selector-check"
+                      aria-label={label}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
               </div>
             </div>
-          </section>
-        )}
-
-        {selected.noPagadasAnual && (
-          <section className="w-full col-span-2">
-            <h2 className="text-base text-center font-semibold mb-2">
-              No Pagas por Año
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Año</th>
-                    <th>No Pagas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {noPagadasPorAnio.map((r) => (
-                    <tr key={r.year}>
-                      <td>{r.year}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topPickUp && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Lugares (PickUp)
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Lugar</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topPickUps.map((r) => (
-                    <tr key={r.name}>
-                      <td className="max-w-xs truncate" title={r.name}>
-                        {r.name}
-                      </td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topDropOff && (
-          <section className="w-full">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Lugares (DropOff)
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Lugar</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topDropOffs.map((r) => (
-                    <tr key={r.name}>
-                      <td className="max-w-xs truncate" title={r.name}>
-                        {r.name}
-                      </td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topProveedores && (
-          <section className="w-full col-span-1">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Proveedores
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Proveedor</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topProveedores.map((r) => (
-                    <tr key={r.name}>
-                      <td className="max-w-xs truncate" title={r.name}>
-                        {r.name}
-                      </td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {selected.topHoras && (
-          <section className="w-full col-span-3">
-            <h2 className="text-base text-center font-semibold mb-2">
-              Top Horas
-            </h2>
-            <div className="overflow-x-auto rounded border shadow-sm">
-              <table className="dashboard-table min-w-full table-auto text-sm">
-                <thead>
-                  <tr>
-                    <th>Hora</th>
-                    <th>Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topHorasList.map((r) => (
-                    <tr key={r.hour}>
-                      <td>{hourLabel12(r.hour)}</td>
-                      <td>{fmt0(r.count)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-      </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

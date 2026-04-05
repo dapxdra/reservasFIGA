@@ -1,7 +1,15 @@
 import { db } from "../../lib/firebaseadmin.jsx";
 
+const dbUnavailable = () =>
+  new Response(
+    JSON.stringify({ message: "Firebase Admin no está configurado en el servidor" }),
+    { status: 500, headers: { "Content-Type": "application/json" } }
+  );
+
 export const POST = async (req) => {
   try {
+    if (!db) return dbUnavailable();
+
     const body = await req.json();
     const reservasRef = db.collection("reservas");
 
@@ -58,6 +66,8 @@ export const POST = async (req) => {
 // Obtiene todas las reservas
 export const GET = async (req) => {
   try {
+    if (!db) return dbUnavailable();
+
     const snapshot = await db
       .collection("reservas")
       .orderBy("fecha", "asc")

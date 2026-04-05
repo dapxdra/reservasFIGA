@@ -1,0 +1,482 @@
+/* =============================================================
+   Form Styles
+   ============================================================= */
+
+/* Shell: full-page background, flex column so LogoNav spans top */
+.form-shell {
+  min-height: 100vh;
+  background: var(--dashboard-background, #f3f4f6);
+  font-family: var(--dashboard-font, Inter, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Content area: centrado con max-width, similar al dashboard-main */
+.form-container {
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 32px 52px;
+}
+
+/* Page title */
+.form-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #253041;
+  margin-bottom: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* Form wrapper: stacks sections; becomes 2-col grid on desktop */
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* =============================================================
+   Section cards
+   ============================================================= */
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-md, 10px);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-section:hover {
+  border-color: rgba(15, 23, 42, 0.13);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+/* Section heading — green left-border accent */
+.form-section-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475467;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-left: 10px;
+  border-left: 3px solid var(--dashboard-primary, #2b8a3e);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* =============================================================
+   Field grid
+   ============================================================= */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 18px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field-full {
+  grid-column: 1 / -1;
+}
+
+/* Label */
+.form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475467;
+  letter-spacing: 0.01em;
+}
+
+/* =============================================================
+   Inputs
+   ============================================================= */
+
+.form-input {
+  width: 100%;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-sm, 8px);
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--dashboard-foreground, #1f2937);
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-input::placeholder {
+  color: var(--dashboard-muted-foreground, #98a2b3);
+}
+
+.form-input:focus {
+  border-color: rgba(43, 138, 62, 0.5);
+  box-shadow: 0 0 0 3px rgba(43, 138, 62, 0.09);
+}
+
+.form-input:focus-visible,
+.form-select:focus-visible {
+  border-color: rgba(43, 138, 62, 0.58);
+  box-shadow: 0 0 0 3px rgba(43, 138, 62, 0.12);
+}
+
+.form-input[type="date"],
+.form-input[type="time"] {
+  cursor: pointer;
+  color-scheme: light;
+}
+
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.form-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.form-input[type="number"]::-webkit-inner-spin-button,
+.form-input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+/* Textarea */
+.form-textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+/* =============================================================
+   Select (TimePickerField)
+   ============================================================= */
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.form-select-period {
+  min-width: 88px;
+}
+
+.time-picker-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 92px;
+  gap: 8px;
+}
+
+/* Autocomplete helper text */
+.form-help {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--dashboard-muted-foreground, #98a2b3);
+  line-height: 1.4;
+}
+
+/* =============================================================
+   Checkbox — Estado de Pago
+   ============================================================= */
+
+.form-checkbox {
+  grid-column: 1 / -1;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-sm, 8px);
+  background: #f8fbf8;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dashboard-foreground, #1f2937);
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.checkbox-label:hover {
+  background: #edf7ee;
+  border-color: rgba(43, 138, 62, 0.3);
+}
+
+.checkbox-input {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+  accent-color: #2b8a3e;
+  flex-shrink: 0;
+}
+
+/* =============================================================
+   Actions bar
+   ============================================================= */
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  margin-top: 2px;
+}
+
+/* =============================================================
+   Buttons
+   ============================================================= */
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--dashboard-radius-sm, 8px);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.18s ease, color 0.18s ease,
+    border-color 0.18s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--dashboard-primary, #2b8a3e);
+  color: #ffffff;
+  min-width: 160px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #257537;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 2px solid rgba(43, 138, 62, 0.45);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--dashboard-foreground, #1f2937);
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  min-width: 160px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f7f9fc;
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* =============================================================
+   Desktop Grid Layout ≥1080px
+   Left col (client + itinerary) | Right col (rates + payment + logistics)
+   itinerary spans rows 2–3 left to match right stack height
+   ============================================================= */
+
+@media (min-width: 1080px) {
+  .form-container {
+    max-width: none;
+    margin: 0;
+    padding: 30px 40px 52px;
+  }
+
+  .form-wrapper {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+    grid-template-areas:
+      "client    rates"
+      "itinerary payment"
+      "itinerary logistics"
+      "actions   actions";
+    gap: 16px;
+    align-items: start;
+  }
+
+  .form-section-client    { grid-area: client; }
+  .form-section-itinerary { grid-area: itinerary; align-self: stretch; }
+  .form-section-rates     { grid-area: rates; }
+  .form-section-payment   { grid-area: payment; }
+  .form-section-logistics { grid-area: logistics; }
+  .form-actions           { grid-area: actions; }
+
+  /* Cliente wider, Agencia, ItinID compact */
+  .form-section-client .form-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 140px;
+  }
+
+  /* PickUp + DropOff full-width rows; Fecha + Hora same row */
+  .form-section-itinerary .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Rates: 2×2 */
+  .form-section-rates .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Payment: single column (checkbox only) */
+  .form-section-payment .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Logistics: Chofer + Buseta row, Nota full width */
+  .form-section-logistics .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* =============================================================
+   Large Desktop ≥1440px
+   More breathing room and balanced columns on wide screens
+   ============================================================= */
+
+@media (min-width: 1440px) {
+  .form-container {
+    max-width: none;
+    margin: 0;
+    padding: 34px 44px 60px;
+  }
+
+  .form-title {
+    font-size: 30px;
+    margin-bottom: 30px;
+  }
+
+  .form-wrapper {
+    grid-template-columns: minmax(0, 1.42fr) minmax(360px, 1fr);
+    gap: 18px;
+  }
+
+  .form-section {
+    padding: 24px 26px;
+  }
+}
+
+/* =============================================================
+   Tablet 768px – 1079px
+   2 cols; client + itinerary + logistics span full width
+   ============================================================= */
+
+@media (min-width: 768px) and (max-width: 1079px) {
+  .form-container {
+    padding: 24px 24px 40px;
+  }
+
+  .form-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-section-client,
+  .form-section-itinerary,
+  .form-section-logistics,
+  .form-actions {
+    grid-column: 1 / -1;
+  }
+
+  .form-section-client .form-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 140px;
+  }
+
+  .form-section-itinerary .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-section-logistics .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* =============================================================
+   Mobile < 768px
+   ============================================================= */
+
+@media (max-width: 767px) {
+  .form-container {
+    padding: 18px 16px 32px;
+  }
+
+  .form-title {
+    font-size: 20px;
+    margin-bottom: 18px;
+  }
+
+  .form-wrapper {
+    gap: 12px;
+  }
+
+  .form-section {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .form-section-title {
+    font-size: 12px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
+  .form-field-full {
+    grid-column: 1;
+  }
+
+  .time-picker-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+    padding-top: 16px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    min-width: auto;
+    height: 50px;
+  }
+}

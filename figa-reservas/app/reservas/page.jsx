@@ -19,9 +19,5 @@ export default function ReservasPage() {
     return () => unsubscribe(); // Limpiar el listener al desmontar el componente
   }, [router]);
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-black bg-white p-4">
-      <ReservaForm />
-    </div>
-  );
+  return <ReservaForm />;
 }

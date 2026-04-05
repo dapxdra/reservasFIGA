@@ -3,7 +3,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { auth } from "../../../lib/firebase.jsx";
-import "../../../styles/dashboard.css";
 import { getReservaPorId } from "@/app/lib/api.js";
 import Loading from "../../../components/common/Loading.jsx";
 
