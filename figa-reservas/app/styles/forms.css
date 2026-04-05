@@ -314,6 +314,8 @@
 
 @media (min-width: 1080px) {
   .form-container {
+    max-width: none;
+    margin: 0;
     padding: 30px 40px 52px;
   }
 
@@ -369,7 +371,8 @@
 
 @media (min-width: 1440px) {
   .form-container {
-    max-width: 1540px;
+    max-width: none;
+    margin: 0;
     padding: 34px 44px 60px;
   }
 

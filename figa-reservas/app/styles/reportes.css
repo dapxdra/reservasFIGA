@@ -519,6 +519,10 @@
     gap: 14px;
   }
 
+  .reportes-header {
+    display: none;
+  }
+
   .rpt-kpi-row {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
