@@ -514,6 +514,17 @@
   text-overflow: ellipsis;
 }
 
+.dashboard-note-badge {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  text-align: left;
+}
+
 .row-actions,
 .rc-actions {
   display: inline-flex;

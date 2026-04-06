@@ -177,7 +177,7 @@ function ReservationTableRow({
       <td>{reserva.cliente || "-"}</td>
       <td>
         {reserva.nota ? (
-          <span className="dashboard-badge dashboard-badge-outline">
+          <span className="dashboard-badge dashboard-badge-outline dashboard-note-badge">
             {reserva.nota}
           </span>
         ) : (
@@ -305,7 +305,7 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
       <div className="rc-footer">
         <div className="rc-tags">
           {reserva.nota ? (
-            <span className="dashboard-badge dashboard-badge-outline">
+            <span className="dashboard-badge dashboard-badge-outline dashboard-note-badge">
               {reserva.nota}
             </span>
           ) : null}
