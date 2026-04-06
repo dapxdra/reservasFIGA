@@ -506,7 +506,7 @@
 }
 
 .dashboard-badge-outline {
-  border: 1px solid var(--dashboard-border);
+  /* border: 1px solid var(--dashboard-border); */
   color: var(--dashboard-muted-foreground);
   background: transparent;
   max-width: 136px;

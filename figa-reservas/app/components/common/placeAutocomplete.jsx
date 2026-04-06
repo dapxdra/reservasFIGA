@@ -139,15 +139,15 @@ export default function PlaceAutocomplete({
           id="autocomplete-list"
           ref={listRef}
           role="listbox"
-          className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-72 overflow-y-auto overscroll-contain"
+          className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-72 overflow-y-auto overscroll-contain text-black"
         >
           {loading && (
-            <li className="px-3 py-2 text-sm text-gray-500 italic">
+            <li className="px-3 py-2 text-sm text-black italic">
               Buscando lugares...
             </li>
           )}
           {!loading && suggestions.length === 0 && (
-            <li className="px-3 py-2 text-sm text-gray-500 italic">
+            <li className="px-3 py-2 text-sm text-black italic">
               No se encontraron lugares
             </li>
           )}
@@ -158,9 +158,9 @@ export default function PlaceAutocomplete({
                 id={`option-${idx}`}
                 role="option"
                 aria-selected={idx === selectedIndex}
-                className={`px-3 py-2 cursor-pointer text-sm transition ${
+                className={`px-3 py-2 cursor-pointer text-sm text-black transition ${
                   idx === selectedIndex
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-emerald-100 text-black"
                     : "hover:bg-gray-100"
                 }`}
                 onMouseDown={(e) => e.preventDefault()}
