@@ -157,7 +157,7 @@ function ReservationTableRow({
   const agencyTheme = getAgencyTheme(reserva.proveedor);
 
   return (
-    <tr>
+    <tr className={revisada ? "reservation-row-reviewed" : ""}>
       <td className="dashboard-id-cell">#{reserva.id}</td>
       <td>{formatDashboardDate(reserva.fecha)}</td>
       <td>
@@ -234,7 +234,9 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
   const agencyTheme = getAgencyTheme(reserva.proveedor);
 
   return (
-    <article className="reservation-card">
+    <article
+      className={`reservation-card ${revisada ? "reservation-card-reviewed" : ""}`}
+    >
       <div className="rc-header">
         <div className="rc-id-date">
           <div className="rc-id-row">
