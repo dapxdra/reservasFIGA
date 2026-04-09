@@ -184,8 +184,8 @@ function ReservationTableRow({
           <span className="dashboard-dash">-</span>
         )}
       </td>
-      <td>{reserva.chofer || "-"}</td>
-      <td>{reserva.buseta || "-"}</td>
+      <td className="dashboard-col-hidden">{reserva.chofer || "-"}</td>
+      <td className="dashboard-col-hidden">{reserva.buseta || "-"}</td>
       <td className="dashboard-price">{formatPrice(reserva.precio)}</td>
       <td>
         <span
@@ -196,7 +196,9 @@ function ReservationTableRow({
           {paid ? "Pagado" : "Pendiente"}
         </span>
       </td>
-      <td>{paid ? formatDashboardDate(reserva.fechaPago) : "-"}</td>
+      <td className="dashboard-col-hidden">
+        {paid ? formatDashboardDate(reserva.fechaPago) : "-"}
+      </td>
       <td className="text-right">
         <div className="row-actions">
           <button
@@ -836,12 +838,12 @@ export default function DashboardPage() {
                     <th>Niños</th>
                     <th>Cliente</th>
                     <th>Nota</th>
-                    <th>Chofer</th>
-                    <th>Buseta</th>
+                    <th className="dashboard-col-hidden">Chofer</th>
+                    <th className="dashboard-col-hidden">Buseta</th>
                     <th>Precio</th>
                     <th>Pago</th>
-                    <th>FechaPago</th>
-                    <th className="text-right">Acciones</th>
+                    <th className="dashboard-col-hidden">FechaPago</th>
+                    <th className="text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>

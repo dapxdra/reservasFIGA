@@ -301,6 +301,10 @@
   padding-right: 18px;
 }
 
+.dashboard-col-hidden {
+  display: none;
+}
+
 /* Columnas cortas: sin salto de línea en cabecera ni en dato */
 .dashboard-table th:nth-child(1),
 .dashboard-table td:nth-child(1) {
