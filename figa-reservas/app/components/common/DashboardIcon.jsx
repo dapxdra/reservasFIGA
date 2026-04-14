@@ -113,6 +113,25 @@ const ICONS = {
     </>
   ),
   check: <path d="M5.5 12.5l4 4L18.5 7" {...COMMON_PROPS} />,
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="2.6" {...COMMON_PROPS} />
+      <path d="M12 4.5v2" {...COMMON_PROPS} />
+      <path d="M12 17.5v2" {...COMMON_PROPS} />
+      <path d="M4.5 12h2" {...COMMON_PROPS} />
+      <path d="M17.5 12h2" {...COMMON_PROPS} />
+      <path d="M6.7 6.7l1.4 1.4" {...COMMON_PROPS} />
+      <path d="M15.9 15.9l1.4 1.4" {...COMMON_PROPS} />
+      <path d="M6.7 17.3l1.4-1.4" {...COMMON_PROPS} />
+      <path d="M15.9 8.1l1.4-1.4" {...COMMON_PROPS} />
+    </>
+  ),
+  mail: (
+    <>
+      <path d="M4.5 7.5h15v9h-15z" {...COMMON_PROPS} />
+      <path d="M5.5 8.5l6.5 5 6.5-5" {...COMMON_PROPS} />
+    </>
+  ),
 };
 
 export default function DashboardIcon({ name, size = 18, className = "" }) {

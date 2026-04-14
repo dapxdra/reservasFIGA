@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/notifications/reservas-24h",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

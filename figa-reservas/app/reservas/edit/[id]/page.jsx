@@ -1,10 +1,11 @@
 "use client";
 
 import { Suspense, lazy, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { auth } from "../../../lib/firebase.jsx";
+import { useParams } from "next/navigation";
 import { getReservaPorId } from "@/app/lib/api.js";
 import Loading from "../../../components/common/Loading.jsx";
+import ProtectedRoute from "../../../components/common/ProtectedRoute.jsx";
+import { ROLES } from "../../../lib/roles.js";
 
 const EditReservaForm = lazy(() =>
   import("../../../components/common/editReservaForm.jsx")
@@ -12,17 +13,10 @@ const EditReservaForm = lazy(() =>
 
 export default function EditReserva() {
   const params = useParams();
-  const router = useRouter();
-  const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   const [reserva, setReserva] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) router.push("/login");
-      else setUser(user);
-    });
-
     if (params?.id) {
       getReservaPorId(params.id)
         .then((data) => setReserva(data))
@@ -30,16 +24,16 @@ export default function EditReserva() {
     } else {
       setError("ID no encontrado en los parámetros");
     }
-
-    return () => unsubscribe();
   }, [params.id]);
 
   if (error) return <div>Error: {error}</div>;
   if (!reserva) return <Loading />;
 
   return (
-    <Suspense fallback={<Loading />}>
-      <EditReservaForm reservaInicial={reserva} />
-    </Suspense>
+    <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERADOR]}>
+      <Suspense fallback={<Loading />}>
+        <EditReservaForm reservaInicial={reserva} />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

@@ -10,9 +10,17 @@ import { getTodayCR } from "../../utils/getTodayCR.js";
 import toast from "react-hot-toast";
 import PlaceAutocomplete from "./placeAutocomplete";
 import TimePickerField from "./TimePickerField";
+import { useCatalogos } from "../../hooks/useCatalogos.js";
 
 export default function ReservaForm() {
   const { invalidateCache } = useReservasData();
+  const {
+    conductores,
+    vehiculos,
+    loadingCatalogos,
+    catalogosError,
+    recargarCatalogos,
+  } = useCatalogos();
   const [formData, setFormData] = useState({
     cliente: "",
     fecha: "",
@@ -24,8 +32,8 @@ export default function ReservaForm() {
     precio: 0,
     AD: 0,
     NI: 0,
-    chofer: "",
-    buseta: 0,
+    conductorId: "",
+    vehiculoId: "",
     pago: false,
     fechaPago: "",
     cancelada: false,
@@ -266,25 +274,56 @@ export default function ReservaForm() {
             <h2 className="form-section-title">Logística Adicional</h2>
             <div className="form-grid">
               <div className="form-field">
-                <label className="form-label">Chofer</label>
-                <input
-                  type="text"
-                  name="chofer"
-                  value={formData.chofer}
+                <label className="form-label">Conductor</label>
+                <select
+                  name="conductorId"
+                  value={formData.conductorId}
                   onChange={handleChange}
                   className="form-input"
-                />
+                  disabled={loadingCatalogos}
+                >
+                  <option value="">Sin asignar</option>
+                  {conductores.map((conductor) => (
+                    <option key={conductor.id} value={conductor.id}>
+                      {conductor.nombre}
+                    </option>
+                  ))}
+                </select>
+                {loadingCatalogos ? (
+                  <span className="form-help">Cargando conductores...</span>
+                ) : null}
               </div>
               <div className="form-field">
-                <label className="form-label">Buseta</label>
-                <input
-                  type="number"
-                  name="buseta"
-                  value={formData.buseta}
+                <label className="form-label">Vehículo</label>
+                <select
+                  name="vehiculoId"
+                  value={formData.vehiculoId}
                   onChange={handleChange}
                   className="form-input"
-                />
+                  disabled={loadingCatalogos}
+                >
+                  <option value="">Sin asignar</option>
+                  {vehiculos.map((vehiculo) => (
+                    <option key={vehiculo.id} value={vehiculo.id}>
+                      {vehiculo.placa}
+                      {vehiculo.modelo ? ` - ${vehiculo.modelo}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {loadingCatalogos ? (
+                  <span className="form-help">Cargando vehículos...</span>
+                ) : null}
               </div>
+              {catalogosError ? (
+                <div className="form-field form-field-full">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800 flex items-center justify-between gap-3">
+                    <span>{catalogosError}</span>
+                    <button type="button" onClick={recargarCatalogos} className="btn-secondary">
+                      Reintentar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <div className="form-field form-field-full">
                 <label className="form-label">Nota</label>
                 <textarea

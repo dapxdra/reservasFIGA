@@ -1,5 +1,7 @@
 import { db } from "../../../lib/firebaseadmin.jsx";
 import admin from "firebase-admin";
+import { ROLES } from "../../../lib/roles.js";
+import { getAuthUserContext, hasRole, unauthorizedResponse } from "../../../lib/serverAuth.js";
 
 // Función segura para las respuestas JSON
 function jsonResponse(data = {}, status = 200) {
@@ -19,10 +21,29 @@ function ensureDb() {
   return null;
 }
 
+async function resolveAsignacion(conductorId, vehiculoId) {
+  const [conductorDoc, vehiculoDoc] = await Promise.all([
+    conductorId ? db.collection("conductores").doc(conductorId).get() : Promise.resolve(null),
+    vehiculoId ? db.collection("vehiculos").doc(vehiculoId).get() : Promise.resolve(null),
+  ]);
+
+  const conductorData = conductorDoc?.exists ? conductorDoc.data() : null;
+  const vehiculoData = vehiculoDoc?.exists ? vehiculoDoc.data() : null;
+
+  return {
+    conductorNombre: conductorData?.nombre || "",
+    assignedUid: conductorData?.uid || "",
+    vehiculoPlaca: vehiculoData?.placa || "",
+  };
+}
+
 // Método GET para obtener una reserva por ID
 export async function GET(req, { params }) {
   const dbError = ensureDb();
   if (dbError) return dbError;
+
+  const { uid, profile, errorResponse } = await getAuthUserContext(req);
+  if (errorResponse) return errorResponse;
 
   const re = await params;
   if (!re?.id) {
@@ -36,7 +57,15 @@ export async function GET(req, { params }) {
       return jsonResponse({ message: "Reserva no encontrada" }, 404);
     }
 
-    return jsonResponse({ id: doc.id, ...doc.data() });
+    const reserva = doc.data();
+    if (hasRole(profile, [ROLES.CONDUCTOR])) {
+      const assignedUid = String(reserva.assignedUid || "").trim();
+      if (!assignedUid || assignedUid !== uid) {
+        return unauthorizedResponse("No tienes permisos para ver esta reserva.");
+      }
+    }
+
+    return jsonResponse({ id: doc.id, ...reserva });
   } catch (error) {
     console.error("Error al obtener la reserva:", error.message);
     return jsonResponse({ message: "Error interno del servidor" }, 500);
@@ -47,6 +76,12 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   const dbError = ensureDb();
   if (dbError) return dbError;
+
+  const { profile, errorResponse } = await getAuthUserContext(req);
+  if (errorResponse) return errorResponse;
+  if (!hasRole(profile, [ROLES.ADMIN, ROLES.OPERADOR])) {
+    return unauthorizedResponse("No tienes permisos para editar reservas.");
+  }
 
   const re = await params;
   if (!re?.id) {
@@ -60,7 +95,23 @@ export async function PUT(req, { params }) {
       return jsonResponse({ error: "Datos inválidos" }, 400);
     }
 
-    await db.collection("reservas").doc(re.id).update(data);
+    const updateData = { ...data };
+    if (Object.prototype.hasOwnProperty.call(data, "conductorId") || Object.prototype.hasOwnProperty.call(data, "vehiculoId")) {
+      const conductorId = data.conductorId || "";
+      const vehiculoId = data.vehiculoId || "";
+      const { conductorNombre, assignedUid, vehiculoPlaca } = await resolveAsignacion(
+        conductorId,
+        vehiculoId
+      );
+
+      updateData.conductorNombre = conductorNombre;
+      updateData.chofer = conductorNombre;
+      updateData.assignedUid = assignedUid;
+      updateData.vehiculoPlaca = vehiculoPlaca;
+      updateData.buseta = vehiculoPlaca;
+    }
+
+    await db.collection("reservas").doc(re.id).update(updateData);
     return jsonResponse({ message: "Reserva actualizada correctamente" });
   } catch (error) {
     console.error("Error al actualizar la reserva:", error.message);
@@ -72,6 +123,12 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
   const dbError = ensureDb();
   if (dbError) return dbError;
+
+  const { profile, errorResponse } = await getAuthUserContext(req);
+  if (errorResponse) return errorResponse;
+  if (!hasRole(profile, [ROLES.ADMIN, ROLES.OPERADOR])) {
+    return unauthorizedResponse("No tienes permisos para cancelar reservas.");
+  }
 
   const re = await params;
   if (!re?.id) {
@@ -104,6 +161,12 @@ export async function PATCH(req) {
   try {
     const dbError = ensureDb();
     if (dbError) return dbError;
+
+    const { profile, errorResponse } = await getAuthUserContext(req);
+    if (errorResponse) return errorResponse;
+    if (!hasRole(profile, [ROLES.ADMIN, ROLES.OPERADOR])) {
+      return unauthorizedResponse("No tienes permisos para actualizar reservas.");
+    }
 
     const { id, cancelada } = await req.json();
 

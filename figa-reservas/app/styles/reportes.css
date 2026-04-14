@@ -401,16 +401,20 @@
 
 .rpt-top-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
 }
 
 .rpt-top-col {
   padding: 18px 22px;
-  border-right: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-sm, 8px);
+  background: #ffffff;
 }
 
 .rpt-top-col:last-child {
-  border-right: 0;
+  border-right: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
 }
 
 .rpt-top-col-title {
@@ -504,6 +508,10 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .rpt-top-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .reportes-main {
     padding: 22px 22px 40px;
   }
@@ -546,15 +554,16 @@
 
   .rpt-top-grid {
     grid-template-columns: 1fr;
+    padding: 12px;
   }
 
   .rpt-top-col {
-    border-right: 0;
+    border-right: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
     border-bottom: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
   }
 
   .rpt-top-col:last-child {
-    border-bottom: 0;
+    border-bottom: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
   }
 
   .rpt-selectors-grid {

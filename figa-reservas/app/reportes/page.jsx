@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "../lib/firebase.jsx";
 import "../styles/dashboard.css";
 import "../styles/reportes.css";
 import ExcelJS from "exceljs";
@@ -10,7 +9,8 @@ import { saveAs } from "file-saver";
 import Logo from "../components/common/Logo.jsx";
 import Loading from "../components/common/Loading.jsx";
 import { useReservasData } from "../context/ReservasDataContext";
-import { notifySuccess, notifyError } from "../utils/notify";
+import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
+import { ROLES } from "../lib/roles.js";
 import toast from "react-hot-toast";
 import {
   sumPrecioByMonth,
@@ -49,10 +49,16 @@ const monthNames = [
 ];
 
 export default function ReportesPage() {
+  return (
+    <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+      <ReportesContent />
+    </ProtectedRoute>
+  );
+}
+
+function ReportesContent() {
   const router = useRouter();
   const { getReservas, isLoading, invalidateCache } = useReservasData();
-
-  const [user, setUser] = useState(null);
   const [reservas, setReservas] = useState([]);
 
   const now = new Date();
@@ -74,6 +80,8 @@ export default function ReportesPage() {
             topDropOff: true,
             topHoras: true,
             topProveedores: true,
+            topConductores: true,
+            topVehiculos: true,
             countPeriodo: true,
             countMensual: true,
             countAnual: true,
@@ -96,6 +104,8 @@ export default function ReportesPage() {
         topDropOff: true,
         topHoras: true,
         topProveedores: true,
+        topConductores: true,
+        topVehiculos: true,
         countPeriodo: true,
         countMensual: true,
         countAnual: true,
@@ -132,14 +142,6 @@ export default function ReportesPage() {
     setStartDate(pendingStartDate);
     setEndDate(pendingEndDate);
   };
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => {
-      if (!u) router.push("/login");
-      else setUser(u);
-    });
-    return () => unsubscribe();
-  }, [router]);
 
   useEffect(() => {
     async function load() {
@@ -217,6 +219,23 @@ export default function ReportesPage() {
   const topProveedores = useMemo(
     () => topValues(reservas, "proveedor", 10),
     [reservas]
+  );
+  const reservasTopSource = useMemo(
+    () =>
+      reservas.map((r) => ({
+        ...r,
+        conductorReporte: r.conductorNombre || r.chofer || "",
+        vehiculoReporte: r.vehiculoPlaca || r.buseta || "",
+      })),
+    [reservas]
+  );
+  const topConductores = useMemo(
+    () => topValues(reservasTopSource, "conductorReporte", 10),
+    [reservasTopSource]
+  );
+  const topVehiculos = useMemo(
+    () => topValues(reservasTopSource, "vehiculoReporte", 10),
+    [reservasTopSource]
   );
 
   const toggle = (key) => setSelected((s) => ({ ...s, [key]: !s[key] }));
@@ -399,6 +418,26 @@ export default function ReportesPage() {
         topRows.push(
           ...topProveedores.map((r) => ({
             Categoria: "Top Proveedores",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
+      }
+
+      if (selected.topConductores) {
+        topRows.push(
+          ...topConductores.map((r) => ({
+            Categoria: "Top Conductores",
+            Detalle: r.name || "-",
+            Cantidad: r.count,
+          }))
+        );
+      }
+
+      if (selected.topVehiculos) {
+        topRows.push(
+          ...topVehiculos.map((r) => ({
+            Categoria: "Top Vehiculos",
             Detalle: r.name || "-",
             Cantidad: r.count,
           }))
@@ -701,6 +740,24 @@ export default function ReportesPage() {
               ))}
             </div>
             <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Conductores</h3>
+              {topConductores.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
+              <h3 className="rpt-top-col-title">Top Vehículos</h3>
+              {topVehiculos.map((r) => (
+                <div key={r.name} className="rpt-top-row">
+                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
+                  <span className="rpt-badge">{fmt0(r.count)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rpt-top-col">
               <h3 className="rpt-top-col-title">Top Horas</h3>
               {topHorasList.map((r) => (
                 <div key={r.hour} className="rpt-top-row">
@@ -746,6 +803,8 @@ export default function ReportesPage() {
                   ["topDropOff", "Top DropOff"],
                   ["topHoras", "Top Horas"],
                   ["topProveedores", "Top Proveedores"],
+                  ["topConductores", "Top Conductores"],
+                  ["topVehiculos", "Top Vehículos"],
                 ].map(([k, label]) => (
                   <label key={k} className="rpt-selector-item">
                     <input

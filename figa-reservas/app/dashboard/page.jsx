@@ -21,6 +21,7 @@ import Logo from "../components/common/Logo.jsx";
 import DashboardIcon from "../components/common/DashboardIcon.jsx";
 import Loading from "../components/common/Loading.jsx";
 import { useReservasData } from "../context/ReservasDataContext.js";
+import { useUser } from "../context/UserContext.js";
 import { notifyError, confirmToast } from "../utils/notify.js";
 import toast from "react-hot-toast";
 
@@ -152,9 +153,14 @@ function ReservationTableRow({
   onToggleRevisada,
   onEdit,
   onCancel,
+  canManage,
+  showPrice,
+  showPayment,
 }) {
   const paid = Boolean(reserva.pago);
   const agencyTheme = getAgencyTheme(reserva.proveedor);
+  const conductor = reserva.conductorNombre || reserva.chofer || "-";
+  const vehiculo = reserva.vehiculoPlaca || reserva.buseta || "-";
 
   return (
     <tr className={revisada ? "reservation-row-reviewed" : ""}>
@@ -184,56 +190,75 @@ function ReservationTableRow({
           <span className="dashboard-dash">-</span>
         )}
       </td>
-      <td className="dashboard-col-hidden">{reserva.chofer || "-"}</td>
-      <td className="dashboard-col-hidden">{reserva.buseta || "-"}</td>
-      <td className="dashboard-price">{formatPrice(reserva.precio)}</td>
-      <td>
-        <span
-          className={`dashboard-badge ${
-            paid ? "dashboard-badge-success" : "dashboard-badge-warning"
-          }`}
-        >
-          {paid ? "Pagado" : "Pendiente"}
-        </span>
-      </td>
-      <td className="dashboard-col-hidden">
-        {paid ? formatDashboardDate(reserva.fechaPago) : "-"}
-      </td>
-      <td className="text-right">
-        <div className="row-actions">
-          <button
-            onClick={onEdit}
-            className="row-action-btn"
-            title="Editar Reserva"
-            aria-label="Editar Reserva"
+      <td className="dashboard-col-hidden">{conductor}</td>
+      <td className="dashboard-col-hidden">{vehiculo}</td>
+      {showPrice ? (
+        <td className="dashboard-price">{formatPrice(reserva.precio)}</td>
+      ) : null}
+      {showPayment ? (
+        <td>
+          <span
+            className={`dashboard-badge ${
+              paid ? "dashboard-badge-success" : "dashboard-badge-warning"
+            }`}
           >
-            <DashboardIcon name="pencil" size={15} />
-          </button>
-          <button
-            onClick={onCancel}
-            className="row-action-btn row-action-danger"
-            title="Cancelar Reserva"
-            aria-label="Cancelar Reserva"
-          >
-            <DashboardIcon name="trash" size={15} />
-          </button>
-          <button
-            onClick={onToggleRevisada}
-            className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
-            title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
-            aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
-          >
-            <DashboardIcon name="check" size={15} />
-          </button>
-        </div>
-      </td>
+            {paid ? "Pagado" : "Pendiente"}
+          </span>
+        </td>
+      ) : null}
+      {showPayment ? (
+        <td className="dashboard-col-hidden">
+          {paid ? formatDashboardDate(reserva.fechaPago) : "-"}
+        </td>
+      ) : null}
+      {canManage ? (
+        <td className="text-right">
+          <div className="row-actions">
+            <button
+              onClick={onEdit}
+              className="row-action-btn"
+              title="Editar Reserva"
+              aria-label="Editar Reserva"
+            >
+              <DashboardIcon name="pencil" size={15} />
+            </button>
+            <button
+              onClick={onCancel}
+              className="row-action-btn row-action-danger"
+              title="Cancelar Reserva"
+              aria-label="Cancelar Reserva"
+            >
+              <DashboardIcon name="trash" size={15} />
+            </button>
+            <button
+              onClick={onToggleRevisada}
+              className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
+              title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+              aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+            >
+              <DashboardIcon name="check" size={15} />
+            </button>
+          </div>
+        </td>
+      ) : null}
     </tr>
   );
 }
 
-function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel }) {
+function ReservationCard({
+  reserva,
+  revisada,
+  onToggleRevisada,
+  onEdit,
+  onCancel,
+  canManage,
+  showPrice,
+  showPayment,
+}) {
   const paid = Boolean(reserva.pago);
   const agencyTheme = getAgencyTheme(reserva.proveedor);
+  const conductor = reserva.conductorNombre || reserva.chofer || "-";
+  const vehiculo = reserva.vehiculoPlaca || reserva.buseta || "";
 
   return (
     <article
@@ -247,20 +272,22 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
           </div>
           <span className="rc-itin">Itin: {reserva.itinId || "-"}</span>
         </div>
-        <div className="rc-status-block">
-          <span
-            className={`dashboard-badge ${
-              paid ? "dashboard-badge-success" : "dashboard-badge-warning"
-            }`}
-          >
-            {paid ? "Pagado" : "Pendiente"}
-          </span>
-          {paid && reserva.fechaPago ? (
-            <span className="rc-status-date">
-              {formatDashboardDate(reserva.fechaPago)}
+        {showPayment ? (
+          <div className="rc-status-block">
+            <span
+              className={`dashboard-badge ${
+                paid ? "dashboard-badge-success" : "dashboard-badge-warning"
+              }`}
+            >
+              {paid ? "Pagado" : "Pendiente"}
             </span>
-          ) : null}
-        </div>
+            {paid && reserva.fechaPago ? (
+              <span className="rc-status-date">
+                {formatDashboardDate(reserva.fechaPago)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="rc-client-agency">
@@ -299,11 +326,13 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
         <div className="rc-detail-item">
           <DashboardIcon name="car" size={14} className="detail-icon" />
           <span>
-            {reserva.chofer || "-"}
-            {reserva.buseta ? ` (${reserva.buseta})` : ""}
+            {conductor}
+            {vehiculo ? ` (${vehiculo})` : ""}
           </span>
         </div>
-        <div className="rc-detail-item price">{formatPrice(reserva.precio)}</div>
+        {showPrice ? (
+          <div className="rc-detail-item price">{formatPrice(reserva.precio)}</div>
+        ) : null}
       </div>
 
       <div className="rc-footer">
@@ -317,32 +346,34 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
             <span className="dashboard-badge dashboard-badge-outline">Revisada</span>
           ) : null}
         </div>
-        <div className="rc-actions">
-          <button
-            onClick={onToggleRevisada}
-            className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
-            title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
-            aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
-          >
-            <DashboardIcon name="check" size={14} />
-          </button>
-          <button
-            onClick={onEdit}
-            className="row-action-btn"
-            title="Editar Reserva"
-            aria-label="Editar Reserva"
-          >
-            <DashboardIcon name="pencil" size={14} />
-          </button>
-          <button
-            onClick={onCancel}
-            className="row-action-btn row-action-danger"
-            title="Cancelar Reserva"
-            aria-label="Cancelar Reserva"
-          >
-            <DashboardIcon name="trash" size={14} />
-          </button>
-        </div>
+        {canManage ? (
+          <div className="rc-actions">
+            <button
+              onClick={onToggleRevisada}
+              className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
+              title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+              aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
+            >
+              <DashboardIcon name="check" size={14} />
+            </button>
+            <button
+              onClick={onEdit}
+              className="row-action-btn"
+              title="Editar Reserva"
+              aria-label="Editar Reserva"
+            >
+              <DashboardIcon name="pencil" size={14} />
+            </button>
+            <button
+              onClick={onCancel}
+              className="row-action-btn row-action-danger"
+              title="Cancelar Reserva"
+              aria-label="Cancelar Reserva"
+            >
+              <DashboardIcon name="trash" size={14} />
+            </button>
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -350,6 +381,13 @@ function ReservationCard({ reserva, revisada, onToggleRevisada, onEdit, onCancel
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { role, user, profile } = useUser();
+  const isAdmin = role === "admin";
+  const isOperador = role === "operador";
+  const isConductor = role === "conductor";
+  const showPriceColumn = !isConductor;
+  const showPaymentColumn = !isConductor;
+  const canManageReservas = isAdmin || isOperador;
   const [filtro, setFiltro] = useState("activas");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -423,7 +461,25 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const totalPages = Math.ceil(filteredReservas.length / reservasPorPagina);
+  const visibleReservas = useMemo(() => {
+    if (!isConductor) return filteredReservas;
+    const currentUid = user?.uid || "";
+    const conductorNombre = (profile?.nombre || "").trim().toLowerCase();
+
+    return filteredReservas.filter((reserva) => {
+      const assignedUid = String(reserva.assignedUid || "").trim();
+      if (assignedUid && currentUid) {
+        return assignedUid === currentUid;
+      }
+
+      const nombreAsignado = String(reserva.conductorNombre || reserva.chofer || "")
+        .trim()
+        .toLowerCase();
+      return Boolean(conductorNombre) && nombreAsignado === conductorNombre;
+    });
+  }, [filteredReservas, isConductor, profile?.nombre, user?.uid]);
+
+  const totalPages = Math.ceil(visibleReservas.length / reservasPorPagina);
 
   useEffect(() => {
     const nextPage = Math.max(1, totalPages || 1);
@@ -535,8 +591,8 @@ export default function DashboardPage() {
         Niños: r.NI,
         Cliente: r.cliente,
         Nota: r.nota,
-        Chofer: r.chofer,
-        Buseta: r.buseta,
+        Conductor: r.conductorNombre || r.chofer,
+        Vehiculo: r.vehiculoPlaca || r.buseta,
         Precio: r.precio,
         Pago: r.pago ? "Sí" : "No",
         FechaPago: formatExcelDate(r.fechaPago),
@@ -574,18 +630,20 @@ export default function DashboardPage() {
   const indexOfLast = currentPage * reservasPorPagina;
   const indexOfFirst = indexOfLast - reservasPorPagina;
   const reservasPaginadas = useMemo(
-    () => filteredReservas.slice(indexOfFirst, indexOfLast),
-    [filteredReservas, indexOfFirst, indexOfLast]
+    () => visibleReservas.slice(indexOfFirst, indexOfLast),
+    [visibleReservas, indexOfFirst, indexOfLast]
   );
 
   const paginationSummary = getPaginationSummary(
-    filteredReservas.length,
+    visibleReservas.length,
     currentPage,
     reservasPorPagina
   );
 
   const pageTitle =
-    filtro === "canceladas"
+    isConductor
+      ? "Mis Reservas Asignadas"
+      : filtro === "canceladas"
       ? "Reservas Canceladas"
       : filtro === "antiguas"
       ? "Reservas Antiguas"
@@ -638,17 +696,9 @@ export default function DashboardPage() {
 
           <div className="header-right-zone">
             <button
-              onClick={() => router.push("/reportes")}
-              className="icon-btn"
-              title="Ver Reportes"
-              aria-label="Ver Reportes"
-            >
-              <DashboardIcon name="fileText" size={18} />
-            </button>
-            <button
               onClick={() =>
                 exportToExcel(
-                  filteredReservas,
+                  visibleReservas,
                   `Reservas_FIGA_${new Date().toISOString().split("T")[0]}`
                 )
               }
@@ -682,16 +732,28 @@ export default function DashboardPage() {
             >
               <DashboardIcon name="arrowRightCircle" size={18} />
             </button>
+            {!isConductor ? (
+              <button
+                onClick={() => router.push("/opciones")}
+                className="icon-btn"
+                title="Opciones"
+                aria-label="Opciones"
+              >
+                <DashboardIcon name="settings" size={18} />
+              </button>
+            ) : null}
             <div className="header-divider" />
-            <button
-              onClick={handleNavigate}
-              title="Crear Reserva"
-              aria-label="Crear Reserva"
-              className="primary-btn"
-            >
-              <DashboardIcon name="plus" size={16} />
-              <span>Nueva Reserva</span>
-            </button>
+            {canManageReservas ? (
+              <button
+                onClick={handleNavigate}
+                title="Crear Reserva"
+                aria-label="Crear Reserva"
+                className="primary-btn"
+              >
+                <DashboardIcon name="plus" size={16} />
+                <span>Nueva Reserva</span>
+              </button>
+            ) : null}
             <button
               onClick={logout}
               title="Cerrar Sesión"
@@ -760,27 +822,21 @@ export default function DashboardPage() {
           </div>
 
           <div className="actions-scroll">
-            <button
-              onClick={handleNavigate}
-              title="Crear Reserva"
-              aria-label="Crear Reserva"
-              className="primary-btn"
-            >
-              <DashboardIcon name="plus" size={16} />
-              <span>Nueva Reserva</span>
-            </button>
-            <button
-              onClick={() => router.push("/reportes")}
-              className="icon-btn has-border"
-              title="Ver Reportes"
-              aria-label="Ver Reportes"
-            >
-              <DashboardIcon name="fileText" size={18} />
-            </button>
+            {canManageReservas ? (
+              <button
+                onClick={handleNavigate}
+                title="Crear Reserva"
+                aria-label="Crear Reserva"
+                className="primary-btn"
+              >
+                <DashboardIcon name="plus" size={16} />
+                <span>Nueva Reserva</span>
+              </button>
+            ) : null}
             <button
               onClick={() =>
                 exportToExcel(
-                  filteredReservas,
+                  visibleReservas,
                   `Reservas_FIGA_${new Date().toISOString().split("T")[0]}`
                 )
               }
@@ -814,6 +870,16 @@ export default function DashboardPage() {
             >
               <DashboardIcon name="arrowRightCircle" size={18} />
             </button>
+            {!isConductor ? (
+              <button
+                onClick={() => router.push("/opciones")}
+                className="icon-btn has-border"
+                title="Opciones"
+                aria-label="Opciones"
+              >
+                <DashboardIcon name="settings" size={18} />
+              </button>
+            ) : null}
           </div>
         </section>
 
@@ -838,18 +904,28 @@ export default function DashboardPage() {
                     <th>Niños</th>
                     <th>Cliente</th>
                     <th>Nota</th>
-                    <th className="dashboard-col-hidden">Chofer</th>
-                    <th className="dashboard-col-hidden">Buseta</th>
-                    <th>Precio</th>
-                    <th>Pago</th>
-                    <th className="dashboard-col-hidden">FechaPago</th>
-                    <th className="text-center">Acciones</th>
+                    <th className="dashboard-col-hidden">Conductor</th>
+                    <th className="dashboard-col-hidden">Vehiculo</th>
+                    {showPriceColumn ? <th>Precio</th> : null}
+                    {showPaymentColumn ? <th>Pago</th> : null}
+                    {showPaymentColumn ? (
+                      <th className="dashboard-col-hidden">FechaPago</th>
+                    ) : null}
+                    {canManageReservas ? <th className="text-center">Acciones</th> : null}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReservas.length === 0 ? (
+                  {visibleReservas.length === 0 ? (
                     <tr>
-                      <td colSpan={17} className="empty-state-cell">
+                      <td
+                        colSpan={
+                          14 +
+                          (showPriceColumn ? 1 : 0) +
+                          (showPaymentColumn ? 1 : 0) +
+                          (canManageReservas ? 1 : 0)
+                        }
+                        className="empty-state-cell"
+                      >
                         No se encontraron reservas con los filtros aplicados.
                       </td>
                     </tr>
@@ -862,6 +938,9 @@ export default function DashboardPage() {
                         onToggleRevisada={() => toggleRevisada(reserva.id)}
                         onEdit={() => handleEditReserva(reserva.id)}
                         onCancel={() => handleCancelar(reserva.id)}
+                        canManage={canManageReservas}
+                        showPrice={showPriceColumn}
+                        showPayment={showPaymentColumn}
                       />
                     ))
                   )}
@@ -892,7 +971,7 @@ export default function DashboardPage() {
 
           <section className="mobile-only">
             <div className="reservation-list">
-              {filteredReservas.length === 0 ? (
+              {visibleReservas.length === 0 ? (
                 <article className="reservation-card empty-card">
                   No se encontraron reservas con los filtros aplicados.
                 </article>
@@ -905,6 +984,9 @@ export default function DashboardPage() {
                     onToggleRevisada={() => toggleRevisada(reserva.id)}
                     onEdit={() => handleEditReserva(reserva.id)}
                     onCancel={() => handleCancelar(reserva.id)}
+                    canManage={canManageReservas}
+                    showPrice={showPriceColumn}
+                    showPayment={showPaymentColumn}
                   />
                 ))
               )}
