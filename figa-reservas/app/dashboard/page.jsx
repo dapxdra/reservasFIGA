@@ -575,6 +575,30 @@ export default function DashboardPage() {
     [totalPages]
   );
 
+  const getVisibleColumnsForRole = (rowWithAllColumns) => {
+    if (!isConductor) return rowWithAllColumns;
+
+    const allowedColumns = [
+      "ID",
+      "Fecha",
+      "Agencia",
+      "ItinId",
+      "PickUp",
+      "DropOff",
+      "Hora",
+      "Adultos",
+      "Niños",
+      "Cliente",
+      "Nota",
+      "Conductor",
+      "Vehiculo",
+    ];
+
+    return Object.fromEntries(
+      Object.entries(rowWithAllColumns).filter(([key]) => allowedColumns.includes(key))
+    );
+  };
+
   const exportToExcel = async (data, fileName) => {
     try {
       toast.loading("Generando archivo Excel...", { id: "export" });
@@ -599,7 +623,7 @@ export default function DashboardPage() {
         Cancelada: r.cancelada ? "Sí" : "No",
         CreatedAt: formatExcelDate(r.createdAt),
         CanceledAt: formatExcelDate(r.canceledAt),
-      }));
+      })).map((fullRow) => getVisibleColumnsForRole(fullRow));
 
       const workBook = new ExcelJS.Workbook();
       const workSheet = workBook.addWorksheet("Reservas");

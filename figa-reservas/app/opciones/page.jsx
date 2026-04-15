@@ -6,8 +6,8 @@ import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import LogoNav from "../components/common/LogoNav.jsx";
 import DashboardIcon from "../components/common/DashboardIcon.jsx";
 import { useUser } from "../context/UserContext.js";
-import { auth } from "../lib/firebase.jsx";
 import { ROLES } from "../lib/roles.js";
+import { authenticatedJson } from "@/app/core/client/http/authenticatedFetch.js";
 import "../styles/dashboard.css";
 import toast from "react-hot-toast";
 
@@ -47,25 +47,27 @@ function OpcionesContent() {
 
     setRunningReminders(true);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      const response = await fetch("/api/notifications/reservas-24h", {
+      const data = await authenticatedJson("/api/notifications/reservas-24h", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        body: JSON.stringify({ ignoreWindow: true }),
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "No se pudo ejecutar recordatorio 24h");
-      }
 
       if ((data.sent || 0) === 0) {
         const emailCfg = data?.channels?.emailEnabled ? "ok" : "faltante";
         const waCfg = data?.channels?.whatsappEnabled ? "ok" : "faltante";
+        const emailMissing = Array.isArray(data?.channels?.emailMissing)
+          ? data.channels.emailMissing.join(", ")
+          : "";
+        const waMissing = Array.isArray(data?.channels?.whatsappMissing)
+          ? data.channels.whatsappMissing.join(", ")
+          : "";
         const reason = data?.skippedReasons || {};
+        const configHint =
+          !data?.channels?.emailEnabled && !data?.channels?.whatsappEnabled
+            ? ` Variables faltantes -> email: ${emailMissing || "ninguna"}; WhatsApp: ${waMissing || "ninguna"}.`
+            : "";
         toast.error(
-          `No se enviaron recordatorios. Config email: ${emailCfg}, WhatsApp: ${waCfg}, sin contacto: ${reason.missingContact || 0}, fuera de ventana 24h: ${reason.outOfWindow || 0}`
+          `No se enviaron recordatorios. Config email: ${emailCfg}, WhatsApp: ${waCfg}, sin contacto: ${reason.missingContact || 0}, fuera de ventana 24h: ${reason.outOfWindow || 0}.${configHint}`
         );
         return;
       }
@@ -98,7 +100,7 @@ function OpcionesContent() {
                   type="button"
                   disabled={runningReminders}
                 >
-                  {runningReminders ? "Ejecutando..." : "Probar recordatorio 24h"}
+                  {runningReminders ? "Ejecutando..." : "Enviar recordatorios ahora"}
                 </button>
               ) : null}
               <button

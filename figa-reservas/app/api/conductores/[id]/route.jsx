@@ -1,14 +1,11 @@
-import admin from "firebase-admin";
 import { ROLES } from "../../../lib/roles.js";
 import { getAuthUserContext, hasRole, unauthorizedResponse } from "../../../lib/serverAuth.js";
-import { db } from "../../../lib/firebaseadmin.jsx";
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+import { jsonResponse } from "../../../core/shared/http/jsonResponse.js";
+import {
+  setConductorActivoUseCase,
+  updateConductorUseCase,
+} from "../../../core/server/catalogos/catalogosUseCases.js";
+import { isAppError } from "../../../core/server/shared/appError.js";
 
 export async function PUT(req, { params }) {
   const { profile, errorResponse } = await getAuthUserContext(req);
@@ -19,30 +16,18 @@ export async function PUT(req, { params }) {
   }
 
   const { id } = await params;
-  if (!id) return json({ error: "ID no proporcionado" }, 400);
 
   try {
     const body = await req.json();
-    const nombre = String(body.nombre || "").trim();
-    if (!nombre) return json({ error: "nombre es requerido" }, 400);
+    await updateConductorUseCase(id, body);
 
-    await db.collection("conductores").doc(id).set(
-      {
-        nombre,
-        telefono: String(body.telefono || "").trim(),
-        email: String(body.email || "").trim(),
-        cedula: String(body.cedula || "").trim(),
-        uid: String(body.uid || "").trim(),
-        activo: body.activo !== false,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    return json({ message: "Conductor actualizado" });
+    return jsonResponse({ message: "Conductor actualizado" });
   } catch (error) {
     console.error("Error actualizando conductor:", error);
-    return json({ message: "Error interno del servidor" }, 500);
+    if (isAppError(error)) {
+      return jsonResponse({ message: error.message, error: error.code }, error.status);
+    }
+    return jsonResponse({ message: "Error interno del servidor" }, 500);
   }
 }
 
@@ -55,23 +40,17 @@ export async function PATCH(req, { params }) {
   }
 
   const { id } = await params;
-  if (!id) return json({ error: "ID no proporcionado" }, 400);
 
   try {
     const body = await req.json();
-    const activo = body.activo !== false;
+    const activo = await setConductorActivoUseCase(id, body.activo);
 
-    await db.collection("conductores").doc(id).set(
-      {
-        activo,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    return json({ message: activo ? "Conductor activado" : "Conductor desactivado" });
+    return jsonResponse({ message: activo ? "Conductor activado" : "Conductor desactivado" });
   } catch (error) {
     console.error("Error actualizando estado conductor:", error);
-    return json({ message: "Error interno del servidor" }, 500);
+    if (isAppError(error)) {
+      return jsonResponse({ message: error.message, error: error.code }, error.status);
+    }
+    return jsonResponse({ message: "Error interno del servidor" }, 500);
   }
 }

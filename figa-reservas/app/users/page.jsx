@@ -8,22 +8,11 @@ import { ROLES } from "../lib/roles.js";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import LogoNav from "../components/common/LogoNav.jsx";
 import DashboardIcon from "../components/common/DashboardIcon.jsx";
+import { authenticatedFetch } from "@/app/core/client/http/authenticatedFetch.js";
 import "../styles/dashboard.css";
 import toast from "react-hot-toast";
 
 const EMPTY_FORM = { nombre: "", email: "", role: ROLES.OPERADOR, activo: true };
-
-async function authFetch(url, options = {}) {
-  const token = await auth.currentUser?.getIdToken();
-  return fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-}
 
 function getPasswordResetSettings() {
   if (typeof window === "undefined") return undefined;
@@ -64,7 +53,7 @@ function UsersContent() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const res = await authFetch("/api/users");
+      const res = await authenticatedFetch("/api/users");
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo cargar users");
       setUsers(data);
@@ -111,7 +100,7 @@ function UsersContent() {
 
     try {
       if (!editId) {
-        const res = await authFetch("/api/users", {
+        const res = await authenticatedFetch("/api/users", {
           method: "POST",
           body: JSON.stringify(form),
         });
@@ -125,7 +114,7 @@ function UsersContent() {
           toast.error(`Usuario creado, pero no se pudo enviar el correo: ${error.message}`);
         }
       } else {
-        const res = await authFetch(`/api/users/${editId}`, {
+        const res = await authenticatedFetch(`/api/users/${editId}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
@@ -150,9 +139,32 @@ function UsersContent() {
     }
   };
 
+  const copyUid = async (uid) => {
+    const value = String(uid || "").trim();
+    if (!value || typeof window === "undefined") return;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = value;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      toast.success("UID copiado");
+    } catch {
+      toast.error("No se pudo copiar el UID");
+    }
+  };
+
   const toggleActivo = async (user) => {
     try {
-      const res = await authFetch(`/api/users/${user.id}`, {
+      const res = await authenticatedFetch(`/api/users/${user.id}`, {
         method: "PATCH",
         body: JSON.stringify({ activo: user.activo === false }),
       });
@@ -250,7 +262,20 @@ function UsersContent() {
                 ) : (
                   sortedUsers.map((u) => (
                     <tr key={u.id}>
-                      <td className="font-mono text-xs">{u.id}</td>
+                      <td className="font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          <span>{u.id}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyUid(u.id)}
+                            className="row-action-btn"
+                            title="Copiar UID"
+                            aria-label="Copiar UID"
+                          >
+                            <DashboardIcon name="copy" size={15} />
+                          </button>
+                        </div>
+                      </td>
                       <td>{u.nombre || "-"}</td>
                       <td>{u.email || "-"}</td>
                       <td>
@@ -317,6 +342,15 @@ function UsersContent() {
                     <div className="management-meta-item">
                       <span className="management-meta-label">UID</span>
                       <span className="management-meta-value">{u.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyUid(u.id)}
+                        className="row-action-btn"
+                        title="Copiar UID"
+                        aria-label="Copiar UID"
+                      >
+                        <DashboardIcon name="copy" size={15} />
+                      </button>
                     </div>
                     <div className="management-meta-item">
                       <span className="management-meta-label">Rol</span>

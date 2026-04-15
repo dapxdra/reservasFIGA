@@ -1,28 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "../lib/firebase.jsx";
 import { ROLES } from "../lib/roles.js";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import LogoNav from "../components/common/LogoNav.jsx";
 import DashboardIcon from "../components/common/DashboardIcon.jsx";
+import { authenticatedFetch } from "@/app/core/client/http/authenticatedFetch.js";
 import "../styles/dashboard.css";
 import toast from "react-hot-toast";
 
 const EMPTY_FORM = { nombre: "", telefono: "", email: "", cedula: "", uid: "", activo: true };
-
-async function authFetch(url, options = {}) {
-  const token = await auth.currentUser?.getIdToken();
-  return fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-}
 
 export default function ConductoresPage() {
   return (
@@ -39,6 +27,9 @@ function ConductoresContent() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [uidLookupLoading, setUidLookupLoading] = useState(false);
+  const [uidLookupFound, setUidLookupFound] = useState(false);
+  const uidLookupToken = useRef(0);
 
   const sortedRows = useMemo(
     () => [...rows].sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""))),
@@ -51,7 +42,7 @@ function ConductoresContent() {
   const loadRows = async () => {
     setLoading(true);
     try {
-      const res = await authFetch("/api/conductores");
+      const res = await authenticatedFetch("/api/conductores");
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo cargar conductores");
       setRows(data);
@@ -69,6 +60,8 @@ function ConductoresContent() {
   const openCreate = () => {
     setEditId("");
     setForm(EMPTY_FORM);
+    setUidLookupFound(false);
+    setUidLookupLoading(false);
     setOpen(true);
   };
 
@@ -82,21 +75,69 @@ function ConductoresContent() {
       uid: row.uid || "",
       activo: row.activo !== false,
     });
+    setUidLookupFound(Boolean(row.uid));
+    setUidLookupLoading(false);
     setOpen(true);
   };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const email = String(form.email || "").trim().toLowerCase();
+    if (!email) {
+      setUidLookupLoading(false);
+      setUidLookupFound(false);
+      setForm((prev) => (prev.uid ? { ...prev, uid: "" } : prev));
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      const lookupId = uidLookupToken.current + 1;
+      uidLookupToken.current = lookupId;
+
+      setUidLookupLoading(true);
+      try {
+        const res = await authenticatedFetch(`/api/conductores/uid?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+
+        if (uidLookupToken.current !== lookupId) return;
+
+        if (!res.ok) {
+          throw new Error(data.message || "No se pudo consultar UID");
+        }
+
+        const resolvedUid = String(data.uid || "").trim();
+        setUidLookupFound(Boolean(resolvedUid));
+        setForm((prev) => {
+          if (prev.uid === resolvedUid) return prev;
+          return { ...prev, uid: resolvedUid };
+        });
+      } catch (error) {
+        if (uidLookupToken.current !== lookupId) return;
+        setUidLookupFound(false);
+        setForm((prev) => (prev.uid ? { ...prev, uid: "" } : prev));
+      } finally {
+        if (uidLookupToken.current === lookupId) {
+          setUidLookupLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [form.email, open]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
       if (!editId) {
-        const res = await authFetch("/api/conductores", {
+        const res = await authenticatedFetch("/api/conductores", {
           method: "POST",
           body: JSON.stringify(form),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.message || "Error creando conductor");
       } else {
-        const res = await authFetch(`/api/conductores/${editId}`, {
+        const res = await authenticatedFetch(`/api/conductores/${editId}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
@@ -113,7 +154,7 @@ function ConductoresContent() {
 
   const toggleActivo = async (row) => {
     try {
-      const res = await authFetch(`/api/conductores/${row.id}`, {
+      const res = await authenticatedFetch(`/api/conductores/${row.id}`, {
         method: "PATCH",
         body: JSON.stringify({ activo: row.activo === false }),
       });
@@ -328,8 +369,15 @@ function ConductoresContent() {
                 <input value={form.cedula} onChange={(e) => setForm((p) => ({ ...p, cedula: e.target.value }))} />
               </div>
               <div className="management-field management-field-full">
-                <label>UID opcional</label>
-                <input value={form.uid} onChange={(e) => setForm((p) => ({ ...p, uid: e.target.value }))} placeholder="UID si este conductor usa la app" />
+                <label>UID (autocompletado por email)</label>
+                <input value={form.uid} readOnly placeholder="Se completa automaticamente con el email" />
+                <p className="management-modal-subtitle">
+                  {uidLookupLoading
+                    ? "Buscando UID en usuarios..."
+                    : uidLookupFound
+                      ? "UID encontrado y vinculado."
+                      : "Sin UID asociado para este email."}
+                </p>
               </div>
               <div className="management-form-actions">
                 <button type="button" onClick={() => setOpen(false)} className="btn-outline">Cancelar</button>

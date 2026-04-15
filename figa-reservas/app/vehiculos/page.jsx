@@ -2,27 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "../lib/firebase.jsx";
 import { ROLES } from "../lib/roles.js";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import LogoNav from "../components/common/LogoNav.jsx";
 import DashboardIcon from "../components/common/DashboardIcon.jsx";
+import { authenticatedFetch } from "@/app/core/client/http/authenticatedFetch.js";
 import "../styles/dashboard.css";
 import toast from "react-hot-toast";
 
 const EMPTY_FORM = { placa: "", modelo: "", tipo: "", capacidad: 0, activo: true };
-
-async function authFetch(url, options = {}) {
-  const token = await auth.currentUser?.getIdToken();
-  return fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-}
 
 export default function VehiculosPage() {
   return (
@@ -54,7 +42,7 @@ function VehiculosContent() {
   const loadRows = async () => {
     setLoading(true);
     try {
-      const res = await authFetch("/api/vehiculos");
+      const res = await authenticatedFetch("/api/vehiculos");
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo cargar vehículos");
       setRows(data);
@@ -91,14 +79,14 @@ function VehiculosContent() {
     e.preventDefault();
     try {
       if (!editId) {
-        const res = await authFetch("/api/vehiculos", {
+        const res = await authenticatedFetch("/api/vehiculos", {
           method: "POST",
           body: JSON.stringify(form),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.message || "Error creando vehículo");
       } else {
-        const res = await authFetch(`/api/vehiculos/${editId}`, {
+        const res = await authenticatedFetch(`/api/vehiculos/${editId}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
@@ -115,7 +103,7 @@ function VehiculosContent() {
 
   const toggleActivo = async (row) => {
     try {
-      const res = await authFetch(`/api/vehiculos/${row.id}`, {
+      const res = await authenticatedFetch(`/api/vehiculos/${row.id}`, {
         method: "PATCH",
         body: JSON.stringify({ activo: row.activo === false }),
       });

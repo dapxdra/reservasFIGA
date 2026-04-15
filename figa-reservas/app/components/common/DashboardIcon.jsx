@@ -132,6 +132,12 @@ const ICONS = {
       <path d="M5.5 8.5l6.5 5 6.5-5" {...COMMON_PROPS} />
     </>
   ),
+  copy: (
+    <>
+      <rect x="9" y="8" width="10" height="12" rx="1.8" {...COMMON_PROPS} />
+      <path d="M6 16V5.8C6 4.8 6.8 4 7.8 4H16" {...COMMON_PROPS} />
+    </>
+  ),
 };
 
 export default function DashboardIcon({ name, size = 18, className = "" }) {

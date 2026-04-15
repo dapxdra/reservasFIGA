@@ -2,51 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { auth } from "../lib/firebase.jsx";
-
-async function authFetch(url) {
-  if (!auth.currentUser) {
-    throw new Error("Usuario no autenticado");
-  }
-
-  let token;
-  try {
-    token = await auth.currentUser.getIdToken();
-  } catch (error) {
-    console.error("Error obteniendo token:", error);
-    throw new Error("No se pudo obtener token de autenticación");
-  }
-
-  if (!token) {
-    throw new Error("Token vacío o inválido");
-  }
-
-  let response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  } catch (error) {
-    console.error("Error en fetch de catálogos:", error);
-    throw new Error(`Error de conexión: ${error.message}`);
-  }
-
-  if (!response.ok) {
-    let data = {};
-    try {
-      data = await response.json();
-    } catch (e) {
-      console.error("Error parseando respuesta:", e);
-    }
-    
-    const errorMessage = data.message || data.error || `Error HTTP ${response.status}`;
-    console.error(`Error cargando ${url}:`, errorMessage);
-    throw new Error(errorMessage);
-  }
-
-  return response.json();
-}
+import { authenticatedJson } from "@/app/core/client/http/authenticatedFetch.js";
 
 export function useCatalogos() {
   const [conductores, setConductores] = useState([]);
@@ -69,8 +25,8 @@ export function useCatalogos() {
     try {
       console.log("useCatalogos: Iniciando carga de catálogos para", auth.currentUser.email);
       const [conductoresResult, vehiculosResult] = await Promise.allSettled([
-        authFetch("/api/conductores?activos=true"),
-        authFetch("/api/vehiculos?activos=true"),
+        authenticatedJson("/api/conductores?activos=true"),
+        authenticatedJson("/api/vehiculos?activos=true"),
       ]);
 
       const errores = [];
