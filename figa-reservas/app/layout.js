@@ -4,6 +4,7 @@ import "./globals.css";
 import { ReservasRevisadasProvider } from "./context/ReservasContext";
 import { ReservasDataProvider } from "./context/ReservasDataContext";
 import { Toaster } from "react-hot-toast";
+import ConductorLocationReporter from "./components/common/ConductorLocationReporter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <UserProvider>
+          <ConductorLocationReporter />
           <ReservasDataProvider>
             <ReservasRevisadasProvider>
               {children}

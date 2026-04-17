@@ -51,3 +51,31 @@ export async function setConductorActivo(id, activo) {
     { merge: true }
   );
 }
+
+export async function saveConductorLocation(uid, { lat, lng, accuracy }) {
+  const snap = await db
+    .collection("conductores")
+    .where("uid", "==", uid)
+    .limit(1)
+    .get();
+
+  const locationData = {
+    lastLocation: {
+      lat,
+      lng,
+      accuracy: accuracy != null ? accuracy : null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (!snap.empty) {
+    await snap.docs[0].ref.set(locationData, { merge: true });
+  } else {
+    // Fallback: guarda en colección separada por uid para no perder el dato
+    await db
+      .collection("conductorLocations")
+      .doc(uid)
+      .set({ uid, ...locationData }, { merge: true });
+  }
+}

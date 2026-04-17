@@ -465,6 +465,10 @@
   background: #eef2f6;
 }
 
+.dashboard-table tbody tr.reservation-row-clickable {
+  cursor: pointer;
+}
+
 .text-right {
   text-align: right;
 }
@@ -992,6 +996,7 @@
   flex-direction: column;
   gap: 15px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  cursor: pointer;
 }
 
 .rc-header,
@@ -1181,6 +1186,106 @@
 
 .modal-loading {
   color: var(--dashboard-foreground);
+}
+
+.route-map-modal {
+  width: min(92vw, 900px);
+  max-width: min(92vw, 900px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.route-map-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-md);
+  background: linear-gradient(135deg, #f6faf7 0%, #ffffff 64%);
+}
+
+.route-map-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.route-map-point {
+  font-weight: 600;
+  color: #475467;
+}
+
+.route-map-arrow {
+  color: var(--dashboard-primary);
+}
+
+.route-map-points-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.route-map-point-card {
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-md);
+  background: #ffffff;
+  padding: 10px 12px;
+}
+
+.route-map-point-card p {
+  margin: 6px 0 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.route-map-point-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.route-map-frame {
+  width: 100%;
+  min-height: 390px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-md);
+}
+
+.route-map-fallback {
+  border: 1px dashed var(--dashboard-border);
+  border-radius: var(--dashboard-radius-md);
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  color: var(--dashboard-muted-foreground);
+  text-align: center;
+}
+
+.route-map-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 767px) {
+  .route-map-points-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .route-map-frame {
+    min-height: 300px;
+  }
 }
 
 .mobile-only {

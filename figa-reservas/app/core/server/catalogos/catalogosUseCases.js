@@ -6,6 +6,7 @@ import {
 import {
   createConductor,
   listConductores,
+  saveConductorLocation,
   setConductorActivo,
   updateConductor,
 } from "@/app/core/server/catalogos/conductoresRepository.js";
@@ -50,6 +51,10 @@ export async function updateConductorUseCase(id, payload) {
 
 export async function resolveConductorUidByEmailUseCase(email) {
   return findUserUidByEmail(email);
+}
+
+export async function saveConductorLocationUseCase(uid, { lat, lng, accuracy }) {
+  return saveConductorLocation(uid, { lat, lng, accuracy });
 }
 
 export async function setConductorActivoUseCase(id, activo) {

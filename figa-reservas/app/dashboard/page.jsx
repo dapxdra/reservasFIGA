@@ -147,9 +147,27 @@ function getPaginationSummary(total, currentPage, perPage) {
   return `Mostrando ${start} a ${end} de ${total} resultados`;
 }
 
+function buildGoogleDirectionsUrl(origin, destination) {
+  const originText = String(origin || "").trim();
+  const destinationText = String(destination || "").trim();
+  if (!originText || !destinationText) return "";
+
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originText)}&destination=${encodeURIComponent(destinationText)}&travelmode=driving`;
+}
+
+function buildGoogleEmbedDirectionsUrl(origin, destination) {
+  const originText = String(origin || "").trim();
+  const destinationText = String(destination || "").trim();
+
+  if (!originText || !destinationText) return "";
+
+  return `https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(originText)}&daddr=${encodeURIComponent(destinationText)}&dirflg=d`;
+}
+
 function ReservationTableRow({
   reserva,
   revisada,
+  onOpenMap,
   onToggleRevisada,
   onEdit,
   onCancel,
@@ -163,7 +181,11 @@ function ReservationTableRow({
   const vehiculo = reserva.vehiculoPlaca || reserva.buseta || "-";
 
   return (
-    <tr className={revisada ? "reservation-row-reviewed" : ""}>
+    <tr
+      className={`${revisada ? "reservation-row-reviewed" : ""} reservation-row-clickable`}
+      onClick={onOpenMap}
+      title="Ver ruta en mapa"
+    >
       <td className="dashboard-id-cell">#{reserva.id}</td>
       <td>{formatDashboardDate(reserva.fecha)}</td>
       <td>
@@ -215,7 +237,10 @@ function ReservationTableRow({
         <td className="text-right">
           <div className="row-actions">
             <button
-              onClick={onEdit}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit();
+              }}
               className="row-action-btn"
               title="Editar Reserva"
               aria-label="Editar Reserva"
@@ -223,7 +248,10 @@ function ReservationTableRow({
               <DashboardIcon name="pencil" size={15} />
             </button>
             <button
-              onClick={onCancel}
+              onClick={(event) => {
+                event.stopPropagation();
+                onCancel();
+              }}
               className="row-action-btn row-action-danger"
               title="Cancelar Reserva"
               aria-label="Cancelar Reserva"
@@ -231,7 +259,10 @@ function ReservationTableRow({
               <DashboardIcon name="trash" size={15} />
             </button>
             <button
-              onClick={onToggleRevisada}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleRevisada();
+              }}
               className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
               title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
               aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
@@ -248,6 +279,7 @@ function ReservationTableRow({
 function ReservationCard({
   reserva,
   revisada,
+  onOpenMap,
   onToggleRevisada,
   onEdit,
   onCancel,
@@ -263,6 +295,8 @@ function ReservationCard({
   return (
     <article
       className={`reservation-card ${revisada ? "reservation-card-reviewed" : ""}`}
+      onClick={onOpenMap}
+      title="Ver ruta en mapa"
     >
       <div className="rc-header">
         <div className="rc-id-date">
@@ -349,7 +383,10 @@ function ReservationCard({
         {canManage ? (
           <div className="rc-actions">
             <button
-              onClick={onToggleRevisada}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleRevisada();
+              }}
               className={`row-action-btn ${revisada ? "row-action-active" : ""}`}
               title={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
               aria-label={revisada ? "Marcar como no revisada" : "Marcar como revisada"}
@@ -357,7 +394,10 @@ function ReservationCard({
               <DashboardIcon name="check" size={14} />
             </button>
             <button
-              onClick={onEdit}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit();
+              }}
               className="row-action-btn"
               title="Editar Reserva"
               aria-label="Editar Reserva"
@@ -365,7 +405,10 @@ function ReservationCard({
               <DashboardIcon name="pencil" size={14} />
             </button>
             <button
-              onClick={onCancel}
+              onClick={(event) => {
+                event.stopPropagation();
+                onCancel();
+              }}
               className="row-action-btn row-action-danger"
               title="Cancelar Reserva"
               aria-label="Cancelar Reserva"
@@ -400,6 +443,7 @@ export default function DashboardPage() {
   const [revisadas, setRevisadas] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [mapReserva, setMapReserva] = useState(null);
   const logoutTimer = useRef(null);
 
   useEffect(() => {
@@ -521,6 +565,10 @@ export default function DashboardPage() {
 
   const toggleRevisada = (id) => {
     setRevisadas((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const openRouteMap = (reserva) => {
+    setMapReserva(reserva);
   };
 
   const toggleCanceladas = () => {
@@ -674,6 +722,11 @@ export default function DashboardPage() {
       : filtro === "futuras"
       ? "Reservas Futuras"
       : "Reservas Activas";
+
+  const mapEmbedUrl = buildGoogleEmbedDirectionsUrl(
+    mapReserva?.pickUp,
+    mapReserva?.dropOff
+  );
 
   if (isLoading) {
     return <Loading />;
@@ -959,6 +1012,7 @@ export default function DashboardPage() {
                         key={reserva.id}
                         reserva={reserva}
                         revisada={Boolean(revisadas[reserva.id])}
+                        onOpenMap={() => openRouteMap(reserva)}
                         onToggleRevisada={() => toggleRevisada(reserva.id)}
                         onEdit={() => handleEditReserva(reserva.id)}
                         onCancel={() => handleCancelar(reserva.id)}
@@ -1005,6 +1059,7 @@ export default function DashboardPage() {
                     key={reserva.id}
                     reserva={reserva}
                     revisada={Boolean(revisadas[reserva.id])}
+                    onOpenMap={() => openRouteMap(reserva)}
                     onToggleRevisada={() => toggleRevisada(reserva.id)}
                     onEdit={() => handleEditReserva(reserva.id)}
                     onCancel={() => handleCancelar(reserva.id)}
@@ -1155,6 +1210,85 @@ export default function DashboardPage() {
             </Modal>
           </Suspense>
         )}
+
+        {mapReserva ? (
+          <Suspense fallback={<div className="modal-loading">Cargando mapa...</div>}>
+            <Modal onClose={() => setMapReserva(null)}>
+              <div className="route-map-modal">
+                <div className="route-map-header">
+                  <h2 className="filter-modal-title">Ruta de la reserva #{mapReserva.id}</h2>
+                  <p className="management-modal-subtitle route-map-subtitle">
+                    <span className="route-map-point">{mapReserva.pickUp || "Sin pick up"}</span>
+                    <DashboardIcon name="arrowRightCircle" size={14} className="route-map-arrow" />
+                    <span className="route-map-point">{mapReserva.dropOff || "Sin drop off"}</span>
+                  </p>
+                </div>
+
+                <div className="route-map-points-grid">
+                  <article className="route-map-point-card">
+                    <div className="route-map-point-label">
+                      <DashboardIcon name="circleDot" size={13} />
+                      <span>Pick up</span>
+                    </div>
+                    <p>{mapReserva.pickUp || "Sin pick up"}</p>
+                  </article>
+                  <article className="route-map-point-card">
+                    <div className="route-map-point-label">
+                      <DashboardIcon name="mapPin" size={13} />
+                      <span>Drop off</span>
+                    </div>
+                    <p>{mapReserva.dropOff || "Sin drop off"}</p>
+                  </article>
+                </div>
+
+                {mapEmbedUrl ? (
+                  <iframe
+                    className="route-map-frame"
+                    title={`Ruta reserva ${mapReserva.id}`}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={mapEmbedUrl}
+                  />
+                ) : (
+                  <div className="route-map-fallback">
+                    <p>
+                      No se pudo incrustar el mapa. Puedes abrir la ruta directamente
+                      en Google Maps.
+                    </p>
+                  </div>
+                )}
+
+                <div className="route-map-actions">
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => setMapReserva(null)}
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={() => {
+                      const url = buildGoogleDirectionsUrl(
+                        mapReserva.pickUp,
+                        mapReserva.dropOff
+                      );
+                      if (!url) {
+                        toast.error("Faltan pick up o drop off para abrir la ruta");
+                        return;
+                      }
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }}
+                  >
+                    Abrir en Google Maps
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          </Suspense>
+        ) : null}
       </div>
     </div>
   );
