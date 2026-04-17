@@ -172,3 +172,4 @@ No rompas APIs actuales ni comportamiento productivo existente."
 - Verificar `sent/sentEmail/sentWhatsApp/skippedReasons` en respuesta.
 - Confirmar que conductor solo vea sus reservas y sin columnas sensibles.
 - Confirmar que alta de usuario crea Auth y permite reset por correo.
+
