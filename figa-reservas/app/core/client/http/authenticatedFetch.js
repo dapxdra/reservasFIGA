@@ -9,6 +9,9 @@ function shouldSendJsonContentType(options) {
 }
 
 export async function buildAuthHeaders(extraHeaders = {}) {
+  // Wait for Firebase to restore auth state from persistence before checking currentUser.
+  // Without this, a page refresh races against auth initialization and currentUser is null.
+  await auth.authStateReady();
   const token = await auth.currentUser?.getIdToken();
   if (!token) {
     throw new Error("Usuario no autenticado");

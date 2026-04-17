@@ -14,6 +14,7 @@ export default function LoginPage() {
   const { user, role, authError, refreshSession } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [setupNombre, setSetupNombre] = useState("");
 
   const passwordResetSettings =
@@ -157,14 +158,24 @@ export default function LoginPage() {
 
             <div className="email-password-container">
               <label className="block text-gray-700  font-bold">Password</label>
-              <input
-                type="password"
-                placeholder="Type your password"
-                className="w-full border border-gray-300 rounded input-field"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Type your password"
+                  className="w-full border border-gray-300 rounded input-field"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="password-toggle-btn"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
 
             <div className="px-6 pb-4 text-right">

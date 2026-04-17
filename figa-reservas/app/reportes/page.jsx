@@ -48,6 +48,63 @@ const monthNames = [
   "Dic",
 ];
 
+const PIE_COLORS = [
+  "#2563eb", "#16a34a", "#dc2626", "#d97706", "#9333ea",
+  "#0891b2", "#be185d", "#65a30d", "#ea580c", "#6366f1",
+];
+
+function PieChart({ title, data }) {
+  const items = Array.isArray(data) ? data.filter((d) => d.count > 0) : [];
+  const total = items.reduce((s, d) => s + d.count, 0);
+
+  if (total === 0) {
+    return (
+      <div className="rpt-pie-card">
+        <h3 className="rpt-top-col-title">{title}</h3>
+        <p className="rpt-pie-empty">Sin datos</p>
+      </div>
+    );
+  }
+
+  const cx = 80, cy = 80, r = 70;
+  let startAngle = -Math.PI / 2;
+  const slices = items.map((d, i) => {
+    const angle = (d.count / total) * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const largeArc = angle > Math.PI ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    const color = PIE_COLORS[i % PIE_COLORS.length];
+    startAngle = endAngle;
+    return { path, color, name: d.name, count: d.count };
+  });
+
+  return (
+    <div className="rpt-pie-card">
+      <h3 className="rpt-top-col-title">{title}</h3>
+      <svg viewBox="0 0 160 160" className="rpt-pie-svg" aria-hidden="true">
+        {slices.map((s, i) => (
+          <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth="1.5">
+            <title>{s.name}: {s.count}</title>
+          </path>
+        ))}
+      </svg>
+      <ul className="rpt-pie-legend">
+        {slices.map((s, i) => (
+          <li key={i} className="rpt-pie-legend-item">
+            <span className="rpt-pie-legend-dot" style={{ background: s.color }} />
+            <span className="rpt-pie-legend-name" title={s.name}>{s.name || "-"}</span>
+            <span className="rpt-pie-legend-count">{s.count}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function ReportesPage() {
   return (
     <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
@@ -712,60 +769,15 @@ function ReportesContent() {
             <h2 className="rpt-section-title">Top Estadísticas</h2>
           </div>
           <div className="rpt-top-grid">
-            <div className="rpt-top-col">
-              <h3 className="rpt-top-col-title">Top Lugares (PickUp)</h3>
-              {topPickUps.map((r) => (
-                <div key={r.name} className="rpt-top-row">
-                  <span className="rpt-top-name" title={r.name}>{r.name}</span>
-                  <span className="rpt-badge">{fmt0(r.count)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-top-col">
-              <h3 className="rpt-top-col-title">Top Lugares (DropOff)</h3>
-              {topDropOffs.map((r) => (
-                <div key={r.name} className="rpt-top-row">
-                  <span className="rpt-top-name" title={r.name}>{r.name}</span>
-                  <span className="rpt-badge">{fmt0(r.count)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-top-col">
-              <h3 className="rpt-top-col-title">Top Proveedores</h3>
-              {topProveedores.map((r) => (
-                <div key={r.name} className="rpt-top-row">
-                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
-                  <span className="rpt-badge">{fmt0(r.count)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-top-col">
-              <h3 className="rpt-top-col-title">Top Conductores</h3>
-              {topConductores.map((r) => (
-                <div key={r.name} className="rpt-top-row">
-                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
-                  <span className="rpt-badge">{fmt0(r.count)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-top-col">
-              <h3 className="rpt-top-col-title">Top Vehículos</h3>
-              {topVehiculos.map((r) => (
-                <div key={r.name} className="rpt-top-row">
-                  <span className="rpt-top-name" title={r.name}>{r.name || "-"}</span>
-                  <span className="rpt-badge">{fmt0(r.count)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-top-col">
-              <h3 className="rpt-top-col-title">Top Horas</h3>
-              {topHorasList.map((r) => (
-                <div key={r.hour} className="rpt-top-row">
-                  <span className="rpt-top-name">{hourLabel12(r.hour)}</span>
-                  <span className="rpt-badge">{fmt0(r.count)}</span>
-                </div>
-              ))}
-            </div>
+            <PieChart title="Top Lugares (PickUp)" data={topPickUps} />
+            <PieChart title="Top Lugares (DropOff)" data={topDropOffs} />
+            <PieChart title="Top Proveedores" data={topProveedores} />
+            <PieChart title="Top Conductores" data={topConductores} />
+            <PieChart title="Top Vehículos" data={topVehiculos} />
+            <PieChart
+              title="Top Horas"
+              data={topHorasList.map((r) => ({ name: hourLabel12(r.hour), count: r.count }))}
+            />
           </div>
         </section>
 

@@ -196,7 +196,7 @@
 
 .rpt-mobile-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -417,6 +417,72 @@
   border-right: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
 }
 
+/* Pie chart card */
+.rpt-pie-card {
+  padding: 16px;
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-sm, 8px);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.rpt-pie-svg {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.rpt-pie-empty {
+  font-size: 13px;
+  color: var(--dashboard-muted-foreground);
+  padding: 20px 0;
+  text-align: center;
+}
+
+.rpt-pie-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.rpt-pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.rpt-pie-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rpt-pie-legend-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+}
+
+.rpt-pie-legend-count {
+  font-weight: 700;
+  color: #253041;
+  min-width: 20px;
+  text-align: right;
+}
+
 .rpt-top-col-title {
   font-size: 12px;
   font-weight: 700;
@@ -459,6 +525,66 @@
   padding: 2px 10px;
   border-radius: 999px;
   flex-shrink: 0;
+}
+
+/* =============================================================
+   Combustible Estimado
+   ============================================================= */
+
+.rpt-fuel-section {
+  overflow: visible;
+}
+
+.rpt-fuel-controls {
+  display: grid;
+  grid-template-columns: 180px 180px auto 1fr;
+  gap: 12px;
+  align-items: end;
+  padding: 14px 16px;
+}
+
+.rpt-fuel-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dashboard-muted-foreground, #98a2b3);
+  align-self: center;
+  justify-self: end;
+}
+
+.rpt-fuel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+.rpt-fuel-card {
+  border: 1px solid var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-sm, 8px);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.rpt-fuel-label {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dashboard-muted-foreground, #98a2b3);
+}
+
+.rpt-fuel-value {
+  margin: 6px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #253041;
+}
+
+.rpt-fuel-empty {
+  margin: 0 16px 16px;
+  padding: 12px;
+  border: 1px dashed var(--dashboard-border, rgba(15, 23, 42, 0.09));
+  border-radius: var(--dashboard-radius-sm, 8px);
+  color: var(--dashboard-muted-foreground, #98a2b3);
+  font-size: 13px;
 }
 
 /* =============================================================
@@ -512,6 +638,19 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .rpt-fuel-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rpt-fuel-hint {
+    justify-self: start;
+    grid-column: 1 / -1;
+  }
+
+  .rpt-fuel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .reportes-main {
     padding: 22px 22px 40px;
   }
@@ -555,6 +694,22 @@
   .rpt-top-grid {
     grid-template-columns: 1fr;
     padding: 12px;
+  }
+
+  .rpt-fuel-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .rpt-fuel-hint {
+    justify-self: start;
+  }
+
+  .rpt-fuel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rpt-fuel-value {
+    font-size: 18px;
   }
 
   .rpt-top-col {

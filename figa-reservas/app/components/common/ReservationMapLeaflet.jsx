@@ -181,10 +181,17 @@ async function getDrivingRouteFromOsrm(origin, destination) {
     if (!response.ok) return null;
 
     const data = await response.json();
-    const geometry = data?.routes?.[0]?.geometry?.coordinates;
+    const route = data?.routes?.[0];
+    const geometry = route?.geometry?.coordinates;
     if (!Array.isArray(geometry) || geometry.length < 2) return null;
 
-    return geometry
+    const distanceMeters = Number(route?.distance);
+    const distanceKm =
+      Number.isFinite(distanceMeters) && distanceMeters > 0
+        ? Math.round((distanceMeters / 1000) * 10) / 10
+        : null;
+
+    const path = geometry
       .map((coord) => {
         if (!Array.isArray(coord) || coord.length < 2) return null;
         const [lng, lat] = coord;
@@ -194,6 +201,8 @@ async function getDrivingRouteFromOsrm(origin, destination) {
         return { lat: latNum, lng: lngNum };
       })
       .filter(Boolean);
+
+    return { path, distanceKm };
   } catch {
     return null;
   }
@@ -219,6 +228,11 @@ export default function ReservationMapLeaflet({
   const [mapLoading, setMapLoading] = useState(true);
   const [mapError, setMapError] = useState("");
   const [geocoding, setGeocoding] = useState(true);
+  const [routeKm, setRouteKm] = useState(null);
+  const [fuelPrices, setFuelPrices] = useState(null);
+  const [fuelType, setFuelType] = useState("super");
+  const [kmPorLitro, setKmPorLitro] = useState(12);
+  const [fuelLoading, setFuelLoading] = useState(false);
 
   const hasConductorAssigned = Boolean(conductorId || conductorUid);
   const conductorDisplayName = useMemo(
@@ -365,9 +379,10 @@ export default function ReservationMapLeaflet({
       return undefined;
     }
 
-    getDrivingRouteFromOsrm(pickupCoords, dropoffCoords).then((path) => {
+    getDrivingRouteFromOsrm(pickupCoords, dropoffCoords).then((result) => {
       if (!cancelled) {
-        setRoutePath(Array.isArray(path) && path.length > 1 ? path : null);
+        setRoutePath(result?.path?.length > 1 ? result.path : null);
+        setRouteKm(result?.distanceKm ?? null);
       }
     });
 
@@ -472,6 +487,24 @@ export default function ReservationMapLeaflet({
     });
   }, [conductorLocation]);
 
+  // Fetch RECOPE fuel prices once on mount
+  useEffect(() => {
+    let cancelled = false;
+    setFuelLoading(true);
+    fetch("/api/maps/fuel-price")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((prices) => {
+        if (!cancelled) setFuelPrices(prices);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setFuelLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const conductorTime = formatConductorTime(conductorLocation?.updatedAt);
   const conductorRelative = formatRelativeMinutes(conductorLocation?.updatedAt);
 
@@ -528,6 +561,78 @@ export default function ReservationMapLeaflet({
             </span>
             {conductorLocation && conductorTime ? <span>Hora: {conductorTime}</span> : null}
           </div>
+        </div>
+      ) : null}
+
+      {!mapLoading && !mapError && routeKm != null ? (
+        <div className="map-fuel-card">
+          <div className="map-fuel-card-title">⛽ Combustible estimado</div>
+          <div className="map-fuel-row">
+            <span className="map-fuel-label">Distancia de ruta:</span>
+            <span className="map-fuel-value">{routeKm} km</span>
+          </div>
+          <div className="map-fuel-controls">
+            <div className="map-fuel-control-group">
+              <label className="map-fuel-label" htmlFor="map-fuel-type">Tipo</label>
+              <select
+                id="map-fuel-type"
+                className="map-fuel-select"
+                value={fuelType}
+                onChange={(e) => setFuelType(e.target.value)}
+              >
+                <option value="super">Super</option>
+                <option value="regular">Regular</option>
+                <option value="diesel">Diesel</option>
+              </select>
+            </div>
+            <div className="map-fuel-control-group">
+              <label className="map-fuel-label" htmlFor="map-km-por-litro">Rendimiento</label>
+              <div className="map-fuel-input-wrap">
+                <input
+                  id="map-km-por-litro"
+                  type="number"
+                  className="map-fuel-input"
+                  min="1"
+                  max="99"
+                  step="0.5"
+                  value={kmPorLitro}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (Number.isFinite(v) && v > 0) setKmPorLitro(v);
+                  }}
+                />
+                <span className="map-fuel-input-unit">km/l</span>
+              </div>
+            </div>
+          </div>
+          {fuelLoading ? (
+            <div className="map-fuel-hint">Consultando precios RECOPE...</div>
+          ) : fuelPrices ? (() => {
+            const litros = routeKm / kmPorLitro;
+            const precio = fuelPrices[fuelType];
+            const costo = precio != null ? litros * precio : null;
+            return (
+              <div className="map-fuel-result">
+                <div className="map-fuel-result-item">
+                  <span className="map-fuel-label">Consumo estimado:</span>
+                  <span className="map-fuel-value">{litros.toFixed(1)} L</span>
+                </div>
+                {costo != null ? (
+                  <div className="map-fuel-result-item">
+                    <span className="map-fuel-label">Costo estimado:</span>
+                    <span className="map-fuel-value map-fuel-cost">
+                      ₡{Math.round(costo).toLocaleString("es-CR")}
+                    </span>
+                  </div>
+                ) : null}
+                {precio != null ? (
+                  <div className="map-fuel-hint">
+                    Precio {fuelType} al {new Date().toLocaleDateString("es-CR")}: ₡{precio.toLocaleString("es-CR")}/L (RECOPE)
+                  </div>
+                ) : null}
+              </div>
+            );
+          })() : null}
         </div>
       ) : null}
 
