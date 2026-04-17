@@ -26,6 +26,7 @@ import { notifyError, confirmToast } from "../utils/notify.js";
 import toast from "react-hot-toast";
 
 const Modal = lazy(() => import("../components/common/modal"));
+const ReservationMapLeaflet = lazy(() => import("../components/common/ReservationMapLeaflet.jsx"));
 
 const reservasPorPagina = 8;
 const INACTIVITY_LIMIT = 10 * 60 * 1000;
@@ -153,15 +154,6 @@ function buildGoogleDirectionsUrl(origin, destination) {
   if (!originText || !destinationText) return "";
 
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originText)}&destination=${encodeURIComponent(destinationText)}&travelmode=driving`;
-}
-
-function buildGoogleEmbedDirectionsUrl(origin, destination) {
-  const originText = String(origin || "").trim();
-  const destinationText = String(destination || "").trim();
-
-  if (!originText || !destinationText) return "";
-
-  return `https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(originText)}&daddr=${encodeURIComponent(destinationText)}&dirflg=d`;
 }
 
 function ReservationTableRow({
@@ -723,11 +715,6 @@ export default function DashboardPage() {
       ? "Reservas Futuras"
       : "Reservas Activas";
 
-  const mapEmbedUrl = buildGoogleEmbedDirectionsUrl(
-    mapReserva?.pickUp,
-    mapReserva?.dropOff
-  );
-
   if (isLoading) {
     return <Loading />;
   }
@@ -1241,23 +1228,15 @@ export default function DashboardPage() {
                   </article>
                 </div>
 
-                {mapEmbedUrl ? (
-                  <iframe
-                    className="route-map-frame"
-                    title={`Ruta reserva ${mapReserva.id}`}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={mapEmbedUrl}
+                <Suspense fallback={<div className="route-map-fallback"><p>Cargando mapa…</p></div>}>
+                  <ReservationMapLeaflet
+                    pickUp={mapReserva.pickUp}
+                    dropOff={mapReserva.dropOff}
+                    conductorId={mapReserva.conductorId || null}
+                    conductorUid={mapReserva.assignedUid || null}
+                    conductorName={mapReserva.conductorNombre || mapReserva.chofer || ""}
                   />
-                ) : (
-                  <div className="route-map-fallback">
-                    <p>
-                      No se pudo incrustar el mapa. Puedes abrir la ruta directamente
-                      en Google Maps.
-                    </p>
-                  </div>
-                )}
+                </Suspense>
 
                 <div className="route-map-actions">
                   <button
