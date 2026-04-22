@@ -8,6 +8,11 @@ import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
 
 export const runtime = "nodejs";
 
+const GARAGE_COORDS = {
+  lat: 10.445556,
+  lng: -84.570444,
+};
+
 const FUEL_PATTERNS = {
   super: /super/i,
   regular: /plus\s*91|regular/i,
@@ -95,6 +100,16 @@ async function routeKm(origin, destination) {
   if (!Number.isFinite(distanceMeters) || distanceMeters <= 0) return null;
 
   return distanceMeters / 1000;
+}
+
+async function reservationRouteKm(origin, destination) {
+  const outboundKm = await routeKm(origin, destination);
+  if (!Number.isFinite(outboundKm)) return null;
+
+  const returnToGarageKm = await routeKm(destination, GARAGE_COORDS);
+  if (!Number.isFinite(returnToGarageKm)) return null;
+
+  return outboundKm + returnToGarageKm;
 }
 
 async function fetchFuelPrices() {
@@ -189,7 +204,7 @@ export async function POST(req) {
         continue;
       }
 
-      const km = await routeKm(origin, destination);
+      const km = await reservationRouteKm(origin, destination);
       if (!Number.isFinite(km)) {
         routes.set(key, null);
         unresolved.push({ pickUp, dropOff, reason: "route" });

@@ -10,6 +10,11 @@ const CODE_ALIASES = {
   LIR: "Aeropuerto Internacional Daniel Oduber, Liberia, Costa Rica",
 };
 
+const GARAGE_COORDS = {
+  lat: 10.445556,
+  lng: -84.570444,
+};
+
 let googleMapsScriptPromise = null;
 
 function loadGoogleMapsScript(apiKey) {
@@ -219,7 +224,13 @@ export default function ReservationMapLeaflet({
   const googleRef = useRef(null);
   const mapRef = useRef(null);
   const geocoderRef = useRef(null);
-  const markerRefs = useRef({ pickup: null, dropoff: null, conductor: null, fallbackRoute: null });
+  const markerRefs = useRef({
+    pickup: null,
+    dropoff: null,
+    garage: null,
+    conductor: null,
+    fallbackRoute: null,
+  });
 
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
@@ -341,7 +352,13 @@ export default function ReservationMapLeaflet({
 
     return () => {
       cancelled = true;
-      markerRefs.current = { pickup: null, dropoff: null, conductor: null, fallbackRoute: null };
+      markerRefs.current = {
+        pickup: null,
+        dropoff: null,
+        garage: null,
+        conductor: null,
+        fallbackRoute: null,
+      };
       mapRef.current = null;
       geocoderRef.current = null;
       googleRef.current = null;
@@ -381,11 +398,29 @@ export default function ReservationMapLeaflet({
       return undefined;
     }
 
-    getDrivingRouteFromOsrm(pickupCoords, dropoffCoords).then((result) => {
-      if (!cancelled) {
-        setRoutePath(result?.path?.length > 1 ? result.path : null);
-        setRouteKm(result?.distanceKm ?? null);
+    Promise.all([
+      getDrivingRouteFromOsrm(pickupCoords, dropoffCoords),
+      getDrivingRouteFromOsrm(dropoffCoords, GARAGE_COORDS),
+    ]).then(([reservationRoute, garageRoute]) => {
+      if (cancelled) return;
+
+      const reservationKm = reservationRoute?.distanceKm;
+      const garageKm = garageRoute?.distanceKm;
+      if (!Number.isFinite(reservationKm) || !Number.isFinite(garageKm)) {
+        setRoutePath(null);
+        setRouteKm(null);
+        return;
       }
+
+      const combinedPath = [
+        ...(Array.isArray(reservationRoute?.path) ? reservationRoute.path : [pickupCoords, dropoffCoords]),
+        ...(Array.isArray(garageRoute?.path)
+          ? garageRoute.path.slice(1)
+          : [GARAGE_COORDS]),
+      ];
+
+      setRoutePath(combinedPath.length > 1 ? combinedPath : null);
+      setRouteKm(Math.round((reservationKm + garageKm) * 10) / 10);
     });
 
     return () => {
@@ -421,10 +456,12 @@ export default function ReservationMapLeaflet({
 
     if (markerRefs.current.pickup) markerRefs.current.pickup.setMap(null);
     if (markerRefs.current.dropoff) markerRefs.current.dropoff.setMap(null);
+    if (markerRefs.current.garage) markerRefs.current.garage.setMap(null);
     if (markerRefs.current.fallbackRoute) markerRefs.current.fallbackRoute.setMap(null);
 
     markerRefs.current.pickup = null;
     markerRefs.current.dropoff = null;
+    markerRefs.current.garage = null;
     markerRefs.current.fallbackRoute = null;
 
     const bounds = new googleMaps.maps.LatLngBounds();
@@ -463,12 +500,27 @@ export default function ReservationMapLeaflet({
       bounds.extend(dropoffCoords);
     }
 
+    markerRefs.current.garage = new googleMaps.maps.Marker({
+      position: GARAGE_COORDS,
+      map,
+      title: "Garage",
+      icon: {
+        path: googleMaps.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: "#63815b",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 2,
+      },
+    });
+    bounds.extend(GARAGE_COORDS);
+
     if (pickupCoords && dropoffCoords) {
       markerRefs.current.fallbackRoute = new googleMaps.maps.Polyline({
         path:
           Array.isArray(routePath) && routePath.length > 1
             ? routePath
-            : [pickupCoords, dropoffCoords],
+            : [pickupCoords, dropoffCoords, GARAGE_COORDS],
         geodesic: true,
         strokeColor: "#1d4ed8",
         strokeOpacity: 0.85,
@@ -560,6 +612,10 @@ export default function ReservationMapLeaflet({
             <span className="map-legend-dot" style={{ background: "#dc2626" }} />
             Drop off
           </span>
+          <span className="map-legend-item">
+            <span className="map-legend-dot" style={{ background: "#63815b" }} />
+            Garage
+          </span>
           {hasConductorAssigned ? (
             <span className="map-legend-item">
               <span className="map-legend-dot map-legend-pulse" />
@@ -590,7 +646,7 @@ export default function ReservationMapLeaflet({
         <div className="map-fuel-card">
           <div className="map-fuel-card-title">⛽ Combustible estimado</div>
           <div className="map-fuel-row">
-              <span className="map-fuel-label">Ruta (Pickup -&gt; DropOff):</span>
+              <span className="map-fuel-label">Ruta (Pickup -&gt; DropOff -&gt; Garage):</span>
             <span className="map-fuel-value">{routeKm} km</span>
           </div>
           {hasConductorAssigned && conductorToPickupKm != null ? (
@@ -662,11 +718,11 @@ export default function ReservationMapLeaflet({
                 ) : null}
                 {hasConductorAssigned && conductorToPickupKm != null ? (
                   <div className="map-fuel-notice">
-                    ⚠️ Incluye distancia del conductor al pickup y la ruta completa de viaje.
+                    ⚠️ Incluye distancia del conductor al pickup y la ruta completa hasta el garage.
                   </div>
                 ) : (
                   <div className="map-fuel-notice">
-                    i Calcula solo la ruta pickup a dropoff (sin conductor asignado).
+                    i Calcula la ruta pickup a dropoff y el regreso fijo al garage.
                   </div>
                 )}
                 {precio != null ? (
