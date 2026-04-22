@@ -1530,6 +1530,16 @@
   margin-top: 2px;
 }
 
+.map-fuel-notice {
+  font-size: 11px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 5px 8px;
+  line-height: 1.4;
+}
+
 @media (max-width: 767px) {
   .desktop-only {
     display: none;

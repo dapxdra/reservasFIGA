@@ -229,6 +229,7 @@ export default function ReservationMapLeaflet({
   const [mapError, setMapError] = useState("");
   const [geocoding, setGeocoding] = useState(true);
   const [routeKm, setRouteKm] = useState(null);
+  const [conductorToPickupKm, setConductorToPickupKm] = useState(null);
   const [fuelPrices, setFuelPrices] = useState(null);
   const [fuelType, setFuelType] = useState("super");
   const [kmPorLitro, setKmPorLitro] = useState(12);
@@ -376,6 +377,7 @@ export default function ReservationMapLeaflet({
 
     if (!pickupCoords || !dropoffCoords) {
       setRoutePath(null);
+      setRouteKm(null);
       return undefined;
     }
 
@@ -390,6 +392,26 @@ export default function ReservationMapLeaflet({
       cancelled = true;
     };
   }, [pickupCoords, dropoffCoords]);
+
+  // Calcular distancia conductor -> pickup
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!hasConductorAssigned || !conductorLocation || !pickupCoords) {
+      setConductorToPickupKm(null);
+      return undefined;
+    }
+
+    getDrivingRouteFromOsrm(conductorLocation, pickupCoords).then((result) => {
+      if (!cancelled) {
+        setConductorToPickupKm(result?.distanceKm ?? null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasConductorAssigned, conductorLocation, pickupCoords]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;
@@ -568,9 +590,15 @@ export default function ReservationMapLeaflet({
         <div className="map-fuel-card">
           <div className="map-fuel-card-title">⛽ Combustible estimado</div>
           <div className="map-fuel-row">
-            <span className="map-fuel-label">Distancia de ruta:</span>
+              <span className="map-fuel-label">Ruta (Pickup -&gt; DropOff):</span>
             <span className="map-fuel-value">{routeKm} km</span>
           </div>
+          {hasConductorAssigned && conductorToPickupKm != null ? (
+            <div className="map-fuel-row">
+                <span className="map-fuel-label">Conductor -&gt; Pickup:</span>
+              <span className="map-fuel-value">{conductorToPickupKm} km</span>
+            </div>
+          ) : null}
           <div className="map-fuel-controls">
             <div className="map-fuel-control-group">
               <label className="map-fuel-label" htmlFor="map-fuel-type">Tipo</label>
@@ -608,11 +636,18 @@ export default function ReservationMapLeaflet({
           {fuelLoading ? (
             <div className="map-fuel-hint">Consultando precios RECOPE...</div>
           ) : fuelPrices ? (() => {
-            const litros = routeKm / kmPorLitro;
+            const kmTotal = hasConductorAssigned && conductorToPickupKm != null
+              ? routeKm + conductorToPickupKm
+              : routeKm;
+            const litros = kmTotal / kmPorLitro;
             const precio = fuelPrices[fuelType];
             const costo = precio != null ? litros * precio : null;
             return (
               <div className="map-fuel-result">
+                <div className="map-fuel-result-item">
+                  <span className="map-fuel-label">Distancia total:</span>
+                  <span className="map-fuel-value">{kmTotal.toFixed(1)} km</span>
+                </div>
                 <div className="map-fuel-result-item">
                   <span className="map-fuel-label">Consumo estimado:</span>
                   <span className="map-fuel-value">{litros.toFixed(1)} L</span>
@@ -625,9 +660,18 @@ export default function ReservationMapLeaflet({
                     </span>
                   </div>
                 ) : null}
+                {hasConductorAssigned && conductorToPickupKm != null ? (
+                  <div className="map-fuel-notice">
+                    ⚠️ Incluye distancia del conductor al pickup y la ruta completa de viaje.
+                  </div>
+                ) : (
+                  <div className="map-fuel-notice">
+                    i Calcula solo la ruta pickup a dropoff (sin conductor asignado).
+                  </div>
+                )}
                 {precio != null ? (
                   <div className="map-fuel-hint">
-                    Precio {fuelType} al {new Date().toLocaleDateString("es-CR")}: ₡{precio.toLocaleString("es-CR")}/L (RECOPE)
+                    Precio {fuelType} al {new Date().toLocaleDateString("es-CR")}: {precio.toLocaleString("es-CR")} CRC/L (RECOPE)
                   </div>
                 ) : null}
               </div>
