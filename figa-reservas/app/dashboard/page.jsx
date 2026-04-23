@@ -166,6 +166,7 @@ function ReservationTableRow({
   canManage,
   showPrice,
   showPayment,
+  showVehiculo,
 }) {
   const paid = Boolean(reserva.pago);
   const agencyTheme = getAgencyTheme(reserva.proveedor);
@@ -205,7 +206,7 @@ function ReservationTableRow({
         )}
       </td>
       <td className="dashboard-col-hidden">{conductor}</td>
-      <td className="dashboard-col-hidden">{vehiculo}</td>
+      <td className={showVehiculo ? "" : "dashboard-col-hidden"}>{vehiculo}</td>
       {showPrice ? (
         <td className="dashboard-price">{formatPrice(reserva.precio)}</td>
       ) : null}
@@ -278,6 +279,7 @@ function ReservationCard({
   canManage,
   showPrice,
   showPayment,
+  isConductor,
 }) {
   const paid = Boolean(reserva.pago);
   const agencyTheme = getAgencyTheme(reserva.proveedor);
@@ -351,10 +353,7 @@ function ReservationCard({
         </div>
         <div className="rc-detail-item">
           <DashboardIcon name="car" size={14} className="detail-icon" />
-          <span>
-            {conductor}
-            {vehiculo ? ` (${vehiculo})` : ""}
-          </span>
+          <span>{isConductor ? vehiculo || "-" : `${conductor}${vehiculo ? ` (${vehiculo})` : ""}`}</span>
         </div>
         {showPrice ? (
           <div className="rc-detail-item price">{formatPrice(reserva.precio)}</div>
@@ -969,7 +968,7 @@ export default function DashboardPage() {
                     <th>Cliente</th>
                     <th>Nota</th>
                     <th className="dashboard-col-hidden">Conductor</th>
-                    <th className="dashboard-col-hidden">Vehiculo</th>
+                    <th className={isConductor ? "" : "dashboard-col-hidden"}>Vehiculo</th>
                     {showPriceColumn ? <th>Precio</th> : null}
                     {showPaymentColumn ? <th>Pago</th> : null}
                     {showPaymentColumn ? (
@@ -1006,6 +1005,7 @@ export default function DashboardPage() {
                         canManage={canManageReservas}
                         showPrice={showPriceColumn}
                         showPayment={showPaymentColumn}
+                        showVehiculo={isConductor}
                       />
                     ))
                   )}
@@ -1053,6 +1053,7 @@ export default function DashboardPage() {
                     canManage={canManageReservas}
                     showPrice={showPriceColumn}
                     showPayment={showPaymentColumn}
+                    isConductor={isConductor}
                   />
                 ))
               )}
