@@ -53,44 +53,220 @@ const PIE_COLORS = [
   "#0891b2", "#be185d", "#65a30d", "#ea580c", "#6366f1",
 ];
 
-function PieChart({ title, data }) {
-  const items = Array.isArray(data) ? data.filter((d) => d.count > 0) : [];
+const BAR_COLORS = {
+  pickup: "#0ea5a4",
+  dropoff: "#0f766e",
+  conductores: "#2563eb",
+  vehiculos: "#d97706",
+  horas: "#7c3aed",
+};
+
+function normalizeTopData(data) {
+  const safe = Array.isArray(data) ? data : [];
+  return safe
+    .map((item) => ({
+      name: item?.name || "-",
+      count: Number(item?.count) || 0,
+    }))
+    .filter((item) => item.count > 0);
+}
+
+function HorizontalBarChart({ title, data, color }) {
+  const items = normalizeTopData(data);
+  const max = Math.max(...items.map((d) => d.count), 0);
+
+  return (
+    <div className="rpt-chart-card">
+      <h3 className="rpt-top-col-title">{title}</h3>
+      {items.length === 0 ? (
+        <p className="rpt-pie-empty">Sin datos</p>
+      ) : (
+        <ul className="rpt-hbar-list">
+          {items.map((item, idx) => {
+            const pct = max > 0 ? (item.count / max) * 100 : 0;
+            return (
+              <li key={`${item.name}-${idx}`} className="rpt-hbar-item">
+                <div className="rpt-hbar-head">
+                  <span className="rpt-hbar-name" title={item.name}>{item.name}</span>
+                  <span className="rpt-hbar-count">{item.count}</span>
+                </div>
+                <div className="rpt-hbar-track" aria-hidden="true">
+                  <span
+                    className="rpt-hbar-fill"
+                    style={{ width: `${pct}%`, background: color }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function VerticalBarChart({ title, data, color }) {
+  const items = normalizeTopData(data);
+  const max = Math.max(...items.map((d) => d.count), 0);
+
+  return (
+    <div className="rpt-chart-card">
+      <h3 className="rpt-top-col-title">{title}</h3>
+      {items.length === 0 ? (
+        <p className="rpt-pie-empty">Sin datos</p>
+      ) : (
+        <div className="rpt-vbar-wrap">
+          {items.map((item, idx) => {
+            const pct = max > 0 ? (item.count / max) * 100 : 0;
+            return (
+              <div key={`${item.name}-${idx}`} className="rpt-vbar-item" title={`${item.name}: ${item.count}`}>
+                <span className="rpt-vbar-count">{item.count}</span>
+                <div className="rpt-vbar-track" aria-hidden="true">
+                  <span
+                    className="rpt-vbar-fill"
+                    style={{ height: `${Math.max(6, pct)}%`, background: color }}
+                  />
+                </div>
+                <span className="rpt-vbar-label">{item.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HourColumnChart({ title, data, color }) {
+  const items = (Array.isArray(data) ? data : [])
+    .map((r) => ({
+      hour: Number(r?.hour),
+      count: Number(r?.count) || 0,
+    }))
+    .filter((r) => Number.isFinite(r.hour) && r.count > 0)
+    .sort((a, b) => a.hour - b.hour);
+  const max = Math.max(...items.map((d) => d.count), 0);
+
+  return (
+    <div className="rpt-chart-card">
+      <h3 className="rpt-top-col-title">{title}</h3>
+      {items.length === 0 ? (
+        <p className="rpt-pie-empty">Sin datos</p>
+      ) : (
+        <div className="rpt-hour-wrap">
+          {items.map((item) => {
+            const pct = max > 0 ? (item.count / max) * 100 : 0;
+            return (
+              <div key={item.hour} className="rpt-hour-item" title={`${hourLabel12(item.hour)}: ${item.count}`}>
+                <span className="rpt-hour-count">{item.count}</span>
+                <div className="rpt-hour-track" aria-hidden="true">
+                  <span
+                    className="rpt-hour-fill"
+                    style={{ height: `${Math.max(6, pct)}%`, background: color }}
+                  />
+                </div>
+                <span className="rpt-hour-label">{hourLabel12(item.hour)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RankingChart({ title, data, color }) {
+  const items = normalizeTopData(data);
+  const max = Math.max(...items.map((d) => d.count), 0);
+
+  return (
+    <div className="rpt-chart-card">
+      <h3 className="rpt-top-col-title">{title}</h3>
+      {items.length === 0 ? (
+        <p className="rpt-pie-empty">Sin datos</p>
+      ) : (
+        <ol className="rpt-rank-list">
+          {items.map((item, idx) => {
+            const pct = max > 0 ? (item.count / max) * 100 : 0;
+            return (
+              <li key={`${item.name}-${idx}`} className="rpt-rank-item">
+                <span className="rpt-rank-pos">{idx + 1}</span>
+                <div className="rpt-rank-main">
+                  <div className="rpt-rank-head">
+                    <span className="rpt-rank-name" title={item.name}>{item.name}</span>
+                    <span className="rpt-rank-count">{item.count}</span>
+                  </div>
+                  <div className="rpt-rank-track" aria-hidden="true">
+                    <span className="rpt-rank-fill" style={{ width: `${pct}%`, background: color }} />
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function DonutChart({ title, data }) {
+  const items = normalizeTopData(data);
   const total = items.reduce((s, d) => s + d.count, 0);
 
   if (total === 0) {
     return (
-      <div className="rpt-pie-card">
+      <div className="rpt-chart-card">
         <h3 className="rpt-top-col-title">{title}</h3>
         <p className="rpt-pie-empty">Sin datos</p>
       </div>
     );
   }
 
-  const cx = 80, cy = 80, r = 70;
+  const cx = 80;
+  const cy = 80;
+  const rOuter = 68;
+  const rInner = 42;
   let startAngle = -Math.PI / 2;
+
   const slices = items.map((d, i) => {
     const angle = (d.count / total) * 2 * Math.PI;
     const endAngle = startAngle + angle;
-    const x1 = cx + r * Math.cos(startAngle);
-    const y1 = cy + r * Math.sin(startAngle);
-    const x2 = cx + r * Math.cos(endAngle);
-    const y2 = cy + r * Math.sin(endAngle);
+
+    const x1o = cx + rOuter * Math.cos(startAngle);
+    const y1o = cy + rOuter * Math.sin(startAngle);
+    const x2o = cx + rOuter * Math.cos(endAngle);
+    const y2o = cy + rOuter * Math.sin(endAngle);
+
+    const x1i = cx + rInner * Math.cos(startAngle);
+    const y1i = cy + rInner * Math.sin(startAngle);
+    const x2i = cx + rInner * Math.cos(endAngle);
+    const y2i = cy + rInner * Math.sin(endAngle);
+
     const largeArc = angle > Math.PI ? 1 : 0;
-    const path = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    const path = [
+      `M ${x1o.toFixed(2)} ${y1o.toFixed(2)}`,
+      `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2o.toFixed(2)} ${y2o.toFixed(2)}`,
+      `L ${x2i.toFixed(2)} ${y2i.toFixed(2)}`,
+      `A ${rInner} ${rInner} 0 ${largeArc} 0 ${x1i.toFixed(2)} ${y1i.toFixed(2)}`,
+      "Z",
+    ].join(" ");
+
     const color = PIE_COLORS[i % PIE_COLORS.length];
     startAngle = endAngle;
     return { path, color, name: d.name, count: d.count };
   });
 
   return (
-    <div className="rpt-pie-card">
+    <div className="rpt-chart-card">
       <h3 className="rpt-top-col-title">{title}</h3>
       <svg viewBox="0 0 160 160" className="rpt-pie-svg" aria-hidden="true">
         {slices.map((s, i) => (
-          <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth="1.5">
+          <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth="1.2">
             <title>{s.name}: {s.count}</title>
           </path>
         ))}
+        <text x="80" y="76" textAnchor="middle" className="rpt-donut-center-label">Total</text>
+        <text x="80" y="95" textAnchor="middle" className="rpt-donut-center-value">{total}</text>
       </svg>
       <ul className="rpt-pie-legend">
         {slices.map((s, i) => (
@@ -769,14 +945,31 @@ function ReportesContent() {
             <h2 className="rpt-section-title">Top Estadísticas</h2>
           </div>
           <div className="rpt-top-grid">
-            <PieChart title="Top Lugares (PickUp)" data={topPickUps} />
-            <PieChart title="Top Lugares (DropOff)" data={topDropOffs} />
-            <PieChart title="Top Proveedores" data={topProveedores} />
-            <PieChart title="Top Conductores" data={topConductores} />
-            <PieChart title="Top Vehículos" data={topVehiculos} />
-            <PieChart
+            <HorizontalBarChart
+              title="Top Lugares (PickUp)"
+              data={topPickUps}
+              color={BAR_COLORS.pickup}
+            />
+            <HorizontalBarChart
+              title="Top Lugares (DropOff)"
+              data={topDropOffs}
+              color={BAR_COLORS.dropoff}
+            />
+            <DonutChart title="Top Proveedores" data={topProveedores} />
+            <RankingChart
+              title="Top Conductores"
+              data={topConductores}
+              color={BAR_COLORS.conductores}
+            />
+            <VerticalBarChart
+              title="Top Vehículos"
+              data={topVehiculos}
+              color={BAR_COLORS.vehiculos}
+            />
+            <HourColumnChart
               title="Top Horas"
-              data={topHorasList.map((r) => ({ name: hourLabel12(r.hour), count: r.count }))}
+              data={topHorasList}
+              color={BAR_COLORS.horas}
             />
           </div>
         </section>
