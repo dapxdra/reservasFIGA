@@ -46,8 +46,27 @@ export async function POST(req) {
     body = {};
   }
 
+  const minHours = Number(body?.minHours);
+  const maxHours = Number(body?.maxHours);
+  const maxSends = Number(body?.maxSends);
+  const onlyActive = body?.onlyActive === true;
+
+  const hasManualWindow = Number.isFinite(minHours) && Number.isFinite(maxHours);
+
   return executeReminderJob({
-    ignoreWindow: body?.ignoreWindow !== false,
+    ignoreWindow: body?.ignoreWindow === true,
+    onlyActive,
+    ...(Number.isFinite(maxSends)
+      ? {
+          maxSends,
+        }
+      : {}),
+    ...(hasManualWindow
+      ? {
+          minHours,
+          maxHours,
+        }
+      : {}),
   });
 }
 

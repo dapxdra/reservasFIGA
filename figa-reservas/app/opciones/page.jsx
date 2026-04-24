@@ -49,34 +49,38 @@ function OpcionesContent() {
     try {
       const data = await authenticatedJson("/api/notifications/reservas-24h", {
         method: "POST",
-        body: JSON.stringify({ ignoreWindow: true }),
+          body: JSON.stringify({ ignoreWindow: true, onlyActive: true, maxSends: 2 }),
       });
 
       if ((data.sent || 0) === 0) {
         const emailCfg = data?.channels?.emailEnabled ? "ok" : "faltante";
-        const waCfg = data?.channels?.whatsappEnabled ? "ok" : "faltante";
         const emailMissing = Array.isArray(data?.channels?.emailMissing)
           ? data.channels.emailMissing.join(", ")
           : "";
-        const waMissing = Array.isArray(data?.channels?.whatsappMissing)
-          ? data.channels.whatsappMissing.join(", ")
-          : "";
+        const errors = Array.isArray(data?.errors) ? data.errors : [];
+        const firstError = errors[0]?.message ? ` Primer error: ${errors[0].message}` : "";
+        const fromPreview = String(data?.channels?.fromPreview || "");
+        const fromValid = data?.channels?.fromValid === true;
+        
         const reason = data?.skippedReasons || {};
         const configHint =
-          !data?.channels?.emailEnabled && !data?.channels?.whatsappEnabled
-            ? ` Variables faltantes -> email: ${emailMissing || "ninguna"}; WhatsApp: ${waMissing || "ninguna"}.`
+          !data?.channels?.emailEnabled 
+            ? ` Variables faltantes -> email: ${emailMissing || "ninguna"}.`
             : "";
+        const fromHint = fromPreview
+          ? ` From en runtime: ${fromPreview} (${fromValid ? "valido" : "invalido"}).`
+          : "";
         toast.error(
-          `No se enviaron recordatorios. Config email: ${emailCfg}, WhatsApp: ${waCfg}, sin contacto: ${reason.missingContact || 0}, fuera de ventana 24h: ${reason.outOfWindow || 0}.${configHint}`
+          `No se enviaron recordatorios. Config email: ${emailCfg}, sin contacto: ${reason.missingContact || 0}, reservas no activas: ${reason.inactivePast || 0}, tope de envios alcanzado: ${reason.reachedMaxSends || 0}, fuera de ventana 24h: ${reason.outOfWindow || 0}, errores proveedor: ${errors.length}.${configHint}${fromHint}${firstError}`
         );
         return;
       }
 
       toast.success(
-        `Recordatorios ejecutados. Enviados: ${data.sent || 0} (email: ${data.sentEmail || 0}, WhatsApp: ${data.sentWhatsApp || 0})`
+        `Recordatorios ejecutados. Enviados: ${data.sent || 0} (email: ${data.sentEmail || 0})`
       );
     } catch (error) {
-      toast.error(error.message || "Error ejecutando recordatorios 24h");
+      toast.error(error.message || "Error ejecutando recordatorios");
     } finally {
       setRunningReminders(false);
     }
