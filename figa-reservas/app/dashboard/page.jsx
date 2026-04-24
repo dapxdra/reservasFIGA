@@ -176,8 +176,8 @@ function ReservationTableRow({
   return (
     <tr
       className={`${revisada ? "reservation-row-reviewed" : ""} reservation-row-clickable`}
-      onClick={onOpenMap}
-      title="Ver ruta en mapa"
+        onDoubleClick={onOpenMap}
+        title="Doble click para ver ruta en mapa"
     >
       <td className="dashboard-id-cell">#{reserva.id}</td>
       <td>{formatDashboardDate(reserva.fecha)}</td>
