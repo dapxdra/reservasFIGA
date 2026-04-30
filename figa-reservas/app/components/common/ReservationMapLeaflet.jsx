@@ -242,7 +242,7 @@ export default function ReservationMapLeaflet({
   const [routeKm, setRouteKm] = useState(null);
   const [conductorToPickupKm, setConductorToPickupKm] = useState(null);
   const [fuelPrices, setFuelPrices] = useState(null);
-  const [fuelType, setFuelType] = useState("super");
+  const [fuelType, setFuelType] = useState("diesel");
   const [kmPorLitro, setKmPorLitro] = useState(12);
   const [fuelLoading, setFuelLoading] = useState(false);
 

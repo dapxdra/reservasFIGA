@@ -32,6 +32,7 @@ import {
   pagadasByYear,
   noPagadasByYear,
 } from "../utils/reportes";
+import { authenticatedJson } from "../core/client/http/authenticatedFetch.js";
 
 const monthNames = [
   "Ene",
@@ -293,6 +294,8 @@ function ReportesContent() {
   const router = useRouter();
   const { getReservas, isLoading, invalidateCache } = useReservasData();
   const [reservas, setReservas] = useState([]);
+  const [kpiCombustibleHoy, setKpiCombustibleHoy] = useState(0);
+  const [loadingCombustibleHoy, setLoadingCombustibleHoy] = useState(false);
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -440,6 +443,22 @@ function ReportesContent() {
   const pagadasPorAnio = useMemo(() => pagadasByYear(reservas), [reservas]);
   const noPagadasPorAnio = useMemo(() => noPagadasByYear(reservas), [reservas]);
 
+  const todayYmd = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Costa_Rica",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date()),
+    []
+  );
+
+  const reservasActivas = useMemo(
+    () => reservas.filter((r) => !r?.cancelada),
+    [reservas]
+  );
+
   const topPickUps = useMemo(
     () => topValues(reservas, "pickUp", 10),
     [reservas]
@@ -471,6 +490,49 @@ function ReportesContent() {
     [reservasTopSource]
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function calcularCombustibleHoy() {
+      if (!reservasActivas.length) {
+        setKpiCombustibleHoy(0);
+        return;
+      }
+
+      try {
+        setLoadingCombustibleHoy(true);
+        const data = await authenticatedJson("/api/reportes/combustible", {
+          method: "POST",
+          body: JSON.stringify({
+            tipoCombustible: "diesel",
+            kmPorLitro: 12,
+            targetDate: todayYmd,
+            reservas: reservasActivas,
+          }),
+        });
+
+        if (!cancelled) {
+          setKpiCombustibleHoy(Number(data?.costoEstimado) || 0);
+        }
+      } catch (error) {
+        console.error("Error calculando combustible del dia:", error);
+        if (!cancelled) {
+          setKpiCombustibleHoy(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCombustibleHoy(false);
+        }
+      }
+    }
+
+    calcularCombustibleHoy();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reservasActivas, todayYmd]);
+
   const toggle = (key) => setSelected((s) => ({ ...s, [key]: !s[key] }));
 
   const hasPeriod = Boolean(startDate && endDate);
@@ -483,9 +545,6 @@ function ReportesContent() {
   const kpiCanceladas = hasPeriod
     ? canceladasPeriodo
     : canceladasPorMes.reduce((a, b) => a + b, 0);
-  const kpiNoPagadas = hasPeriod
-    ? noPagadasPeriodo
-    : noPagadasPorMes.reduce((a, b) => a + b, 0);
 
   const exportarExcel = async () => {
     try {
@@ -888,9 +947,11 @@ function ReportesContent() {
           </div>
           <div className="rpt-kpi-card">
             <div className="rpt-kpi-icon rpt-kpi-icon-yellow" />
-            <p className="rpt-kpi-label">No Pagadas</p>
-            <p className="rpt-kpi-value">{fmt0(kpiNoPagadas)}</p>
-            <p className="rpt-kpi-sub">Pendientes de cobro</p>
+            <p className="rpt-kpi-label">Combustible Hoy</p>
+            <p className="rpt-kpi-value">
+              {loadingCombustibleHoy ? "..." : `₡ ${fmt2(kpiCombustibleHoy)}`}
+            </p>
+            <p className="rpt-kpi-sub">Total estimado de reservas de hoy</p>
           </div>
         </div>
 

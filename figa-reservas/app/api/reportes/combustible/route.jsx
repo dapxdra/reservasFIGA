@@ -5,6 +5,7 @@ import {
   unauthorizedResponse,
 } from "@/app/lib/serverAuth.js";
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
+import { db } from "@/app/lib/firebaseadmin.jsx";
 
 export const runtime = "nodejs";
 
@@ -29,22 +30,155 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function toYMD(value, tz = "America/Costa_Rica") {
+  if (value == null) return "";
+
+  if (typeof value === "string") {
+    const plain = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(plain)) return plain;
+
+    const isoMatch = plain.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoMatch) return isoMatch[1];
+
+    const dmyMatch = plain.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (dmyMatch) {
+      const [, dd, mm, yyyy] = dmyMatch;
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  const seconds = value?.seconds ?? value?._seconds;
+  if (seconds != null) {
+    const d = new Date(Number(seconds) * 1000);
+    if (!Number.isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+    }
+  }
+
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function toLocation(value) {
+  const lat = toNumber(value?.lat);
+  const lng = toNumber(value?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+async function resolveConductorLocation({ conductorId, conductorUid }) {
+  if (!db) return null;
+
+  const safeConductorId = normalizeText(conductorId);
+  const safeConductorUid = normalizeText(conductorUid);
+
+  let conductorDoc = null;
+
+  if (safeConductorId) {
+    const doc = await db.collection("conductores").doc(safeConductorId).get();
+    if (doc.exists) {
+      conductorDoc = { id: doc.id, ...doc.data() };
+    }
+  }
+
+  if (!conductorDoc && safeConductorUid) {
+    const snap = await db
+      .collection("conductores")
+      .where("uid", "==", safeConductorUid)
+      .limit(1)
+      .get();
+
+    if (!snap.empty) {
+      const doc = snap.docs[0];
+      conductorDoc = { id: doc.id, ...doc.data() };
+    }
+  }
+
+  const locationFromConductor = toLocation(conductorDoc?.lastLocation);
+  if (locationFromConductor) {
+    return {
+      conductorId: conductorDoc?.id || safeConductorId || null,
+      conductorUid: conductorDoc?.uid || safeConductorUid || null,
+      location: locationFromConductor,
+    };
+  }
+
+  const fallbackUid = conductorDoc?.uid || safeConductorUid;
+  if (fallbackUid) {
+    const fallbackDoc = await db.collection("conductorLocations").doc(fallbackUid).get();
+    const fallbackLocation = toLocation(fallbackDoc.data()?.lastLocation);
+
+    if (fallbackLocation) {
+      return {
+        conductorId: conductorDoc?.id || safeConductorId || null,
+        conductorUid: fallbackUid,
+        location: fallbackLocation,
+      };
+    }
+  }
+
+  return {
+    conductorId: conductorDoc?.id || safeConductorId || null,
+    conductorUid: conductorDoc?.uid || safeConductorUid || null,
+    location: null,
+  };
+}
+
+// Known alias expansions for common airport codes
+const AIRPORT_ALIASES = {
+  SJO: "Aeropuerto Internacional Juan Santamaria, Alajuela, Costa Rica",
+  LIR: "Aeropuerto Internacional Daniel Oduber, Liberia, Costa Rica",
+};
+
 function buildAddressCandidates(rawText) {
   const text = normalizeText(rawText);
   if (!text) return [];
 
-  const upper = text.toUpperCase();
-  const candidates = [text];
+  const upper = text.toUpperCase().trim();
+  const candidates = [];
 
-  if (upper === "SJO") {
-    candidates.push("Aeropuerto Internacional Juan Santamaria, Costa Rica");
-  }
-  if (upper === "LIR") {
-    candidates.push("Aeropuerto Internacional Daniel Oduber, Liberia, Costa Rica");
+  // Alias expansion first
+  if (AIRPORT_ALIASES[upper]) {
+    candidates.push(AIRPORT_ALIASES[upper]);
   }
 
-  if (!/costa\s+rica/i.test(text)) {
-    candidates.push(`${text}, Costa Rica`);
+  // Original text (with Costa Rica appended if missing)
+  const withCR = /costa\s+rica/i.test(text) ? text : `${text}, Costa Rica`;
+  candidates.push(withCR);
+
+  // Strip increasingly more detail from comma-separated parts to help Nominatim
+  // e.g. "Aeropuerto Juan Santamaría, Provincia de Alajuela, Río Segundo, Costa Rica"
+  // -> "Aeropuerto Juan Santamaría, Provincia de Alajuela, Costa Rica"
+  // -> "Aeropuerto Juan Santamaría, Costa Rica"
+  const parts = text.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 3) {
+    for (let keep = parts.length - 1; keep >= 1; keep--) {
+      const truncated = parts.slice(0, keep).join(", ");
+      const withCRTruncated = /costa\s+rica/i.test(truncated)
+        ? truncated
+        : `${truncated}, Costa Rica`;
+      candidates.push(withCRTruncated);
+    }
+  }
+
+  // Also try just the very first segment (the main place name)
+  if (parts.length > 1) {
+    const firstPart = parts[0];
+    if (!/costa\s+rica/i.test(firstPart)) {
+      candidates.push(`${firstPart}, Costa Rica`);
+    }
   }
 
   return [...new Set(candidates)];
@@ -153,7 +287,18 @@ export async function POST(req) {
     const body = await req.json();
     const tipoCombustible = normalizeText(body?.tipoCombustible || "regular").toLowerCase();
     const kmPorLitro = toNumber(body?.kmPorLitro);
-    const reservas = Array.isArray(body?.reservas) ? body.reservas : [];
+    const reservasInput = Array.isArray(body?.reservas) ? body.reservas : [];
+    const targetDate = normalizeText(body?.targetDate);
+
+    const reservas = targetDate
+      ? reservasInput.filter((reserva) => {
+          const fechaReserva =
+            toYMD(reserva?.fecha) ||
+            toYMD(reserva?.fechaServicio) ||
+            toYMD(reserva?.date);
+          return fechaReserva === targetDate;
+        })
+      : reservasInput;
 
     if (!Number.isFinite(kmPorLitro) || kmPorLitro <= 0) {
       return jsonResponse({ message: "kmPorLitro debe ser un numero mayor que 0" }, 400);
@@ -185,6 +330,8 @@ export async function POST(req) {
     }
 
     const routes = new Map();
+    const pickupCoordsMap = new Map();
+    const conductorLocationMap = new Map();
     const unresolved = [];
 
     for (const reserva of reservas) {
@@ -197,6 +344,8 @@ export async function POST(req) {
 
       const origin = await geocodeAddress(pickUp);
       const destination = await geocodeAddress(dropOff);
+
+      pickupCoordsMap.set(pickUp, origin || null);
 
       if (!origin || !destination) {
         routes.set(key, null);
@@ -232,6 +381,31 @@ export async function POST(req) {
       if (Number.isFinite(km)) {
         totalKm += km;
         rutasProcesadas += 1;
+
+        const conductorId = normalizeText(reserva?.conductorId);
+        const conductorUid = normalizeText(
+          reserva?.conductorUid || reserva?.conductor?.uid || reserva?.uidConductor
+        );
+
+        if (conductorId || conductorUid) {
+          const conductorKey = `${conductorId}|||${conductorUid}`;
+          let conductorPayload = conductorLocationMap.get(conductorKey);
+
+          if (conductorPayload === undefined) {
+            conductorPayload = await resolveConductorLocation({ conductorId, conductorUid });
+            conductorLocationMap.set(conductorKey, conductorPayload);
+          }
+
+          const conductorLocation = conductorPayload?.location;
+          const pickupCoords = pickupCoordsMap.get(pickUp);
+
+          if (conductorLocation && pickupCoords) {
+            const conductorToPickupKm = await routeKm(conductorLocation, pickupCoords);
+            if (Number.isFinite(conductorToPickupKm)) {
+              totalKm += conductorToPickupKm;
+            }
+          }
+        }
       } else {
         rutasSinCalculo += 1;
       }
