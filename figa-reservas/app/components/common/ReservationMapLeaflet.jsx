@@ -176,41 +176,34 @@ async function geocodeAddress(googleMaps, geocoder, text) {
   return null;
 }
 
-async function getDrivingRouteFromOsrm(origin, destination) {
+async function getDrivingRouteFromApi(origin, destination) {
   if (!origin || !destination) return null;
 
   try {
-    const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) return null;
+    const params = new URLSearchParams({
+      originLat: String(origin.lat),
+      originLng: String(origin.lng),
+      destinationLat: String(destination.lat),
+      destinationLng: String(destination.lng),
+    });
 
-    const data = await response.json();
-    const route = data?.routes?.[0];
-    const geometry = route?.geometry?.coordinates;
-    if (!Array.isArray(geometry) || geometry.length < 2) return null;
+    const data = await authenticatedJson(`/api/maps/route?${params.toString()}`, {
+      method: "GET",
+    });
 
-    const distanceMeters = Number(route?.distance);
-    const distanceKm =
-      Number.isFinite(distanceMeters) && distanceMeters > 0
-        ? Math.round((distanceMeters / 1000) * 10) / 10
-        : null;
-
-    const path = geometry
-      .map((coord) => {
-        if (!Array.isArray(coord) || coord.length < 2) return null;
-        const [lng, lat] = coord;
-        const latNum = Number(lat);
-        const lngNum = Number(lng);
-        if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return null;
-        return { lat: latNum, lng: lngNum };
-      })
-      .filter(Boolean);
-
-    return { path, distanceKm };
+    return {
+      path: Array.isArray(data?.path) ? data.path : null,
+      distanceKm: Number.isFinite(Number(data?.distanceKm)) ? Number(data.distanceKm) : null,
+      fallback: Boolean(data?.fallback),
+      provider: String(data?.provider || "api"),
+    };
   } catch {
     return null;
   }
+}
+
+async function getBestDrivingRoute(origin, destination) {
+  return getDrivingRouteFromApi(origin, destination);
 }
 
 export default function ReservationMapLeaflet({
@@ -399,8 +392,8 @@ export default function ReservationMapLeaflet({
     }
 
     Promise.all([
-      getDrivingRouteFromOsrm(pickupCoords, dropoffCoords),
-      getDrivingRouteFromOsrm(dropoffCoords, GARAGE_COORDS),
+      getBestDrivingRoute(pickupCoords, dropoffCoords),
+      getBestDrivingRoute(dropoffCoords, GARAGE_COORDS),
     ]).then(([reservationRoute, garageRoute]) => {
       if (cancelled) return;
 
@@ -437,7 +430,7 @@ export default function ReservationMapLeaflet({
       return undefined;
     }
 
-    getDrivingRouteFromOsrm(conductorLocation, pickupCoords).then((result) => {
+    getBestDrivingRoute(conductorLocation, pickupCoords).then((result) => {
       if (!cancelled) {
         setConductorToPickupKm(result?.distanceKm ?? null);
       }
@@ -521,7 +514,7 @@ export default function ReservationMapLeaflet({
           Array.isArray(routePath) && routePath.length > 1
             ? routePath
             : [pickupCoords, dropoffCoords, GARAGE_COORDS],
-        geodesic: true,
+        geodesic: false,
         strokeColor: "#1d4ed8",
         strokeOpacity: 0.85,
         strokeWeight: 4,
