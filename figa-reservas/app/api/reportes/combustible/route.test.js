@@ -96,6 +96,8 @@ describe("/api/reportes/combustible route", () => {
     mocks.state.conductorDocByUid = null;
     mocks.state.fallbackLocationByUid = null;
 
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "test-key";
+
     mocks.getAuthUserContext.mockResolvedValue({
       profile: { role: "admin" },
       errorResponse: null,
@@ -109,6 +111,10 @@ describe("/api/reportes/combustible route", () => {
 
       if (url === "https://api.recope.go.cr/ventas/precio/consumidor") {
         return Response.json([{ nomprod: "Gasolina Regular", preciototal: "700" }]);
+      }
+
+      if (url.includes("places.googleapis.com/v1/places:searchText")) {
+        return Response.json({ places: [] });
       }
 
       if (url.includes("nominatim.openstreetmap.org/search") && url.includes("q=Hotel+Pickup")) {
@@ -181,6 +187,10 @@ describe("/api/reportes/combustible route", () => {
         return Response.json([{ nomprod: "Gasolina Regular", preciototal: "700" }]);
       }
 
+      if (url.includes("places.googleapis.com/v1/places:searchText")) {
+        return Response.json({ places: [] });
+      }
+
       if (url.includes("nominatim.openstreetmap.org/search") && url.includes("q=Hotel+Pickup")) {
         return Response.json([{ lat: "10.1", lon: "-84.1" }]);
       }
@@ -242,6 +252,71 @@ describe("/api/reportes/combustible route", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://router.project-osrm.org/route/v1/driving/-84,10;-84.1,10.1?overview=false",
       { cache: "no-store" }
+    );
+  });
+
+  it("usa coordenadas guardadas en la reserva sin geocodificar", async () => {
+    const fetchMock = vi.fn(async (input) => {
+      const url = String(input);
+
+      if (url === "https://api.recope.go.cr/ventas/precio/consumidor") {
+        return Response.json([{ nomprod: "Diesel", preciototal: "565" }]);
+      }
+
+      if (
+        url ===
+        "https://router.project-osrm.org/route/v1/driving/-84.2047605,9.9981657;-85.6731,10.5839?overview=false"
+      ) {
+        return Response.json({ routes: [{ distance: 240000 }] });
+      }
+
+      if (
+        url ===
+        "https://router.project-osrm.org/route/v1/driving/-85.6731,10.5839;-84.570444,10.445556?overview=false"
+      ) {
+        return Response.json({ routes: [{ distance: 150000 }] });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const req = new Request("http://localhost/api/reportes/combustible", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipoCombustible: "diesel",
+        kmPorLitro: 12,
+        reservas: [
+          {
+            pickUp: "Aeropuerto Juan Santamaría, Provincia de Alajuela, Río Segundo",
+            pickUpLat: 9.9981657,
+            pickUpLng: -84.2047605,
+            dropOff: "Planet Hollywood Costa Rica by Royalton, Peninsula Papagayo, Culebra",
+            dropOffLat: 10.5839,
+            dropOffLng: -85.6731,
+          },
+        ],
+      }),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.rutasProcesadas).toBe(1);
+    expect(data.rutasSinCalculo).toBe(0);
+    expect(data.unresolvedRoutes).toEqual([]);
+    expect(data.totalKm).toBe(390);
+    // Must NOT call any geocoding APIs
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("nominatim"),
+      expect.anything()
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("googleapis.com/maps/api/geocode"),
+      expect.anything()
     );
   });
 });

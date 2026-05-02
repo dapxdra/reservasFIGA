@@ -117,7 +117,7 @@ export default function EditReservaForm({ reservaInicial }) {
                 <PlaceAutocomplete
                   name="pickUp"
                   value={reserva.pickUp || ""}
-                  onSelect={(name) => setReserva({ ...reserva, pickUp: name })}
+                  onSelect={({ name, lat, lng }) => setReserva({ ...reserva, pickUp: name, pickUpLat: lat, pickUpLng: lng })}
                   placeholder="Ej: Aeropuerto Juan Santamaría, Hotel..."
                   inputClassName="form-input"
                   helperTextClassName="form-help"
@@ -128,7 +128,7 @@ export default function EditReservaForm({ reservaInicial }) {
                 <PlaceAutocomplete
                   name="dropOff"
                   value={reserva.dropOff || ""}
-                  onSelect={(name) => setReserva({ ...reserva, dropOff: name })}
+                  onSelect={({ name, lat, lng }) => setReserva({ ...reserva, dropOff: name, dropOffLat: lat, dropOffLng: lng })}
                   placeholder="Ej: Hotel Hilton, Monteverde..."
                   inputClassName="form-input"
                   helperTextClassName="form-help"

@@ -51,9 +51,29 @@ export async function fetchPlacePredictions(
 
     return {
       name: displayName,
-      // Futuro (comentado): datos adicionales
-      // placeId: p?.placePrediction?.placeId || "",
-      // types: p?.placePrediction?.types || [],
+      placeId: p?.placePrediction?.placeId || "",
     };
   });
+}
+
+export async function fetchPlaceCoords(placeId) {
+  if (!API_KEY || !placeId) return null;
+
+  const url = `https://places.googleapis.com/v1/places/${placeId}`;
+  const res = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": API_KEY,
+      "X-Goog-FieldMask": "location",
+    },
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const lat = data?.location?.latitude;
+  const lng = data?.location?.longitude;
+  if (lat == null || lng == null) return null;
+
+  return { lat: Number(lat), lng: Number(lng) };
 }

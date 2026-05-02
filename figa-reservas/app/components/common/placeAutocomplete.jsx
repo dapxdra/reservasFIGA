@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { fetchPlacePredictions } from "@/app/utils/googlePlaces";
+import { fetchPlacePredictions, fetchPlaceCoords } from "@/app/utils/googlePlaces";
 
 export default function PlaceAutocomplete({
   label,
@@ -47,13 +47,21 @@ export default function PlaceAutocomplete({
     }, 300);
   };
 
-  const handleSelect = (name) => {
+  const handleSelect = async (suggestion) => {
+    const name = typeof suggestion === "string" ? suggestion : suggestion.name;
+    const placeId = typeof suggestion === "object" ? suggestion.placeId : null;
     setText(name);
-    onSelect(name);
     setOpen(false);
     setSuggestions([]);
     setSelectedIndex(-1);
     inputRef.current?.blur();
+
+    if (placeId) {
+      const coords = await fetchPlaceCoords(placeId);
+      onSelect({ name, lat: coords?.lat ?? null, lng: coords?.lng ?? null });
+    } else {
+      onSelect({ name, lat: null, lng: null });
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -73,7 +81,7 @@ export default function PlaceAutocomplete({
       case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-          handleSelect(suggestions[selectedIndex].name);
+          handleSelect(suggestions[selectedIndex]);
         }
         break;
       case "Escape":
@@ -164,7 +172,7 @@ export default function PlaceAutocomplete({
                     : "hover:bg-gray-100"
                 }`}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleSelect(s.name)}
+                onClick={() => handleSelect(s)}
                 onMouseEnter={() => setSelectedIndex(idx)}
                 title={s.name}
               >

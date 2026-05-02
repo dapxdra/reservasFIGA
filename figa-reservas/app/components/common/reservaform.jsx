@@ -27,6 +27,10 @@ export default function ReservaForm() {
     hora: "",
     dropOff: "",
     pickUp: "",
+    pickUpLat: null,
+    pickUpLng: null,
+    dropOffLat: null,
+    dropOffLng: null,
     proveedor: "",
     nota: "",
     precio: 0,
@@ -139,8 +143,13 @@ export default function ReservaForm() {
                 <PlaceAutocomplete
                   name="pickUp"
                   value={formData.pickUp}
-                  onSelect={(name) => {
-                    setFormData((prev) => ({ ...prev, pickUp: name }));
+                  onSelect={({ name, lat, lng }) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      pickUp: name,
+                      pickUpLat: lat,
+                      pickUpLng: lng,
+                    }));
                   }}
                   placeholder="Ej: Aeropuerto Juan Santamaría, Hotel..."
                   required
@@ -153,8 +162,13 @@ export default function ReservaForm() {
                 <PlaceAutocomplete
                   name="dropOff"
                   value={formData.dropOff}
-                  onSelect={(name) => {
-                    setFormData((prev) => ({ ...prev, dropOff: name }));
+                  onSelect={({ name, lat, lng }) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      dropOff: name,
+                      dropOffLat: lat,
+                      dropOffLng: lng,
+                    }));
                   }}
                   placeholder="Ej: Hotel Hilton, Monteverde..."
                   required
