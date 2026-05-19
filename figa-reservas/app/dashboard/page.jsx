@@ -420,7 +420,7 @@ export default function DashboardPage() {
   const isOperador = role === "operador";
   const isConductor = role === "conductor";
   const showPriceColumn = !isConductor;
-  const showPaymentColumn = !isConductor;
+  const showPaymentColumn = false;
   const canManageReservas = isAdmin || isOperador;
   const [filtro, setFiltro] = useState("activas");
   const [searchQuery, setSearchQuery] = useState("");
