@@ -6,8 +6,19 @@ import {
   updateVehiculoUseCase,
 } from "../../../core/server/catalogos/catalogosUseCases.js";
 import { isAppError } from "../../../core/server/shared/appError.js";
+import {
+  sanitizeId,
+  sanitizeObjectStrings,
+} from "../../../core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function PUT(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/vehiculos/id/put",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -18,8 +29,8 @@ export async function PUT(req, { params }) {
   const { id } = await params;
 
   try {
-    const body = await req.json();
-    await updateVehiculoUseCase(id, body);
+    const body = sanitizeObjectStrings(await req.json());
+    await updateVehiculoUseCase(sanitizeId(id, "ID"), body);
 
     return jsonResponse({ message: "Vehículo actualizado" });
   } catch (error) {
@@ -32,6 +43,12 @@ export async function PUT(req, { params }) {
 }
 
 export async function PATCH(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/vehiculos/id/patch",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -42,8 +59,8 @@ export async function PATCH(req, { params }) {
   const { id } = await params;
 
   try {
-    const body = await req.json();
-    const activo = await setVehiculoActivoUseCase(id, body.activo);
+    const body = sanitizeObjectStrings(await req.json());
+    const activo = await setVehiculoActivoUseCase(sanitizeId(id, "ID"), body.activo);
 
     return jsonResponse({ message: activo ? "Vehículo activado" : "Vehículo desactivado" });
   } catch (error) {

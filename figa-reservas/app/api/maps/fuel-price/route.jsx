@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 const FUEL_PATTERNS = {
   super: /super/i,
@@ -26,7 +27,13 @@ async function fetchFuelPrices() {
   return prices;
 }
 
-export async function GET() {
+export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/maps/fuel-price",
+    limit: 60,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const prices = await fetchFuelPrices();
     return NextResponse.json(prices, {

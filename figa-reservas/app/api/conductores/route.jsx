@@ -6,8 +6,19 @@ import {
   listConductoresUseCase,
 } from "../../core/server/catalogos/catalogosUseCases.js";
 import { isAppError } from "../../core/server/shared/appError.js";
+import {
+  sanitizeBoolean,
+  sanitizeObjectStrings,
+} from "../../core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/get",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -18,7 +29,7 @@ export async function GET(req) {
 
   try {
     const url = new URL(req.url);
-    const activos = url.searchParams.get("activos") === "true";
+    const activos = sanitizeBoolean(url.searchParams.get("activos"), false);
     const conductores = await listConductoresUseCase({ activos });
     console.log(`GET /api/conductores: Se encontraron ${conductores.length} conductores`);
 
@@ -37,6 +48,12 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/post",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -45,7 +62,7 @@ export async function POST(req) {
   }
 
   try {
-    const body = await req.json();
+    const body = sanitizeObjectStrings(await req.json());
     const id = await createConductorUseCase(body);
 
     return jsonResponse({ message: "Conductor creado", id }, 201);

@@ -6,8 +6,19 @@ import {
   listVehiculosUseCase,
 } from "../../core/server/catalogos/catalogosUseCases.js";
 import { isAppError } from "../../core/server/shared/appError.js";
+import {
+  sanitizeBoolean,
+  sanitizeObjectStrings,
+} from "../../core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/vehiculos/get",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -18,7 +29,7 @@ export async function GET(req) {
 
   try {
     const url = new URL(req.url);
-    const activos = url.searchParams.get("activos") === "true";
+    const activos = sanitizeBoolean(url.searchParams.get("activos"), false);
     const vehiculos = await listVehiculosUseCase({ activos });
     console.log(`GET /api/vehiculos: Se encontraron ${vehiculos.length} vehículos`);
     return jsonResponse(vehiculos);
@@ -36,6 +47,12 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/vehiculos/post",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -44,7 +61,7 @@ export async function POST(req) {
   }
 
   try {
-    const body = await req.json();
+    const body = sanitizeObjectStrings(await req.json());
     const id = await createVehiculoUseCase(body);
 
     return jsonResponse({ message: "Vehículo creado", id }, 201);

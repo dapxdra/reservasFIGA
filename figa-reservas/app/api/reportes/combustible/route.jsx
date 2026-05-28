@@ -4,8 +4,10 @@ import {
   hasRole,
   unauthorizedResponse,
 } from "@/app/lib/serverAuth.js";
+import { sanitizeObjectStrings } from "@/app/core/server/shared/inputSanitizers.js";
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
 import { db } from "@/app/lib/firebaseadmin.jsx";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export const runtime = "nodejs";
 
@@ -449,6 +451,12 @@ async function fetchFuelPrices() {
 }
 
 export async function POST(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/reportes/combustible",
+    limit: 30,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -457,7 +465,7 @@ export async function POST(req) {
   }
 
   try {
-    const body = await req.json();
+    const body = sanitizeObjectStrings(await req.json());
     const tipoCombustible = normalizeText(body?.tipoCombustible || "regular").toLowerCase();
     const kmPorLitro = toNumber(body?.kmPorLitro);
     const reservasInput = Array.isArray(body?.reservas) ? body.reservas : [];

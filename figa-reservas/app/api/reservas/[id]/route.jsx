@@ -9,6 +9,11 @@ import {
   updateReservaUseCase,
 } from "../../../core/server/reservas/reservasUseCases.js";
 import { isAppError } from "../../../core/server/shared/appError.js";
+import {
+  sanitizeId,
+  sanitizeObjectStrings,
+} from "../../../core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 function ensureDb() {
   if (!db) {
@@ -22,6 +27,12 @@ function ensureDb() {
 
 // Método GET para obtener una reserva por ID
 export async function GET(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/reservas/id/get",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const dbError = ensureDb();
   if (dbError) return dbError;
 
@@ -34,8 +45,9 @@ export async function GET(req, { params }) {
   }
 
   try {
+    const reservaId = sanitizeId(re.id, "ID");
     const reserva = await getReservaByIdUseCase({
-      id: re.id,
+      id: reservaId,
       isConductor: hasRole(profile, [ROLES.CONDUCTOR]),
       uid,
       profile,
@@ -56,6 +68,12 @@ export async function GET(req, { params }) {
 
 // Método PUT para actualizar una reserva
 export async function PUT(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/reservas/id/put",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const dbError = ensureDb();
   if (dbError) return dbError;
 
@@ -71,8 +89,9 @@ export async function PUT(req, { params }) {
   }
 
   try {
-    const data = await req.json();
-    await updateReservaUseCase({ id: re.id, payload: data });
+    const reservaId = sanitizeId(re.id, "ID");
+    const data = sanitizeObjectStrings(await req.json());
+    await updateReservaUseCase({ id: reservaId, payload: data });
     return jsonResponse({ message: "Reserva actualizada correctamente" });
   } catch (error) {
     console.error("Error al actualizar la reserva:", error.message);
@@ -85,6 +104,12 @@ export async function PUT(req, { params }) {
 
 // Método DELETE para marcar una reserva como cancelada
 export async function DELETE(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/reservas/id/delete",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const dbError = ensureDb();
   if (dbError) return dbError;
 
@@ -100,7 +125,8 @@ export async function DELETE(req, { params }) {
   }
 
   try {
-    await cancelReservaUseCase(re.id);
+    const reservaId = sanitizeId(re.id, "ID");
+    await cancelReservaUseCase(reservaId);
     return jsonResponse({ message: "Reserva marcada como cancelada" });
   } catch (error) {
     console.error("Error al cancelar la reserva:", error.message);
@@ -113,6 +139,12 @@ export async function DELETE(req, { params }) {
 
 // Método PATCH para actualizar campos específicos
 export async function PATCH(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/reservas/id/patch",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const dbError = ensureDb();
     if (dbError) return dbError;
@@ -123,7 +155,7 @@ export async function PATCH(req) {
       return unauthorizedResponse("No tienes permisos para actualizar reservas.");
     }
 
-    const payload = await req.json();
+    const payload = sanitizeObjectStrings(await req.json());
     await patchCancelReservaUseCase(payload);
     return jsonResponse({ message: "Reserva actualizada correctamente" });
   } catch (error) {

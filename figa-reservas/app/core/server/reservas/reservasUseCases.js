@@ -37,13 +37,13 @@ function isReservaAssignedToConductor(reserva, uid, conductorNombre) {
 }
 
 export async function createReservaUseCase(body) {
-  validateCreateReservaPayload(body);
+  const sanitizedBody = validateCreateReservaPayload(body);
 
   const currentLast = await getLastFigaId();
   const newId = currentLast + 1;
 
-  const conductorId = body.conductorId || "";
-  const vehiculoId = body.vehiculoId || "";
+  const conductorId = sanitizedBody.conductorId || "";
+  const vehiculoId = sanitizedBody.vehiculoId || "";
   const { conductorNombre, assignedUid, vehiculoPlaca } = await resolveReservaAssignment(
     conductorId,
     vehiculoId
@@ -51,17 +51,17 @@ export async function createReservaUseCase(body) {
 
   const newReserva = {
     figaId: newId,
-    itinId: parseInt(body.itinId) || 0,
-    cliente: body.cliente || "",
-    fecha: body.fecha || "",
-    hora: body.hora || "",
-    dropOff: body.dropOff || "",
-    pickUp: body.pickUp || "",
-    proveedor: body.proveedor || "",
-    nota: body.nota || "",
-    precio: parseFloat(body.precio) || 0,
-    AD: parseInt(body.AD) || 0,
-    NI: parseInt(body.NI) || 0,
+    itinId: parseInt(sanitizedBody.itinId) || 0,
+    cliente: sanitizedBody.cliente || "",
+    fecha: sanitizedBody.fecha || "",
+    hora: sanitizedBody.hora || "",
+    dropOff: sanitizedBody.dropOff || "",
+    pickUp: sanitizedBody.pickUp || "",
+    proveedor: sanitizedBody.proveedor || "",
+    nota: sanitizedBody.nota || "",
+    precio: parseFloat(sanitizedBody.precio) || 0,
+    AD: parseInt(sanitizedBody.AD) || 0,
+    NI: parseInt(sanitizedBody.NI) || 0,
     conductorId,
     conductorNombre,
     chofer: conductorNombre,
@@ -69,9 +69,9 @@ export async function createReservaUseCase(body) {
     vehiculoPlaca,
     buseta: vehiculoPlaca,
     assignedUid,
-    pago: parseBool(body.pago),
-    fechaPago: body.fechaPago || "",
-    cancelada: body.cancelada || false,
+    pago: parseBool(sanitizedBody.pago),
+    fechaPago: sanitizedBody.fechaPago || "",
+    cancelada: sanitizedBody.cancelada || false,
     createdAt: new Date().toString(),
   };
 
@@ -119,15 +119,15 @@ export async function getReservaByIdUseCase({ id, isConductor, uid, profile }) {
 }
 
 export async function updateReservaUseCase({ id, payload }) {
-  validateUpdateReservaPayload(payload);
+  const sanitizedPayload = validateUpdateReservaPayload(payload);
 
-  const updateData = { ...payload };
+  const updateData = { ...sanitizedPayload };
   if (
-    Object.prototype.hasOwnProperty.call(payload, "conductorId") ||
-    Object.prototype.hasOwnProperty.call(payload, "vehiculoId")
+    Object.prototype.hasOwnProperty.call(sanitizedPayload, "conductorId") ||
+    Object.prototype.hasOwnProperty.call(sanitizedPayload, "vehiculoId")
   ) {
-    const conductorId = payload.conductorId || "";
-    const vehiculoId = payload.vehiculoId || "";
+    const conductorId = sanitizedPayload.conductorId || "";
+    const vehiculoId = sanitizedPayload.vehiculoId || "";
     const { conductorNombre, assignedUid, vehiculoPlaca } =
       await resolveReservaAssignment(conductorId, vehiculoId);
 
@@ -156,9 +156,7 @@ export async function cancelReservaUseCase(id) {
 }
 
 export async function patchCancelReservaUseCase(payload) {
-  validatePatchCancelPayload(payload);
-
-  const { id, cancelada } = payload;
+  const { id, cancelada } = validatePatchCancelPayload(payload);
   const reserva = await getReservaById(id);
   if (!reserva) {
     throw appError("Reserva no encontrada", 404, "ReservaNotFound");

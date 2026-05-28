@@ -7,8 +7,16 @@ import {
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
 import { isAppError } from "@/app/core/server/shared/appError.js";
 import { resolveConductorUidByEmailUseCase } from "@/app/core/server/catalogos/catalogosUseCases.js";
+import { sanitizeEmail, sanitizeString } from "@/app/core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/uid",
+    limit: 60,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -18,11 +26,16 @@ export async function GET(req) {
 
   try {
     const url = new URL(req.url);
-    const email = String(url.searchParams.get("email") || "").trim().toLowerCase();
+    const rawEmail = sanitizeString(url.searchParams.get("email"), {
+      lower: true,
+      maxLength: 320,
+    });
 
-    if (!email) {
+    if (!rawEmail) {
       return jsonResponse({ uid: "" });
     }
+
+    const email = sanitizeEmail(rawEmail);
 
     const uid = await resolveConductorUidByEmailUseCase(email);
     return jsonResponse({ uid });

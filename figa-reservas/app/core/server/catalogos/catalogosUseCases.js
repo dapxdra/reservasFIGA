@@ -43,10 +43,10 @@ export async function createConductorUseCase(payload) {
 }
 
 export async function updateConductorUseCase(id, payload) {
-  validateEntityId(id);
+  const sanitizedId = validateEntityId(id);
   const data = validateConductorPayload(payload);
   const enrichedData = await enrichConductorUidByEmail(data);
-  await updateConductor(id, enrichedData);
+  await updateConductor(sanitizedId, enrichedData);
 }
 
 export async function resolveConductorUidByEmailUseCase(email) {
@@ -58,9 +58,9 @@ export async function saveConductorLocationUseCase(uid, { lat, lng, accuracy }) 
 }
 
 export async function setConductorActivoUseCase(id, activo) {
-  validateEntityId(id);
+  const sanitizedId = validateEntityId(id);
   const status = activo !== false;
-  await setConductorActivo(id, status);
+  await setConductorActivo(sanitizedId, status);
   return status;
 }
 
@@ -74,14 +74,14 @@ export async function createVehiculoUseCase(payload) {
 }
 
 export async function updateVehiculoUseCase(id, payload) {
-  validateEntityId(id);
+  const sanitizedId = validateEntityId(id);
   const data = validateVehiculoPayload(payload);
-  await updateVehiculo(id, data);
+  await updateVehiculo(sanitizedId, data);
 }
 
 export async function setVehiculoActivoUseCase(id, activo) {
-  validateEntityId(id);
+  const sanitizedId = validateEntityId(id);
   const status = activo !== false;
-  await setVehiculoActivo(id, status);
+  await setVehiculoActivo(sanitizedId, status);
   return status;
 }

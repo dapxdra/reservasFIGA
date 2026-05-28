@@ -8,6 +8,12 @@ import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
 import { isAppError } from "@/app/core/server/shared/appError.js";
 import { saveConductorLocationUseCase } from "@/app/core/server/catalogos/catalogosUseCases.js";
 import { db } from "@/app/lib/firebaseadmin.jsx";
+import {
+  sanitizeId,
+  sanitizeObjectStrings,
+  sanitizeString,
+} from "@/app/core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export const runtime = "nodejs";
 
@@ -92,6 +98,12 @@ async function resolveConductorLocation({ conductorId, conductorUid }) {
 }
 
 export async function POST(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/location/post",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -100,7 +112,7 @@ export async function POST(req) {
   }
 
   try {
-    const body = await req.json();
+    const body = sanitizeObjectStrings(await req.json());
     const lat = Number(body?.lat);
     const lng = Number(body?.lng);
     const accuracy = body?.accuracy != null ? Number(body.accuracy) : null;
@@ -126,6 +138,12 @@ export async function POST(req) {
 }
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/location/get",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -135,8 +153,13 @@ export async function GET(req) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const conductorId = String(searchParams.get("conductorId") || "").trim();
-    let conductorUid = String(searchParams.get("conductorUid") || "").trim();
+    const conductorIdRaw = sanitizeString(searchParams.get("conductorId"), {
+      maxLength: 128,
+    });
+    const conductorId = conductorIdRaw ? sanitizeId(conductorIdRaw, "conductorId") : "";
+    let conductorUid = sanitizeString(searchParams.get("conductorUid"), {
+      maxLength: 128,
+    });
 
     const isConductor = hasRole(profile, [ROLES.CONDUCTOR]);
     if (isConductor) {
@@ -144,7 +167,7 @@ export async function GET(req) {
       if (conductorUid && conductorUid !== currentUid) {
         return unauthorizedResponse("Un conductor solo puede consultar su propia ubicación.");
       }
-      conductorUid = conductorUid || currentUid;
+      conductorUid = conductorUid || sanitizeString(currentUid, { maxLength: 128 });
     }
 
     if (!conductorId && !conductorUid) {

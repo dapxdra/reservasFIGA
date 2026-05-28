@@ -1,4 +1,6 @@
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
+import { sanitizeString } from "@/app/core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 const CODE_ALIASES = {
   SJO: "Aeropuerto Internacional Juan Santamaria, Costa Rica",
@@ -63,9 +65,15 @@ async function searchInNominatim(queryText) {
 export const runtime = "nodejs";
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/maps/geocode",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { searchParams } = new URL(req.url);
-    const q = String(searchParams.get("q") || "").trim();
+    const q = sanitizeString(searchParams.get("q"), { maxLength: 200 });
 
     if (!q) {
       return jsonResponse({ ok: false, message: "Parametro q requerido" }, 400);

@@ -1,4 +1,5 @@
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export const runtime = "nodejs";
 
@@ -65,6 +66,12 @@ function fallbackRoute(origin, destination, reason, upstreamStatus = null) {
 }
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/maps/route",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { searchParams } = new URL(req.url);
   const origin = parsePoint(searchParams, "origin");
   const destination = parsePoint(searchParams, "destination");

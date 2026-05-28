@@ -7,6 +7,11 @@ import {
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
 import { isAppError } from "@/app/core/server/shared/appError.js";
 import { runReservas24hReminderUseCase } from "@/app/core/server/notifications/reservas24hUseCase.js";
+import {
+  sanitizeObjectStrings,
+  sanitizeString,
+} from "@/app/core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export const runtime = "nodejs";
 
@@ -16,12 +21,19 @@ function isAuthorizedRequest(req) {
 
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const keyParam = req.nextUrl.searchParams.get("key") || "";
+  const keyParam = sanitizeString(req.nextUrl.searchParams.get("key"), { maxLength: 256 });
 
   return token === secret || keyParam === secret;
 }
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/notifications/reservas-24h/get",
+    limit: 20,
+    windowMs: 60 * 1000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   if (!isAuthorizedRequest(req)) {
     return jsonResponse({ message: "No autorizado" }, 401);
   }
@@ -30,6 +42,13 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/notifications/reservas-24h/post",
+    limit: 20,
+    windowMs: 60 * 1000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -41,7 +60,7 @@ export async function POST(req) {
 
   let body = {};
   try {
-    body = await req.json();
+    body = sanitizeObjectStrings(await req.json());
   } catch {
     body = {};
   }

@@ -6,8 +6,16 @@ import {
   listUsersUseCase,
 } from "../../core/server/users/usersUseCases.js";
 import { isAppError } from "../../core/server/shared/appError.js";
+import { sanitizeObjectStrings } from "../../core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/users/get",
+    limit: 120,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -28,6 +36,12 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/users/post",
+    limit: 30,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -36,7 +50,7 @@ export async function POST(req) {
   }
 
   try {
-    const body = await req.json();
+    const body = sanitizeObjectStrings(await req.json());
     const result = await createUserUseCase(body);
     return jsonResponse(result, 201);
   } catch (error) {

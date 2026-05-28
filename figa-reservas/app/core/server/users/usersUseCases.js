@@ -70,19 +70,19 @@ export async function createUserUseCase(payload) {
 }
 
 export async function updateUserUseCase(id, payload) {
-  validateId(id);
+  const sanitizedId = validateId(id);
   const { nombre, email, role, activo } = validateUserPayload(payload);
 
-  await updateAuthUser(id, {
+  await updateAuthUser(sanitizedId, {
     email,
     displayName: nombre,
     disabled: !activo,
   });
 
   await upsertUserDoc(
-    id,
+    sanitizedId,
     {
-      uid: id,
+      uid: sanitizedId,
       nombre,
       email,
       role,
@@ -94,13 +94,13 @@ export async function updateUserUseCase(id, payload) {
 }
 
 export async function toggleUserStatusUseCase(id, activo) {
-  validateId(id);
+  const sanitizedId = validateId(id);
   const status = activo !== false;
 
-  await updateAuthUser(id, { disabled: !status });
+  await updateAuthUser(sanitizedId, { disabled: !status });
 
   await upsertUserDoc(
-    id,
+    sanitizedId,
     {
       activo: status,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

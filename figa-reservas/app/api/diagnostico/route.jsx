@@ -1,8 +1,15 @@
 import { getAuthUserContext } from "@/app/lib/serverAuth.js";
 import { jsonResponse } from "@/app/core/shared/http/jsonResponse.js";
 import { buildDiagnosticoUseCase } from "@/app/core/server/diagnostico/diagnosticoUseCase.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function GET(req) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/diagnostico",
+    limit: 30,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const diagnosticoBase = {
     timestamp: new Date().toISOString(),
     auth: {},

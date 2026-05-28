@@ -6,8 +6,19 @@ import {
   updateConductorUseCase,
 } from "../../../core/server/catalogos/catalogosUseCases.js";
 import { isAppError } from "../../../core/server/shared/appError.js";
+import {
+  sanitizeId,
+  sanitizeObjectStrings,
+} from "../../../core/server/shared/inputSanitizers.js";
+import { enforceRateLimit } from "@/app/core/server/shared/rateLimit.js";
 
 export async function PUT(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/id/put",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -18,8 +29,8 @@ export async function PUT(req, { params }) {
   const { id } = await params;
 
   try {
-    const body = await req.json();
-    await updateConductorUseCase(id, body);
+    const body = sanitizeObjectStrings(await req.json());
+    await updateConductorUseCase(sanitizeId(id, "ID"), body);
 
     return jsonResponse({ message: "Conductor actualizado" });
   } catch (error) {
@@ -32,6 +43,12 @@ export async function PUT(req, { params }) {
 }
 
 export async function PATCH(req, { params }) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    routeKey: "api/conductores/id/patch",
+    limit: 40,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { profile, errorResponse } = await getAuthUserContext(req);
   if (errorResponse) return errorResponse;
 
@@ -42,8 +59,8 @@ export async function PATCH(req, { params }) {
   const { id } = await params;
 
   try {
-    const body = await req.json();
-    const activo = await setConductorActivoUseCase(id, body.activo);
+    const body = sanitizeObjectStrings(await req.json());
+    const activo = await setConductorActivoUseCase(sanitizeId(id, "ID"), body.activo);
 
     return jsonResponse({ message: activo ? "Conductor activado" : "Conductor desactivado" });
   } catch (error) {

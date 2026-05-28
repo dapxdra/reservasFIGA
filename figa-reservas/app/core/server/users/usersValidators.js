@@ -1,15 +1,23 @@
 import { ROLES, normalizeRole } from "@/app/lib/roles.js";
 import { appError } from "@/app/core/server/shared/appError.js";
+import {
+  sanitizeEmail,
+  sanitizeId,
+  sanitizeObjectStrings,
+  sanitizeString,
+} from "@/app/core/server/shared/inputSanitizers.js";
 
 export function validateUserPayload(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw appError("Datos inválidos", 400, "ValidationError");
   }
 
-  const nombre = String(payload.nombre || "").trim();
-  const email = String(payload.email || "").trim().toLowerCase();
-  const role = normalizeRole(payload.role);
-  const activo = payload.activo !== false;
+  const sanitized = sanitizeObjectStrings(payload);
+
+  const nombre = sanitizeString(sanitized.nombre, { maxLength: 120 });
+  const email = sanitizeEmail(sanitized.email, true);
+  const role = normalizeRole(sanitized.role);
+  const activo = sanitized.activo !== false;
 
   if (!nombre || !email || !role) {
     throw appError("nombre, email y role son requeridos", 400, "ValidationError");
@@ -23,7 +31,5 @@ export function validateUserPayload(payload) {
 }
 
 export function validateId(id) {
-  if (!id) {
-    throw appError("ID no proporcionado", 400, "ValidationError");
-  }
+  return sanitizeId(id, "ID");
 }
