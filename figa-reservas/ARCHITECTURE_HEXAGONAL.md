@@ -70,6 +70,8 @@ Servidor:
 - `app/api/auth/setup/route.jsx`
 - `app/api/diagnostico/route.jsx`
 - `app/api/notifications/reservas-24h/route.jsx`
+- `app/api/integrations/reservas/route.jsx`
+- `app/api/integrations/reservas/replay/route.jsx`
 
 ## Beneficios inmediatos
 
