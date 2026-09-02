@@ -302,6 +302,7 @@ function ReportesContent() {
   const [year, setYear] = useState(currentYear.toString());
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [proveedor, setProveedor] = useState("");
 
   const [selected, setSelected] = useState(() => {
     try {
@@ -391,57 +392,84 @@ function ReportesContent() {
     localStorage.setItem("reportesSelected", JSON.stringify(selected));
   }, [selected]);
 
+  const proveedorOptions = useMemo(() => {
+    const set = new Set();
+    reservas.forEach((r) => {
+      const value = (r?.proveedor || "").toString().trim();
+      if (value) set.add(value);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [reservas]);
+
+  // Todos los reportes de esta pantalla se calculan sobre este subconjunto:
+  // sin proveedor seleccionado equivale a la lista completa.
+  const reservasScope = useMemo(() => {
+    if (!proveedor) return reservas;
+    return reservas.filter(
+      (r) => (r?.proveedor || "").toString().trim() === proveedor
+    );
+  }, [reservas, proveedor]);
+
   const precioPorMes = useMemo(
-    () => sumPrecioByMonth(reservas, year),
-    [reservas, year]
+    () => sumPrecioByMonth(reservasScope, year),
+    [reservasScope, year]
   );
   const precioPeriodo = useMemo(
-    () => sumPrecioByPeriod(reservas, startDate, endDate),
-    [reservas, startDate, endDate]
+    () => sumPrecioByPeriod(reservasScope, startDate, endDate),
+    [reservasScope, startDate, endDate]
   );
-  const precioPorAnio = useMemo(() => sumPrecioByYear(reservas), [reservas]);
+  const precioPorAnio = useMemo(
+    () => sumPrecioByYear(reservasScope),
+    [reservasScope]
+  );
 
   const cantPorMes = useMemo(
-    () => countsByMonth(reservas, year),
-    [reservas, year]
+    () => countsByMonth(reservasScope, year),
+    [reservasScope, year]
   );
   const cantPeriodo = useMemo(
-    () => countByPeriod(reservas, startDate, endDate),
-    [reservas, startDate, endDate]
+    () => countByPeriod(reservasScope, startDate, endDate),
+    [reservasScope, startDate, endDate]
   );
-  const cantPorAnio = useMemo(() => countsByYear(reservas), [reservas]);
+  const cantPorAnio = useMemo(() => countsByYear(reservasScope), [reservasScope]);
 
   const canceladasPorMes = useMemo(
-    () => canceladasByMonth(reservas, year),
-    [reservas, year]
+    () => canceladasByMonth(reservasScope, year),
+    [reservasScope, year]
   );
   const canceladasPeriodo = useMemo(
-    () => canceladasByPeriod(reservas, startDate, endDate),
-    [reservas, startDate, endDate]
+    () => canceladasByPeriod(reservasScope, startDate, endDate),
+    [reservasScope, startDate, endDate]
   );
   const canceladasPorAnio = useMemo(
-    () => canceladasByYear(reservas),
-    [reservas]
+    () => canceladasByYear(reservasScope),
+    [reservasScope]
   );
 
   const pagadasPorMes = useMemo(
-    () => pagadasByMonth(reservas, year),
-    [reservas, year]
+    () => pagadasByMonth(reservasScope, year),
+    [reservasScope, year]
   );
   const noPagadasPorMes = useMemo(
-    () => noPagadasByMonth(reservas, year),
-    [reservas, year]
+    () => noPagadasByMonth(reservasScope, year),
+    [reservasScope, year]
   );
   const pagadasPeriodo = useMemo(
-    () => pagadasByPeriod(reservas, startDate, endDate),
-    [reservas, startDate, endDate]
+    () => pagadasByPeriod(reservasScope, startDate, endDate),
+    [reservasScope, startDate, endDate]
   );
   const noPagadasPeriodo = useMemo(
-    () => noPagadasByPeriod(reservas, startDate, endDate),
-    [reservas, startDate, endDate]
+    () => noPagadasByPeriod(reservasScope, startDate, endDate),
+    [reservasScope, startDate, endDate]
   );
-  const pagadasPorAnio = useMemo(() => pagadasByYear(reservas), [reservas]);
-  const noPagadasPorAnio = useMemo(() => noPagadasByYear(reservas), [reservas]);
+  const pagadasPorAnio = useMemo(
+    () => pagadasByYear(reservasScope),
+    [reservasScope]
+  );
+  const noPagadasPorAnio = useMemo(
+    () => noPagadasByYear(reservasScope),
+    [reservasScope]
+  );
 
   const todayYmd = useMemo(
     () =>
@@ -455,31 +483,31 @@ function ReportesContent() {
   );
 
   const reservasActivas = useMemo(
-    () => reservas.filter((r) => !r?.cancelada),
-    [reservas]
+    () => reservasScope.filter((r) => !r?.cancelada),
+    [reservasScope]
   );
 
   const topPickUps = useMemo(
-    () => topValues(reservas, "pickUp", 10),
-    [reservas]
+    () => topValues(reservasScope, "pickUp", 10),
+    [reservasScope]
   );
   const topDropOffs = useMemo(
-    () => topValues(reservas, "dropOff", 10),
-    [reservas]
+    () => topValues(reservasScope, "dropOff", 10),
+    [reservasScope]
   );
-  const topHorasList = useMemo(() => topHours(reservas, 10), [reservas]);
+  const topHorasList = useMemo(() => topHours(reservasScope, 10), [reservasScope]);
   const topProveedores = useMemo(
-    () => topValues(reservas, "proveedor", 10),
-    [reservas]
+    () => topValues(reservasScope, "proveedor", 10),
+    [reservasScope]
   );
   const reservasTopSource = useMemo(
     () =>
-      reservas.map((r) => ({
+      reservasScope.map((r) => ({
         ...r,
         conductorReporte: r.conductorNombre || r.chofer || "",
         vehiculoReporte: r.vehiculoPlaca || r.buseta || "",
       })),
-    [reservas]
+    [reservasScope]
   );
   const topConductores = useMemo(
     () => topValues(reservasTopSource, "conductorReporte", 10),
@@ -757,7 +785,10 @@ function ReportesContent() {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const today = new Date().toISOString().split("T")[0];
-      saveAs(blob, `Reportes_FIGA_${today}.xlsx`);
+      const proveedorSuffix = proveedor
+        ? `_${proveedor.replace(/[^\w\-]+/g, "-")}`
+        : "";
+      saveAs(blob, `Reportes_FIGA_${today}${proveedorSuffix}.xlsx`);
 
       toast.success("Archivo Excel generado correctamente.", {
         id: "export-Reportes",
@@ -805,6 +836,21 @@ function ReportesContent() {
                   <option key={y} value={y}>{y}</option>
                 )
               )}
+            </select>
+          </div>
+
+          <div className="rpt-filter-group">
+            <span className="rpt-filter-label">Proveedor</span>
+            <select
+              className="rpt-filter-select"
+              value={proveedor}
+              onChange={(e) => setProveedor(e.target.value)}
+              title="Filtrar reportes por proveedor"
+            >
+              <option value="">Todos</option>
+              {proveedorOptions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
             </select>
           </div>
 
@@ -875,6 +921,20 @@ function ReportesContent() {
           </select>
         </div>
 
+        <div className="rpt-filter-group">
+          <span className="rpt-filter-label">Proveedor</span>
+          <select
+            className="rpt-filter-select rpt-filter-fw"
+            value={proveedor}
+            onChange={(e) => setProveedor(e.target.value)}
+          >
+            <option value="">Todos</option>
+            {proveedorOptions.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="rpt-mobile-filter-row">
           <div className="rpt-filter-group">
             <span className="rpt-filter-label">Inicio</span>
@@ -921,6 +981,12 @@ function ReportesContent() {
           </div>
         )}
 
+        {proveedor && (
+          <div className="rpt-proveedor-banner">
+            Mostrando datos del proveedor: <strong>{proveedor}</strong>
+          </div>
+        )}
+
         {/* KPI cards */}
         <div className="rpt-kpi-row">
           <div className="rpt-kpi-card">
@@ -958,7 +1024,10 @@ function ReportesContent() {
         {/* Resumen Mensual */}
         <section className="rpt-section">
           <div className="rpt-section-header">
-            <h2 className="rpt-section-title">Resumen Mensual ({year})</h2>
+            <h2 className="rpt-section-title">
+              Resumen Mensual ({year})
+              {proveedor ? ` — ${proveedor}` : ""}
+            </h2>
           </div>
           <div className="rpt-table-wrap">
             <table className="rpt-table">
