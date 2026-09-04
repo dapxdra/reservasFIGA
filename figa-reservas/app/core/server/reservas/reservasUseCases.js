@@ -51,7 +51,10 @@ export async function createReservaUseCase(body) {
 
   const newReserva = {
     figaId: newId,
-    itinId: parseInt(sanitizedBody.itinId) || 0,
+    // No itinId provided (e.g. the web integration doesn't send one) means
+    // this reservation isn't part of a larger itinerary batch, so it is its
+    // own itinerary: default to its own figaId instead of a meaningless 0.
+    itinId: parseInt(sanitizedBody.itinId) || newId,
     cliente: sanitizedBody.cliente || "",
     fecha: sanitizedBody.fecha || "",
     hora: sanitizedBody.hora || "",
