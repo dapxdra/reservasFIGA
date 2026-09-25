@@ -26,7 +26,8 @@ export default function PlaceAutocomplete({
   const handleChange = async (e) => {
     const v = e.target.value;
     setText(v);
-    onSelect(v);
+    // Texto libre: se guarda aunque Google no encuentre el lugar (sin coordenadas)
+    onSelect({ name: v, lat: null, lng: null });
     setSelectedIndex(-1);
 
     if (!v.trim()) {
@@ -156,7 +157,7 @@ export default function PlaceAutocomplete({
           )}
           {!loading && suggestions.length === 0 && (
             <li className="px-3 py-2 text-sm text-black italic">
-              No se encontraron lugares
+              No se encontraron lugares. Se guardará el texto escrito.
             </li>
           )}
           {!loading &&
@@ -183,7 +184,7 @@ export default function PlaceAutocomplete({
       )}
 
       <small className={helperTextClassName || "text-gray-500 text-xs block mt-1"}>
-        Escribe y selecciona de la lista (usa ↑ ↓ Enter para seleccionar)
+        Escribe y selecciona de la lista (usa ↑ ↓ Enter para seleccionar) o deja el texto escrito
       </small>
     </div>
   );
