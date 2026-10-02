@@ -65,6 +65,32 @@ describe("/api/maps/fuel-price", () => {
     expect(data.fetchedAt).toBe("2026-09-01T00:00:00.000Z");
   });
 
+  it("sirve el precio reciente de Firestore sin esperar a RECOPE", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    docState.data = { super: 726, regular: 707, diesel: 688, fetchedAt: new Date().toISOString() };
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data).toMatchObject({ diesel: 688, source: "firestore", stale: false });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("tras un timeout de RECOPE no lo reintenta en cada request", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new DOMException("timeout", "TimeoutError"));
+    vi.stubGlobal("fetch", fetchMock);
+    docState.data = { diesel: 650, fetchedAt: "2026-09-01T00:00:00.000Z" };
+
+    await GET(makeReq());
+    __resetFuelPriceCacheForTests({ keepRecopePause: true });
+    const res = await GET(makeReq());
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("usa variables de entorno cuando no hay RECOPE ni Firestore", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("err", { status: 500 })));
     vi.stubEnv("FUEL_PRICE_DIESEL", "680");

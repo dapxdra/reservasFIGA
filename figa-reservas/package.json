@@ -14,7 +14,9 @@
     "audit:ci": "npm audit --audit-level=moderate",
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
-    "cap:ios": "cap open ios"
+    "cap:ios": "cap open ios",
+    "fuel:sync": "node --env-file=.env scripts/sync-fuel-prices.mjs",
+    "fuel:sync:prod": "node --env-file=.env.production.local scripts/sync-fuel-prices.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

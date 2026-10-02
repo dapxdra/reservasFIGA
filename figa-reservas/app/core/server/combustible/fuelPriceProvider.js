@@ -1,12 +1,19 @@
 // Precios de combustible RECOPE con tolerancia a fallos.
-// Orden: cache en memoria -> RECOPE (con timeout) -> ultimo precio guardado en
-// Firestore -> variables de entorno FUEL_PRICE_*. Nunca deja colgada la funcion.
+// RECOPE no responde a los servidores de Vercel (timeout), así que la fuente principal en
+// producción es el último precio guardado en Firestore (config/fuelPrices), que se carga
+// con `npm run fuel:sync` desde una máquina en Costa Rica.
+// Orden: cache en memoria -> Firestore reciente -> RECOPE (con timeout y pausa tras fallar)
+// -> Firestore antiguo -> variables FUEL_PRICE_*. Nunca deja colgada la función.
 
 import { db } from "@/app/lib/firebaseadmin.jsx";
 
 const RECOPE_URL = "https://api.recope.go.cr/ventas/precio/consumidor";
-const FETCH_TIMEOUT_MS = 6000;
+const FETCH_TIMEOUT_MS = 4000;
 const MEMORY_TTL_MS = 60 * 60 * 1000;
+// Un precio guardado hace menos de esto se sirve sin consultar RECOPE.
+const FRESH_MS = 24 * 60 * 60 * 1000;
+// Tras un fallo de RECOPE no se reintenta por este tiempo (evita esperar el timeout en cada request).
+const RECOPE_PAUSE_MS = 30 * 60 * 1000;
 const FIRESTORE_DOC = ["config", "fuelPrices"];
 
 const FUEL_PATTERNS = {
@@ -16,6 +23,7 @@ const FUEL_PATTERNS = {
 };
 
 let memoryCache = null;
+let recopePausedUntil = 0;
 
 function toNumber(value) {
   if (value == null || value === "") return null;
@@ -94,32 +102,47 @@ function readEnvFallback() {
   return hasAnyPrice(prices) ? prices : null;
 }
 
+function remember(result, now, ttlMs = MEMORY_TTL_MS) {
+  memoryCache = { result, expiresAt: now + ttlMs };
+  return result;
+}
+
 /**
  * @returns {Promise<{ prices: {super:number|null, regular:number|null, diesel:number|null},
- *   source: "recope"|"cache"|"firestore"|"env"|"none", fetchedAt: string|null, stale: boolean }>}
+ *   source: "recope"|"firestore"|"env"|"none", fetchedAt: string|null, stale: boolean }>}
+ * stale = el precio no se confirmó con RECOPE en las últimas 24 h.
  */
 export async function getFuelPrices({ now = Date.now() } = {}) {
-  if (memoryCache && now - memoryCache.cachedAt < MEMORY_TTL_MS) {
-    return { ...memoryCache.result, source: memoryCache.result.stale ? memoryCache.result.source : "cache" };
-  }
-
-  try {
-    const prices = await fetchFromRecope();
-    const fetchedAt = new Date(now).toISOString();
-    await saveLastKnown(prices, fetchedAt);
-    const result = { prices, source: "recope", fetchedAt, stale: false };
-    memoryCache = { result, cachedAt: now };
-    return result;
-  } catch (err) {
-    console.warn("[fuelPrice] RECOPE no disponible:", err?.message || err);
-  }
+  if (memoryCache && now < memoryCache.expiresAt) return memoryCache.result;
 
   const lastKnown = await readLastKnown();
+  const lastKnownMs = lastKnown?.fetchedAt ? Date.parse(lastKnown.fetchedAt) : NaN;
+  if (lastKnown && Number.isFinite(lastKnownMs) && now - lastKnownMs < FRESH_MS) {
+    return remember(
+      { prices: lastKnown.prices, source: "firestore", fetchedAt: lastKnown.fetchedAt, stale: false },
+      now
+    );
+  }
+
+  if (now >= recopePausedUntil) {
+    try {
+      const prices = await fetchFromRecope();
+      const fetchedAt = new Date(now).toISOString();
+      await saveLastKnown(prices, fetchedAt);
+      return remember({ prices, source: "recope", fetchedAt, stale: false }, now);
+    } catch (err) {
+      recopePausedUntil = now + RECOPE_PAUSE_MS;
+      console.warn("[fuelPrice] RECOPE no disponible:", err?.message || err);
+    }
+  }
+
   if (lastKnown) {
-    const result = { prices: lastKnown.prices, source: "firestore", fetchedAt: lastKnown.fetchedAt, stale: true };
-    // Cache corto para no martillar RECOPE mientras este caido.
-    memoryCache = { result, cachedAt: now - MEMORY_TTL_MS + 10 * 60 * 1000 };
-    return result;
+    // Cache corto: si alguien corre fuel:sync, se nota en minutos.
+    return remember(
+      { prices: lastKnown.prices, source: "firestore", fetchedAt: lastKnown.fetchedAt, stale: true },
+      now,
+      10 * 60 * 1000
+    );
   }
 
   const envPrices = readEnvFallback();
@@ -130,6 +153,7 @@ export async function getFuelPrices({ now = Date.now() } = {}) {
   return { prices: { super: null, regular: null, diesel: null }, source: "none", fetchedAt: null, stale: true };
 }
 
-export function __resetFuelPriceCacheForTests() {
+export function __resetFuelPriceCacheForTests({ keepRecopePause = false } = {}) {
   memoryCache = null;
+  if (!keepRecopePause) recopePausedUntil = 0;
 }

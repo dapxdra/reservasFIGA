@@ -77,6 +77,15 @@ Prueba manual local:
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/notifications/reservas-24h
 ```
 
+## Precio de combustible (RECOPE)
+
+RECOPE no responde a los servidores de Vercel (timeout), asi que produccion usa el ultimo precio guardado en Firestore (`config/fuelPrices`). Para actualizarlo, desde una maquina en Costa Rica y despues de cada ajuste mensual de RECOPE:
+
+- `npm.cmd run fuel:sync` escribe en el proyecto de `.env` (desarrollo).
+- `npm.cmd run fuel:sync:prod` escribe en produccion; requiere `.env.production.local` (ignorado por git) con el `FIREBASE_SERVICE_ACCOUNT_KEY` de produccion.
+
+Respaldo opcional: `FUEL_PRICE_SUPER`, `FUEL_PRICE_REGULAR`, `FUEL_PRICE_DIESEL` en Vercel. El mapa muestra la fecha del precio usado.
+
 ## Auto-asignacion de conductores
 
 Asigna conductores activos a reservas sin conductor (no canceladas) entre hoy (hora CR) y hoy + N dias.

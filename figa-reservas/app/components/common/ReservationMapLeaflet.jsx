@@ -298,7 +298,7 @@ export default function ReservationMapLeaflet({
   const [liveRoute, setLiveRoute] = useState(null);
   const [fuelPrices, setFuelPrices] = useState(null);
   const [fuelType, setFuelType] = useState("diesel");
-  const [kmPorLitro, setKmPorLitro] = useState(12);
+  const [kmPorLitro, setKmPorLitro] = useState(9);
   const [fuelLoading, setFuelLoading] = useState(false);
 
   const hasConductorAssigned = Boolean(conductorId || conductorUid);
@@ -890,9 +890,9 @@ export default function ReservationMapLeaflet({
                 )}
                 {precio != null ? (
                   <div className="map-fuel-hint">
-                    {fuelPrices?.stale
-                      ? `Precio ${fuelType} de referencia${fuelPrices.fetchedAt ? ` (RECOPE ${new Date(fuelPrices.fetchedAt).toLocaleDateString("es-CR")})` : ""}: ${precio.toLocaleString("es-CR")} CRC/L. RECOPE no respondió.`
-                      : `Precio ${fuelType} al ${new Date().toLocaleDateString("es-CR")}: ${precio.toLocaleString("es-CR")} CRC/L (RECOPE)`}
+                    {fuelPrices?.fetchedAt
+                      ? `Precio ${fuelType} RECOPE al ${new Date(fuelPrices.fetchedAt).toLocaleDateString("es-CR")}: ${precio.toLocaleString("es-CR")} CRC/L`
+                      : `Precio ${fuelType} de referencia: ${precio.toLocaleString("es-CR")} CRC/L`}
                   </div>
                 ) : (
                   <div className="map-fuel-hint">
