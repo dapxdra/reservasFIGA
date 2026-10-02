@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FIGA Reservas</string>
+    <string name="title_activity_main">FIGA Reservas</string>
+    <string name="package_name">com.reservasfiga.app</string>
+    <string name="custom_url_scheme">com.reservasfiga.app</string>
+    <!-- Notificación fija mientras se comparte la ubicación (background-geolocation). -->
+    <string name="capacitor_background_geolocation_notification_channel_name">Seguimiento de servicio</string>
+</resources>

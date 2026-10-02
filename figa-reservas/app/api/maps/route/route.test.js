@@ -13,6 +13,7 @@ describe("/api/maps/route", () => {
         routes: [
           {
             distance: 15321,
+            duration: 1250,
             geometry: {
               coordinates: [
                 [-84.1, 10.1],
@@ -39,6 +40,7 @@ describe("/api/maps/route", () => {
     expect(data.fallback).toBe(false);
     expect(data.provider).toBe("osrm");
     expect(data.distanceKm).toBe(15.3);
+    expect(data.durationMin).toBe(21);
     expect(data.path).toHaveLength(3);
   });
 

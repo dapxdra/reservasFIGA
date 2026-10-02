@@ -11,6 +11,12 @@ export async function listVehiculos({ activos = false } = {}) {
     .sort((a, b) => String(a.placa || "").localeCompare(String(b.placa || "")));
 }
 
+export async function getVehiculoById(id) {
+  const doc = await db.collection("vehiculos").doc(String(id)).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() };
+}
+
 export async function createVehiculo(data) {
   const docRef = await db.collection("vehiculos").add({
     ...data,

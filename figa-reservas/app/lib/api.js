@@ -33,3 +33,19 @@ export async function actualizarReserva(id, data) {
 export async function getReservaPorId(id) {
   return authenticatedJson(`/api/reservas/${id}`);
 }
+
+// Auto-asignar conductores y vehículos fijos (dryRun=true solo devuelve propuestas)
+export async function autoAsignarReservas({ dryRun = true, dias = 2 } = {}) {
+  return authenticatedJson(`/api/asignacion/auto`, {
+    method: "POST",
+    body: JSON.stringify({ dryRun, dias }),
+  });
+}
+
+// El conductor asignado confirma la reserva o avanza el estado del servicio
+export async function actualizarEstadoServicio(id, estado) {
+  return authenticatedJson(`/api/reservas/${id}/estado`, {
+    method: "PATCH",
+    body: JSON.stringify({ estado }),
+  });
+}

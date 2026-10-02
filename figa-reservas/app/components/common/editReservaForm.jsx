@@ -257,9 +257,19 @@ export default function EditReservaForm({ reservaInicial }) {
                 <select
                   name="conductorId"
                   value={reserva.conductorId || ""}
-                  onChange={(e) =>
-                    setReserva({ ...reserva, conductorId: e.target.value })
-                  }
+                  onChange={(e) => {
+                    // Al elegir conductor se propone su vehículo fijo; se puede cambiar abajo.
+                    const conductorId = e.target.value;
+                    const conductor = conductores.find((c) => c.id === conductorId);
+                    const vehiculoFijo = vehiculos.some((v) => v.id === conductor?.vehiculoId)
+                      ? conductor.vehiculoId
+                      : null;
+                    setReserva({
+                      ...reserva,
+                      conductorId,
+                      ...(vehiculoFijo ? { vehiculoId: vehiculoFijo } : {}),
+                    });
+                  }}
                   className="form-input"
                   disabled={loadingCatalogos}
                 >

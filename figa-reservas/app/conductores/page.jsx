@@ -10,7 +10,7 @@ import { authenticatedFetch } from "@/app/core/client/http/authenticatedFetch.js
 import "../styles/dashboard.css";
 import toast from "react-hot-toast";
 
-const EMPTY_FORM = { nombre: "", telefono: "", email: "", cedula: "", uid: "", activo: true };
+const EMPTY_FORM = { nombre: "", telefono: "", email: "", cedula: "", uid: "", vehiculoId: "", activo: true };
 
 export default function ConductoresPage() {
   return (
@@ -23,6 +23,7 @@ export default function ConductoresPage() {
 function ConductoresContent() {
   const router = useRouter();
   const [rows, setRows] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState("");
@@ -38,14 +39,35 @@ function ConductoresContent() {
 
   const activeRows = useMemo(() => rows.filter((row) => row.activo !== false).length, [rows]);
   const linkedRows = useMemo(() => rows.filter((row) => Boolean(row.uid)).length, [rows]);
+  const withVehiculoRows = useMemo(() => rows.filter((row) => Boolean(row.vehiculoId)).length, [rows]);
+
+  // Quién usa cada vehículo como fijo, para avisar al elegirlo en el formulario.
+  const vehiculoOwners = useMemo(() => {
+    const owners = new Map();
+    for (const row of rows) {
+      if (row.vehiculoId && row.activo !== false) owners.set(row.vehiculoId, row);
+    }
+    return owners;
+  }, [rows]);
+
+  const vehiculoLabel = (row) => {
+    if (!row.vehiculoId) return "-";
+    const vehiculo = vehiculos.find((v) => v.id === row.vehiculoId);
+    return vehiculo?.placa || row.vehiculoPlaca || "-";
+  };
 
   const loadRows = async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch("/api/conductores");
+      const [res, vehiculosRes] = await Promise.all([
+        authenticatedFetch("/api/conductores"),
+        authenticatedFetch("/api/vehiculos?activos=true"),
+      ]);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo cargar conductores");
       setRows(data);
+      const vehiculosData = await vehiculosRes.json();
+      setVehiculos(vehiculosRes.ok && Array.isArray(vehiculosData) ? vehiculosData : []);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -73,6 +95,7 @@ function ConductoresContent() {
       email: row.email || "",
       cedula: row.cedula || "",
       uid: row.uid || "",
+      vehiculoId: row.vehiculoId || "",
       activo: row.activo !== false,
     });
     setUidLookupFound(Boolean(row.uid));
@@ -217,6 +240,16 @@ function ConductoresContent() {
           </article>
           <article className="summary-card">
             <span className="summary-card-icon">
+              <DashboardIcon name="car" size={18} />
+            </span>
+            <div className="summary-card-content">
+              <p className="summary-card-label">Con vehículo</p>
+              <p className="summary-card-value">{withVehiculoRows}</p>
+              <p className="summary-card-note">Vehículo fijo para auto-asignación</p>
+            </div>
+          </article>
+          <article className="summary-card">
+            <span className="summary-card-icon">
               <DashboardIcon name="circleDot" size={18} />
             </span>
             <div className="summary-card-content">
@@ -236,6 +269,7 @@ function ConductoresContent() {
                   <th>Teléfono</th>
                   <th>Email</th>
                   <th>Cédula</th>
+                  <th>Vehículo</th>
                   <th>UID</th>
                   <th>Estado</th>
                   <th className="text-right">Acciones</th>
@@ -244,11 +278,11 @@ function ConductoresContent() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="empty-state-cell">Cargando conductores...</td>
+                    <td colSpan="8" className="empty-state-cell">Cargando conductores...</td>
                   </tr>
                 ) : sortedRows.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="empty-state-cell">No hay conductores registrados.</td>
+                    <td colSpan="8" className="empty-state-cell">No hay conductores registrados.</td>
                   </tr>
                 ) : (
                   sortedRows.map((c) => (
@@ -257,6 +291,7 @@ function ConductoresContent() {
                       <td>{c.telefono || "-"}</td>
                       <td>{c.email || "-"}</td>
                       <td>{c.cedula || "-"}</td>
+                      <td>{vehiculoLabel(c)}</td>
                       <td className="font-mono text-xs">{c.uid || "-"}</td>
                       <td>
                         <span className={`dashboard-badge ${c.activo === false ? "dashboard-badge-warning" : "dashboard-badge-success"}`}>
@@ -316,6 +351,10 @@ function ConductoresContent() {
                       <span className="management-meta-value">{c.cedula || "-"}</span>
                     </div>
                     <div className="management-meta-item">
+                      <span className="management-meta-label">Vehículo</span>
+                      <span className="management-meta-value">{vehiculoLabel(c)}</span>
+                    </div>
+                    <div className="management-meta-item">
                       <span className="management-meta-label">UID</span>
                       <span className="management-meta-value">{c.uid || "-"}</span>
                     </div>
@@ -367,6 +406,30 @@ function ConductoresContent() {
               <div className="management-field">
                 <label>Cédula</label>
                 <input value={form.cedula} onChange={(e) => setForm((p) => ({ ...p, cedula: e.target.value }))} />
+              </div>
+              <div className="management-field management-field-full">
+                <label>Vehículo fijo</label>
+                <select
+                  value={form.vehiculoId}
+                  onChange={(e) => setForm((p) => ({ ...p, vehiculoId: e.target.value }))}
+                >
+                  <option value="">Sin vehículo fijo</option>
+                  {vehiculos.map((v) => {
+                    const owner = vehiculoOwners.get(v.id);
+                    const usadoPorOtro = owner && owner.id !== editId;
+                    return (
+                      <option key={v.id} value={v.id}>
+                        {v.placa}
+                        {v.modelo ? ` - ${v.modelo}` : ""}
+                        {v.capacidad ? ` (${v.capacidad} pax)` : ""}
+                        {usadoPorOtro ? ` · fijo de ${owner.nombre}` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="management-modal-subtitle">
+                  La auto-asignación usa este vehículo con el conductor. Se puede cambiar aquí cuando quieras, o por reserva desde el formulario de reserva.
+                </p>
               </div>
               <div className="management-field management-field-full">
                 <label>UID (autocompletado por email)</label>

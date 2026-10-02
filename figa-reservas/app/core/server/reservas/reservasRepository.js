@@ -20,6 +20,16 @@ export async function listReservasOrderedByFecha() {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
+// Rango inclusivo de fechas YYYY-MM-DD (comparación de strings, sin zona horaria).
+export async function listReservasByFechaRange(desde, hasta) {
+  const snapshot = await db
+    .collection("reservas")
+    .where("fecha", ">=", desde)
+    .where("fecha", "<=", hasta)
+    .get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
 export async function getReservaById(id) {
   const doc = await db.collection("reservas").doc(String(id)).get();
   if (!doc.exists) return null;

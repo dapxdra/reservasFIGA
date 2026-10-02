@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# capacitor: config de Firebase por plataforma (se descarga de la consola de Firebase)
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist

@@ -86,7 +86,7 @@ export async function GET(req) {
   try {
     const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
     const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
 
     if (!response.ok) {
       return fallbackRoute(origin, destination, "osrm-http-error", response.status);
@@ -105,7 +105,10 @@ export async function GET(req) {
       return fallbackRoute(origin, destination, "osrm-invalid-route");
     }
 
-    return jsonResponse({ ok: true, path, distanceKm, fallback: false, provider: "osrm" });
+    const durationSeconds = Number(route?.duration);
+    const durationMin = Number.isFinite(durationSeconds) ? Math.round(durationSeconds / 60) : null;
+
+    return jsonResponse({ ok: true, path, distanceKm, durationMin, fallback: false, provider: "osrm" });
   } catch {
     return fallbackRoute(origin, destination, "osrm-network-error");
   }

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authenticatedJson } from "@/app/core/client/http/authenticatedFetch.js";
+import { ESTADO_SERVICIO_LABELS } from "@/app/core/shared/reservas/estadoServicio.js";
+import { reservaInicioMs } from "@/app/core/shared/time/reservaDateTime.js";
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -194,6 +196,10 @@ async function getDrivingRouteFromApi(origin, destination) {
     return {
       path: Array.isArray(data?.path) ? data.path : null,
       distanceKm: Number.isFinite(Number(data?.distanceKm)) ? Number(data.distanceKm) : null,
+      durationMin:
+        data?.durationMin != null && Number.isFinite(Number(data.durationMin))
+          ? Number(data.durationMin)
+          : null,
       fallback: Boolean(data?.fallback),
       provider: String(data?.provider || "api"),
     };
@@ -206,12 +212,65 @@ async function getBestDrivingRoute(origin, destination) {
   return getDrivingRouteFromApi(origin, destination);
 }
 
+// La ruta en vivo se recalcula solo si el conductor se sale de ella o envejece.
+const LIVE_ROUTE_OFF_PATH_METERS = 200;
+const LIVE_ROUTE_MAX_AGE_MS = 2 * 60_000;
+// OSRM da tiempos de auto; una buseta tarda un poco más (mismo factor que la asignación).
+const FACTOR_TIEMPO_BUSETA = 1.15;
+// Avisar si llega tarde solo cuando el servicio está cerca.
+const PUNTUALIDAD_HORIZONTE_MS = 4 * 60 * 60_000;
+
+function distanceMeters(a, b) {
+  const R = 6_371_000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+// Distancia al punto más cercano de la ruta (la geometría de OSRM es densa).
+function distanceToPathMeters(point, path) {
+  let min = Infinity;
+  for (const p of path) min = Math.min(min, distanceMeters(point, p));
+  return min;
+}
+
+function estimarMinutos(route) {
+  if (Number.isFinite(route?.durationMin)) {
+    return Math.round(route.durationMin * FACTOR_TIEMPO_BUSETA);
+  }
+  // Respaldo en línea recta: x1.35 por carretera a 45 km/h.
+  if (Number.isFinite(route?.distanceKm)) return Math.round(((route.distanceKm * 1.35) / 45) * 60);
+  return null;
+}
+
+// Hacia dónde va el conductor según el estado del servicio.
+function objetivoEnVivo(estadoServicio) {
+  if (estadoServicio === "a_bordo") return "dropoff";
+  if (estadoServicio === "en_pickup" || estadoServicio === "finalizada") return null;
+  return "pickup";
+}
+
+function formatHoraCR(ms) {
+  return new Date(ms).toLocaleTimeString("es-CR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Costa_Rica",
+  });
+}
+
 export default function ReservationMapLeaflet({
   pickUp,
   dropOff,
   conductorId,
   conductorUid,
   conductorName,
+  estadoServicio = null,
+  fecha,
+  hora,
 }) {
   const mapNodeRef = useRef(null);
   const googleRef = useRef(null);
@@ -223,7 +282,10 @@ export default function ReservationMapLeaflet({
     garage: null,
     conductor: null,
     fallbackRoute: null,
+    liveRoute: null,
   });
+  const liveCalcRef = useRef(null);
+  const fittedLiveTargetRef = useRef(null);
 
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
@@ -233,7 +295,7 @@ export default function ReservationMapLeaflet({
   const [mapError, setMapError] = useState("");
   const [geocoding, setGeocoding] = useState(true);
   const [routeKm, setRouteKm] = useState(null);
-  const [conductorToPickupKm, setConductorToPickupKm] = useState(null);
+  const [liveRoute, setLiveRoute] = useState(null);
   const [fuelPrices, setFuelPrices] = useState(null);
   const [fuelType, setFuelType] = useState("diesel");
   const [kmPorLitro, setKmPorLitro] = useState(12);
@@ -351,6 +413,7 @@ export default function ReservationMapLeaflet({
         garage: null,
         conductor: null,
         fallbackRoute: null,
+        liveRoute: null,
       };
       mapRef.current = null;
       geocoderRef.current = null;
@@ -421,25 +484,54 @@ export default function ReservationMapLeaflet({
     };
   }, [pickupCoords, dropoffCoords]);
 
-  // Calcular distancia conductor -> pickup
-  useEffect(() => {
-    let cancelled = false;
+  // Ruta en vivo: conductor -> pickup (antes de recoger) o -> dropoff (pasajeros a bordo).
+  const objetivo = objetivoEnVivo(estadoServicio);
+  const objetivoCoords =
+    objetivo === "dropoff" ? dropoffCoords : objetivo === "pickup" ? pickupCoords : null;
 
-    if (!hasConductorAssigned || !conductorLocation || !pickupCoords) {
-      setConductorToPickupKm(null);
-      return undefined;
+  useEffect(() => {
+    if (!hasConductorAssigned || !conductorLocation || !objetivo || !objetivoCoords) {
+      liveCalcRef.current = null;
+      setLiveRoute(null);
+      return;
     }
 
-    getBestDrivingRoute(conductorLocation, pickupCoords).then((result) => {
-      if (!cancelled) {
-        setConductorToPickupKm(result?.distanceKm ?? null);
-      }
-    });
+    const prev = liveCalcRef.current;
+    const vigente =
+      prev &&
+      prev.target === objetivo &&
+      Date.now() - prev.at < LIVE_ROUTE_MAX_AGE_MS &&
+      (!prev.path || distanceToPathMeters(conductorLocation, prev.path) < LIVE_ROUTE_OFF_PATH_METERS);
+    if (vigente) return;
 
-    return () => {
-      cancelled = true;
+    const reqId = (prev?.reqId || 0) + 1;
+    liveCalcRef.current = {
+      target: objetivo,
+      at: Date.now(),
+      path: prev?.target === objetivo ? prev.path : null,
+      reqId,
     };
-  }, [hasConductorAssigned, conductorLocation, pickupCoords]);
+
+    // Sin cancelar en cleanup: una nueva lectura de ubicación no debe descartar esta respuesta.
+    getBestDrivingRoute(conductorLocation, objetivoCoords).then((result) => {
+      const actual = liveCalcRef.current;
+      if (!actual || actual.reqId !== reqId) return;
+      const path =
+        Array.isArray(result?.path) && result.path.length > 1
+          ? result.path
+          : [conductorLocation, objetivoCoords];
+      actual.path = path;
+      setLiveRoute({
+        target: objetivo,
+        path,
+        km: result?.distanceKm ?? null,
+        minutos: estimarMinutos(result),
+        calculadaAt: Date.now(),
+      });
+    });
+  }, [hasConductorAssigned, conductorLocation, objetivo, objetivoCoords]);
+
+  const conductorToPickupKm = liveRoute?.target === "pickup" ? liveRoute.km : null;
 
   useEffect(() => {
     const googleMaps = googleRef.current;
@@ -522,9 +614,43 @@ export default function ReservationMapLeaflet({
       });
     }
 
-    if (conductorLocation) bounds.extend(conductorLocation);
     if (!bounds.isEmpty()) map.fitBounds(bounds, 64);
-  }, [pickupCoords, dropoffCoords, routePath, conductorLocation]);
+  }, [pickupCoords, dropoffCoords, routePath]);
+
+  useEffect(() => {
+    const googleMaps = googleRef.current;
+    const map = mapRef.current;
+    if (!googleMaps || !map) return;
+
+    if (markerRefs.current.liveRoute) {
+      markerRefs.current.liveRoute.setMap(null);
+      markerRefs.current.liveRoute = null;
+    }
+    if (!liveRoute?.path) {
+      fittedLiveTargetRef.current = null;
+      return;
+    }
+
+    markerRefs.current.liveRoute = new googleMaps.maps.Polyline({
+      path: liveRoute.path,
+      geodesic: false,
+      strokeColor: "#f59e0b",
+      strokeOpacity: 0.95,
+      strokeWeight: 5,
+      zIndex: 500,
+      map,
+    });
+
+    // Encuadra una sola vez por tramo (al aparecer o al pasar de pickup a dropoff).
+    if (fittedLiveTargetRef.current !== liveRoute.target) {
+      fittedLiveTargetRef.current = liveRoute.target;
+      const bounds = new googleMaps.maps.LatLngBounds();
+      liveRoute.path.forEach((p) => bounds.extend(p));
+      if (pickupCoords) bounds.extend(pickupCoords);
+      if (dropoffCoords) bounds.extend(dropoffCoords);
+      map.fitBounds(bounds, 64);
+    }
+  }, [liveRoute, mapLoading, pickupCoords, dropoffCoords]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;
@@ -575,6 +701,23 @@ export default function ReservationMapLeaflet({
   const conductorTime = formatConductorTime(conductorLocation?.updatedAt);
   const conductorRelative = formatRelativeMinutes(conductorLocation?.updatedAt);
 
+  const inicioMs = reservaInicioMs(fecha, hora);
+  const llegadaMs =
+    liveRoute?.minutos != null ? liveRoute.calculadaAt + liveRoute.minutos * 60_000 : null;
+  let puntualidad = null;
+  if (
+    liveRoute?.target === "pickup" &&
+    llegadaMs != null &&
+    inicioMs != null &&
+    inicioMs - Date.now() < PUNTUALIDAD_HORIZONTE_MS
+  ) {
+    const diff = Math.round((llegadaMs - inicioMs) / 60_000);
+    puntualidad =
+      diff > 0
+        ? { tarde: true, texto: `Llegaría ~${diff} min tarde al pickup` }
+        : { tarde: false, texto: `A tiempo (${-diff} min antes)` };
+  }
+
   return (
     <div className="reservation-leaflet-wrapper">
       <div className="route-map-canvas-wrap">
@@ -616,6 +759,12 @@ export default function ReservationMapLeaflet({
               {conductorLocation ? " · posicion activa" : " · sin posicion"}
             </span>
           ) : null}
+          {liveRoute ? (
+            <span className="map-legend-item">
+              <span className="map-legend-line" />
+              {liveRoute.target === "pickup" ? "Conductor → pick up" : "Conductor → drop off"}
+            </span>
+          ) : null}
         </div>
       ) : null}
 
@@ -631,6 +780,27 @@ export default function ReservationMapLeaflet({
               Ultima actualizacion: {conductorLocation ? conductorRelative || conductorTime || "sin hora" : "sin posicion"}
             </span>
             {conductorLocation && conductorTime ? <span>Hora: {conductorTime}</span> : null}
+          </div>
+          <div className="map-conductor-estado">
+            <span className="map-conductor-estado-label">
+              {ESTADO_SERVICIO_LABELS[estadoServicio] || "Sin confirmar por el conductor"}
+            </span>
+            {liveRoute ? (
+              <span>
+                {liveRoute.target === "pickup" ? "Al pick up" : "Al drop off"}:{" "}
+                {liveRoute.km != null ? `${liveRoute.km} km` : "distancia sin dato"}
+                {liveRoute.minutos != null
+                  ? ` · ~${liveRoute.minutos} min · llega ${formatHoraCR(llegadaMs)}`
+                  : ""}
+              </span>
+            ) : estadoServicio === "en_pickup" ? (
+              <span>En el pick up, esperando pasajeros</span>
+            ) : null}
+            {puntualidad ? (
+              <span className={puntualidad.tarde ? "map-eta-late" : "map-eta-ok"}>
+                {puntualidad.texto}
+              </span>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -684,12 +854,12 @@ export default function ReservationMapLeaflet({
           </div>
           {fuelLoading ? (
             <div className="map-fuel-hint">Consultando precios RECOPE...</div>
-          ) : fuelPrices ? (() => {
+          ) : (() => {
             const kmTotal = hasConductorAssigned && conductorToPickupKm != null
               ? routeKm + conductorToPickupKm
               : routeKm;
             const litros = kmTotal / kmPorLitro;
-            const precio = fuelPrices[fuelType];
+            const precio = fuelPrices?.[fuelType] ?? null;
             const costo = precio != null ? litros * precio : null;
             return (
               <div className="map-fuel-result">
@@ -720,12 +890,18 @@ export default function ReservationMapLeaflet({
                 )}
                 {precio != null ? (
                   <div className="map-fuel-hint">
-                    Precio {fuelType} al {new Date().toLocaleDateString("es-CR")}: {precio.toLocaleString("es-CR")} CRC/L (RECOPE)
+                    {fuelPrices?.stale
+                      ? `Precio ${fuelType} de referencia${fuelPrices.fetchedAt ? ` (RECOPE ${new Date(fuelPrices.fetchedAt).toLocaleDateString("es-CR")})` : ""}: ${precio.toLocaleString("es-CR")} CRC/L. RECOPE no respondió.`
+                      : `Precio ${fuelType} al ${new Date().toLocaleDateString("es-CR")}: ${precio.toLocaleString("es-CR")} CRC/L (RECOPE)`}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="map-fuel-hint">
+                    No se pudo obtener el precio RECOPE; se muestra solo el consumo.
+                  </div>
+                )}
               </div>
             );
-          })() : null}
+          })()}
         </div>
       ) : null}
 

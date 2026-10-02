@@ -88,9 +88,11 @@ vi.mock("../../../lib/firebaseadmin.jsx", () => ({
 }));
 
 import { POST } from "./route.jsx";
+import { __resetFuelPriceCacheForTests } from "../../../core/server/combustible/fuelPriceProvider.js";
 
 describe("/api/reportes/combustible route", () => {
   beforeEach(() => {
+    __resetFuelPriceCacheForTests();
     vi.clearAllMocks();
     mocks.state.conductorDocById = null;
     mocks.state.conductorDocByUid = null;

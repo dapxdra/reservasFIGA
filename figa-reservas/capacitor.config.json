@@ -1,0 +1,19 @@
+{
+  "appId": "com.reservasfiga.app",
+  "appName": "FIGA Reservas",
+  "webDir": "capacitor-shell",
+  "server": {
+    "url": "https://www.reservasfiga.com",
+    "androidScheme": "https",
+    "cleartext": false,
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "useLegacyBridge": true
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

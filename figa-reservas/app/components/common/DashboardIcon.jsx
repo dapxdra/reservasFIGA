@@ -102,6 +102,13 @@ const ICONS = {
       <path d="M13 18a3.5 3.5 0 017 0" {...COMMON_PROPS} />
     </>
   ),
+  userCheck: (
+    <>
+      <circle cx="9.5" cy="8.5" r="3" {...COMMON_PROPS} />
+      <path d="M4 19a5.5 5.5 0 0111 0" {...COMMON_PROPS} />
+      <path d="M15.5 12l2 2 4-4" {...COMMON_PROPS} />
+    </>
+  ),
   car: (
     <>
       <path d="M6.5 16.5L8 11h8l1.5 5.5" {...COMMON_PROPS} />

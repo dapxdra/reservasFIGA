@@ -51,6 +51,20 @@ export default function ReservaForm() {
     }));
   };
 
+  // Al elegir conductor se propone su vehículo fijo; el select de vehículo lo puede cambiar.
+  const handleConductorChange = (e) => {
+    const conductorId = e.target.value;
+    const conductor = conductores.find((c) => c.id === conductorId);
+    const vehiculoFijo = vehiculos.some((v) => v.id === conductor?.vehiculoId)
+      ? conductor.vehiculoId
+      : null;
+    setFormData((prev) => ({
+      ...prev,
+      conductorId,
+      ...(vehiculoFijo ? { vehiculoId: vehiculoFijo } : {}),
+    }));
+  };
+
   const openDatePicker = (event) => {
     if (typeof event.currentTarget.showPicker === "function") {
       event.currentTarget.showPicker();
@@ -292,7 +306,7 @@ export default function ReservaForm() {
                 <select
                   name="conductorId"
                   value={formData.conductorId}
-                  onChange={handleChange}
+                  onChange={handleConductorChange}
                   className="form-input"
                   disabled={loadingCatalogos}
                 >

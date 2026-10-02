@@ -25,6 +25,8 @@ export function validateConductorPayload(payload) {
     email: sanitizeEmail(sanitized.email, false),
     cedula: sanitizeString(sanitized.cedula, { maxLength: 30 }),
     uid: sanitizeString(sanitized.uid, { maxLength: 128 }),
+    // Vehículo fijo del conductor ("" = sin vehículo fijo).
+    vehiculoId: sanitizeString(sanitized.vehiculoId, { maxLength: 128 }),
     activo: sanitized.activo !== false,
   };
 }

@@ -12,13 +12,23 @@ import {
 import { auth } from "../lib/firebase.jsx";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
+import {
+  TRACKING_REFRESH_EVENT,
+  unregisterPushDevice,
+} from "@/app/core/client/native/pushRegistration.js";
 import "../styles/dashboard.css";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useReservas } from "../hooks/useReservas";
-import { cancelarReserva } from "../lib/api.js";
+import { actualizarEstadoServicio, cancelarReserva } from "../lib/api.js";
 import Logo from "../components/common/Logo.jsx";
 import DashboardIcon from "../components/common/DashboardIcon.jsx";
+import {
+  EstadoServicioAction,
+  EstadoServicioIndicator,
+  estadoServicioLabel,
+} from "../components/common/EstadoServicio.jsx";
+import { estaConfirmadaPorConductor } from "@/app/core/shared/reservas/estadoServicio.js";
 import Loading from "../components/common/Loading.jsx";
 import { useReservasData } from "../context/ReservasDataContext.js";
 import { useUser } from "../context/UserContext.js";
@@ -27,6 +37,7 @@ import toast from "react-hot-toast";
 
 const Modal = lazy(() => import("../components/common/modal"));
 const ReservationMapLeaflet = lazy(() => import("../components/common/ReservationMapLeaflet.jsx"));
+const AutoAsignacionModal = lazy(() => import("../components/common/AutoAsignacionModal.jsx"));
 
 const reservasPorPagina = 8;
 const INACTIVITY_LIMIT = 10 * 60 * 1000;
@@ -167,19 +178,26 @@ function ReservationTableRow({
   showPrice,
   showPayment,
   showVehiculo,
+  isConductor,
+  onAvanzarEstado,
+  estadoBusy,
 }) {
   const paid = Boolean(reserva.pago);
+  const confirmada = estaConfirmadaPorConductor(reserva);
   const agencyTheme = getAgencyTheme(reserva.proveedor);
   const conductor = reserva.conductorNombre || reserva.chofer || "-";
   const vehiculo = reserva.vehiculoPlaca || reserva.buseta || "-";
 
   return (
     <tr
-      className={`${revisada ? "reservation-row-reviewed" : ""} reservation-row-clickable`}
+      className={`${revisada ? "reservation-row-reviewed" : ""} ${confirmada ? "reservation-row-confirmed" : ""} reservation-row-clickable`}
         onDoubleClick={onOpenMap}
         title="Doble click para ver ruta en mapa"
     >
-      <td className="dashboard-id-cell">#{reserva.id}</td>
+      <td className="dashboard-id-cell">
+        #{reserva.id}
+        {!isConductor ? <EstadoServicioIndicator reserva={reserva} /> : null}
+      </td>
       <td>{formatDashboardDate(reserva.fecha)}</td>
       <td>
         <div className="agency-cell">
@@ -224,6 +242,16 @@ function ReservationTableRow({
       {showPayment ? (
         <td className="dashboard-col-hidden">
           {paid ? formatDashboardDate(reserva.fechaPago) : "-"}
+        </td>
+      ) : null}
+      {isConductor ? (
+        <td className="text-center">
+          <EstadoServicioAction
+            reserva={reserva}
+            onAdvance={onAvanzarEstado}
+            busy={estadoBusy}
+            compact
+          />
         </td>
       ) : null}
       {canManage ? (
@@ -280,15 +308,18 @@ function ReservationCard({
   showPrice,
   showPayment,
   isConductor,
+  onAvanzarEstado,
+  estadoBusy,
 }) {
   const paid = Boolean(reserva.pago);
+  const confirmada = estaConfirmadaPorConductor(reserva);
   const agencyTheme = getAgencyTheme(reserva.proveedor);
   const conductor = reserva.conductorNombre || reserva.chofer || "-";
   const vehiculo = reserva.vehiculoPlaca || reserva.buseta || "";
 
   return (
     <article
-      className={`reservation-card ${revisada ? "reservation-card-reviewed" : ""}`}
+      className={`reservation-card ${revisada ? "reservation-card-reviewed" : ""} ${confirmada ? "reservation-card-confirmed" : ""}`}
       onClick={onOpenMap}
       title="Ver ruta en mapa"
     >
@@ -370,7 +401,16 @@ function ReservationCard({
           {revisada ? (
             <span className="dashboard-badge dashboard-badge-outline">Revisada</span>
           ) : null}
+          {!isConductor && confirmada ? (
+            <span className="dashboard-badge estado-servicio-badge" title="Estado marcado por el conductor">
+              <DashboardIcon name="userCheck" size={12} />
+              {estadoServicioLabel(reserva)}
+            </span>
+          ) : null}
         </div>
+        {isConductor ? (
+          <EstadoServicioAction reserva={reserva} onAdvance={onAvanzarEstado} busy={estadoBusy} />
+        ) : null}
         {canManage ? (
           <div className="rc-actions">
             <button
@@ -435,7 +475,30 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [mapReserva, setMapReserva] = useState(null);
+  const [showAutoAsignacion, setShowAutoAsignacion] = useState(false);
+  const [estadoBusyId, setEstadoBusyId] = useState(null);
   const logoutTimer = useRef(null);
+
+  const handleAutoAsignacionApplied = (asignadas) => {
+    const byId = new Map(asignadas.map((a) => [String(a.id), a]));
+    setReservas((prev) =>
+      prev.map((reserva) => {
+        const a = byId.get(String(reserva.id));
+        if (!a) return reserva;
+        return {
+          ...reserva,
+          conductorId: a.conductorId,
+          conductorNombre: a.conductorNombre,
+          chofer: a.conductorNombre,
+          assignedUid: a.assignedUid,
+          vehiculoId: a.vehiculoId,
+          vehiculoPlaca: a.vehiculoPlaca,
+          buseta: a.vehiculoPlaca,
+        };
+      })
+    );
+    invalidateCache();
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -524,6 +587,8 @@ export default function DashboardPage() {
   }, [currentPage, totalPages]);
 
   const logout = async () => {
+    // Antes de signOut: el backend necesita la sesión para quitar el celular de los avisos.
+    await unregisterPushDevice().catch(() => {});
     await signOut(auth);
     router.push("/login");
   };
@@ -560,6 +625,38 @@ export default function DashboardPage() {
 
   const openRouteMap = (reserva) => {
     setMapReserva(reserva);
+  };
+
+  const handleAvanzarEstado = async (reserva, estado) => {
+    if (estado === "finalizada") {
+      const ok = await confirmToast(
+        "¿Finalizar el servicio? Se dejará de compartir tu ubicación para esta reserva.",
+        { okText: "Sí, finalizar", cancelText: "No" }
+      );
+      if (!ok) return;
+    }
+
+    setEstadoBusyId(reserva.id);
+    try {
+      const result = await actualizarEstadoServicio(reserva.id, estado);
+      const cambios = {
+        estadoServicio: result.estadoServicio,
+        estadoServicioAt: result.estadoServicioAt,
+      };
+      const aplicar = (r) => (String(r.id) === String(reserva.id) ? { ...r, ...cambios } : r);
+      setReservas((prev) => prev.map(aplicar));
+      setMapReserva((prev) => (prev ? aplicar(prev) : prev));
+      invalidateCache();
+      // El seguimiento arranca al salir y se apaga al finalizar, sin esperar el siguiente sondeo.
+      window.dispatchEvent(new Event(TRACKING_REFRESH_EVENT));
+      toast.success(
+        estado === "confirmada" ? "Reserva confirmada" : `Estado: ${estadoServicioLabel(cambios)}`
+      );
+    } catch (error) {
+      notifyError(error?.message || "No se pudo actualizar el estado del servicio");
+    } finally {
+      setEstadoBusyId(null);
+    }
   };
 
   const toggleCanceladas = () => {
@@ -808,6 +905,18 @@ export default function DashboardPage() {
             <div className="header-divider" />
             {canManageReservas ? (
               <button
+                onClick={() => setShowAutoAsignacion(true)}
+                title="Auto-Asignar conductores"
+                aria-label="Auto-Asignar conductores"
+                className="btn-outline"
+                hidden
+              >
+                <DashboardIcon name="userCheck" size={16} />
+                <span>Asignar</span>
+              </button>
+            ) : null}
+            {canManageReservas ? (
+              <button
                 onClick={handleNavigate}
                 title="Crear Reserva"
                 aria-label="Crear Reserva"
@@ -896,6 +1005,17 @@ export default function DashboardPage() {
                 <span>Nueva Reserva</span>
               </button>
             ) : null}
+            {canManageReservas ? (
+              <button
+                onClick={() => setShowAutoAsignacion(true)}
+                title="Auto-asignar conductores"
+                aria-label="Auto-asignar conductores"
+                className="btn-outline"
+              >
+                <DashboardIcon name="userCheck" size={18} />
+                <span>Asignar</span>
+              </button>
+            ) : null}
             <button
               onClick={() =>
                 exportToExcel(
@@ -974,6 +1094,7 @@ export default function DashboardPage() {
                     {showPaymentColumn ? (
                       <th className="dashboard-col-hidden">FechaPago</th>
                     ) : null}
+                    {isConductor ? <th className="text-center">Servicio</th> : null}
                     {canManageReservas ? <th className="text-center">Acciones</th> : null}
                   </tr>
                 </thead>
@@ -985,6 +1106,7 @@ export default function DashboardPage() {
                           14 +
                           (showPriceColumn ? 1 : 0) +
                           (showPaymentColumn ? 1 : 0) +
+                          (isConductor ? 1 : 0) +
                           (canManageReservas ? 1 : 0)
                         }
                         className="empty-state-cell"
@@ -1006,6 +1128,9 @@ export default function DashboardPage() {
                         showPrice={showPriceColumn}
                         showPayment={showPaymentColumn}
                         showVehiculo={isConductor}
+                        isConductor={isConductor}
+                        onAvanzarEstado={(estado) => handleAvanzarEstado(reserva, estado)}
+                        estadoBusy={estadoBusyId === reserva.id}
                       />
                     ))
                   )}
@@ -1054,6 +1179,8 @@ export default function DashboardPage() {
                     showPrice={showPriceColumn}
                     showPayment={showPaymentColumn}
                     isConductor={isConductor}
+                    onAvanzarEstado={(estado) => handleAvanzarEstado(reserva, estado)}
+                    estadoBusy={estadoBusyId === reserva.id}
                   />
                 ))
               )}
@@ -1199,6 +1326,15 @@ export default function DashboardPage() {
           </Suspense>
         )}
 
+        {showAutoAsignacion ? (
+          <Suspense fallback={<div className="modal-loading">Cargando...</div>}>
+            <AutoAsignacionModal
+              onClose={() => setShowAutoAsignacion(false)}
+              onApplied={handleAutoAsignacionApplied}
+            />
+          </Suspense>
+        ) : null}
+
         {mapReserva ? (
           <Suspense fallback={<div className="modal-loading">Cargando mapa...</div>}>
             <Modal onClose={() => setMapReserva(null)}>
@@ -1236,6 +1372,9 @@ export default function DashboardPage() {
                     conductorId={mapReserva.conductorId || null}
                     conductorUid={mapReserva.assignedUid || null}
                     conductorName={mapReserva.conductorNombre || mapReserva.chofer || ""}
+                    estadoServicio={mapReserva.estadoServicio || null}
+                    fecha={mapReserva.fecha}
+                    hora={mapReserva.hora}
                   />
                 </Suspense>
 
@@ -1247,6 +1386,13 @@ export default function DashboardPage() {
                   >
                     Cerrar
                   </button>
+                  {isConductor ? (
+                    <EstadoServicioAction
+                      reserva={mapReserva}
+                      onAdvance={(estado) => handleAvanzarEstado(mapReserva, estado)}
+                      busy={estadoBusyId === mapReserva.id}
+                    />
+                  ) : null}
                   <button
                     type="button"
                     className="primary-btn"

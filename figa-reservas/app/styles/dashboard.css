@@ -1691,3 +1691,179 @@
     display: none;
   }
 }
+
+/* Auto-asignación de conductores */
+.auto-asignacion-modal {
+  max-width: 720px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.auto-asignacion-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.auto-asignacion-controls .management-field {
+  flex: 1 1 200px;
+}
+
+.auto-asignacion-result {
+  margin-bottom: 14px;
+}
+
+.auto-asignacion-subtitle {
+  margin: 14px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #253041;
+}
+
+.auto-asignacion-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.auto-asignacion-list li {
+  padding: 8px 10px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 10px;
+}
+
+.auto-asignacion-arrow {
+  margin: 0 6px;
+  color: #64748b;
+}
+
+.auto-asignacion-motivo {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Estado del servicio marcado por el conductor */
+.dashboard-table tbody tr.reservation-row-confirmed > td:first-child {
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
+.reservation-card-confirmed {
+  border-left: 3px solid #60a5fa;
+}
+
+.estado-servicio-indicator {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-left: 6px;
+  color: #3b82f6;
+}
+
+.estado-servicio-indicator.estado-servicio-en_camino,
+.estado-servicio-indicator.estado-servicio-en_pickup,
+.estado-servicio-indicator.estado-servicio-a_bordo {
+  color: #d97706;
+}
+
+.estado-servicio-indicator.estado-servicio-finalizada {
+  color: #94a3b8;
+}
+
+.estado-servicio-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e0ecff;
+  color: #1d4ed8;
+}
+
+.estado-servicio-badge.estado-servicio-finalizada {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.estado-servicio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #1d4d2a;
+  border-radius: var(--dashboard-radius-sm);
+  background: #ffffff;
+  color: #1d4d2a;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.estado-servicio-btn.is-confirmar {
+  background: var(--dashboard-primary);
+  border-color: var(--dashboard-primary);
+  color: var(--dashboard-primary-foreground);
+}
+
+.estado-servicio-btn.is-compact {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.estado-servicio-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.reservation-card .estado-servicio-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.rc-footer:has(.estado-servicio-btn) {
+  flex-wrap: wrap;
+}
+
+.route-map-actions {
+  flex-wrap: wrap;
+}
+
+/* Ruta en vivo y llegada estimada del conductor (mapa) */
+.map-conductor-estado {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--dashboard-border);
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #22324a;
+}
+
+.map-conductor-estado-label {
+  font-weight: 700;
+}
+
+.map-eta-ok {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.map-eta-late {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.map-legend-line {
+  display: inline-block;
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+  background: #f59e0b;
+}

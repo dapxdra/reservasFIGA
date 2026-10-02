@@ -12,18 +12,22 @@ import {
   validateUpdateReservaPayload,
 } from "@/app/core/server/reservas/reservaValidators.js";
 import { appError } from "@/app/core/server/shared/appError.js";
+import {
+  esEstadoServicioValido,
+  puedeAvanzarEstado,
+} from "@/app/core/shared/reservas/estadoServicio.js";
 
 function parseBool(value) {
   return value === true || value === "on";
 }
 
-function toConductorScope(profile = {}) {
+export function toConductorScope(profile = {}) {
   return String(profile?.nombre || "")
     .trim()
     .toLowerCase();
 }
 
-function isReservaAssignedToConductor(reserva, uid, conductorNombre) {
+export function isReservaAssignedToConductor(reserva, uid, conductorNombre) {
   const assignedUid = String(reserva.assignedUid || "").trim();
   if (assignedUid && uid) {
     return assignedUid === uid;
@@ -131,8 +135,16 @@ export async function updateReservaUseCase({ id, payload }) {
   ) {
     const conductorId = sanitizedPayload.conductorId || "";
     const vehiculoId = sanitizedPayload.vehiculoId || "";
-    const { conductorNombre, assignedUid, vehiculoPlaca } =
-      await resolveReservaAssignment(conductorId, vehiculoId);
+    const [{ conductorNombre, assignedUid, vehiculoPlaca }, actual] = await Promise.all([
+      resolveReservaAssignment(conductorId, vehiculoId),
+      getReservaById(id),
+    ]);
+
+    // Otro conductor: su confirmación y avance no aplican al nuevo.
+    if (actual && String(actual.conductorId || "") !== conductorId && actual.estadoServicio) {
+      updateData.estadoServicio = null;
+      updateData.estadoServicioAt = null;
+    }
 
     updateData.conductorNombre = conductorNombre;
     updateData.chofer = conductorNombre;
@@ -142,6 +154,42 @@ export async function updateReservaUseCase({ id, payload }) {
   }
 
   await updateReservaById(id, updateData);
+}
+
+/**
+ * El conductor asignado confirma la reserva o marca el avance del servicio
+ * (confirmada -> en_camino -> en_pickup -> a_bordo -> finalizada). Solo avanza.
+ */
+export async function updateEstadoServicioUseCase({ id, estado, uid, profile, now = Date.now() }) {
+  if (!esEstadoServicioValido(estado)) {
+    throw appError("Estado de servicio inválido", 400, "ValidationError");
+  }
+
+  const reserva = await getReservaById(id);
+  if (!reserva) {
+    throw appError("Reserva no encontrada", 404, "ReservaNotFound");
+  }
+
+  const asignada = isReservaAssignedToConductor(
+    reserva,
+    String(uid || "").trim(),
+    toConductorScope(profile)
+  );
+  if (!asignada) {
+    throw appError("Esta reserva no está asignada a ti.", 403, "ReservaForbidden");
+  }
+  if (reserva.cancelada) {
+    throw appError("La reserva está cancelada.", 409, "ReservaCancelada");
+  }
+  if (!puedeAvanzarEstado(reserva.estadoServicio, estado)) {
+    throw appError("La reserva ya está en ese estado o en uno posterior.", 409, "EstadoNoPermitido");
+  }
+
+  const at = new Date(now).toISOString();
+  const estadoServicioAt = { ...(reserva.estadoServicioAt || {}), [estado]: at };
+  await updateReservaById(id, { estadoServicio: estado, estadoServicioAt });
+
+  return { id: String(id), estadoServicio: estado, estadoServicioAt };
 }
 
 export async function cancelReservaUseCase(id) {

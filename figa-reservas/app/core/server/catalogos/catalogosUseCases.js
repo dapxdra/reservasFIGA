@@ -11,8 +11,10 @@ import {
   updateConductor,
 } from "@/app/core/server/catalogos/conductoresRepository.js";
 import { findUserUidByEmail } from "@/app/core/server/users/usersRepository.js";
+import { appError } from "@/app/core/server/shared/appError.js";
 import {
   createVehiculo,
+  getVehiculoById,
   listVehiculos,
   setVehiculoActivo,
   updateVehiculo,
@@ -32,20 +34,37 @@ async function enrichConductorUidByEmail(data) {
   };
 }
 
+// Valida el vehículo fijo y guarda su placa desnormalizada, igual que en reservas.
+async function resolveConductorVehiculo(data) {
+  if (!data.vehiculoId) {
+    return { ...data, vehiculoId: "", vehiculoPlaca: "" };
+  }
+
+  const vehiculo = await getVehiculoById(data.vehiculoId);
+  if (!vehiculo) {
+    throw appError("El vehículo seleccionado no existe", 400, "VehiculoNotFound");
+  }
+  if (vehiculo.activo === false) {
+    throw appError("El vehículo seleccionado está inactivo", 400, "VehiculoInactivo");
+  }
+
+  return { ...data, vehiculoPlaca: String(vehiculo.placa || "") };
+}
+
 export async function listConductoresUseCase({ activos = false } = {}) {
   return listConductores({ activos });
 }
 
 export async function createConductorUseCase(payload) {
   const data = validateConductorPayload(payload);
-  const enrichedData = await enrichConductorUidByEmail(data);
+  const enrichedData = await resolveConductorVehiculo(await enrichConductorUidByEmail(data));
   return createConductor(enrichedData);
 }
 
 export async function updateConductorUseCase(id, payload) {
   const sanitizedId = validateEntityId(id);
   const data = validateConductorPayload(payload);
-  const enrichedData = await enrichConductorUidByEmail(data);
+  const enrichedData = await resolveConductorVehiculo(await enrichConductorUidByEmail(data));
   await updateConductor(sanitizedId, enrichedData);
 }
 
