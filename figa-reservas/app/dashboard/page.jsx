@@ -901,7 +901,16 @@ export default function DashboardPage() {
               >
                 <DashboardIcon name="settings" size={18} />
               </button>
-            ) : null}
+            ) : (
+              <button
+                onClick={() => router.push("/reportes/conductores")}
+                className="icon-btn"
+                title="Mi rendimiento"
+                aria-label="Mi rendimiento"
+              >
+                <DashboardIcon name="barChart" size={18} />
+              </button>
+            )}
             <div className="header-divider" />
             {canManageReservas ? (
               <button
@@ -909,7 +918,7 @@ export default function DashboardPage() {
                 title="Auto-Asignar conductores"
                 aria-label="Auto-Asignar conductores"
                 className="btn-outline"
-                hidden
+                /* hidden */
               >
                 <DashboardIcon name="userCheck" size={16} />
                 <span>Asignar</span>
@@ -1062,7 +1071,16 @@ export default function DashboardPage() {
               >
                 <DashboardIcon name="settings" size={18} />
               </button>
-            ) : null}
+            ) : (
+              <button
+                onClick={() => router.push("/reportes/conductores")}
+                className="icon-btn has-border"
+                title="Mi rendimiento"
+                aria-label="Mi rendimiento"
+              >
+                <DashboardIcon name="barChart" size={18} />
+              </button>
+            )}
           </div>
         </section>
 

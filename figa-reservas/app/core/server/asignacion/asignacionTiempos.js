@@ -20,7 +20,8 @@ function agregarPar(pares, desde, hasta) {
 
 /**
  * Pares que el scoring puede consultar dentro de cada día:
- * garage -> pickup, pickup -> dropoff y dropoff de un servicio -> pickup de uno posterior.
+ * garage -> pickup, pickup -> dropoff, dropoff -> garage y dropoff de un servicio -> pickup
+ * de uno posterior.
  * serviciosPorDia: Array<Array<servicio>> (ver servicioDe).
  */
 export function paresNecesarios(serviciosPorDia) {
@@ -30,6 +31,8 @@ export function paresNecesarios(serviciosPorDia) {
     for (const s of conHora) {
       agregarPar(pares, GARAGE_COORDS, s.origen);
       agregarPar(pares, s.origen, s.destino);
+      // Para decidir si conviene esperar el siguiente servicio o volver vacío al garage.
+      agregarPar(pares, s.destino, GARAGE_COORDS);
       for (const t of conHora) {
         if (t !== s && t.minutos >= s.minutos) agregarPar(pares, s.destino, t.origen);
       }

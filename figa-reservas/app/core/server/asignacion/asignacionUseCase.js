@@ -7,9 +7,11 @@ import {
 import {
   DEFAULT_ASIGNACION_CONFIG,
   addDaysYmd,
+  buscarParejas,
   isReservaPendienteDeAsignar,
   parseHoraToMinutes,
   pickConductor,
+  pickConductorPareja,
   servicioDe,
 } from "@/app/core/server/asignacion/asignacionScoring.js";
 import { cargarTiemposReales } from "@/app/core/server/asignacion/asignacionTiempos.js";
@@ -95,19 +97,11 @@ export async function runAutoAsignacionUseCase({
 
   const asignadas = [];
   const sinAsignar = [];
+  const yaAsignadas = new Set();
 
-  for (const reserva of pendientes) {
-    const { conductor, vehiculo, asignaVehiculo, motivo, serviciosDia, kmVacio, esperaMin } = pickConductor(
-      reserva,
-      conductores,
-      ctx,
-      finalConfig
-    );
-
-    if (!conductor) {
-      sinAsignar.push({ id: reserva.id, fecha: reserva.fecha, hora: reserva.hora, motivo });
-      continue;
-    }
+  const registrar = async (reserva, resultado) => {
+    const { conductor, vehiculo, asignaVehiculo, motivo, serviciosDia, kmVacio, esperaMin } = resultado;
+    yaAsignadas.add(reserva.id);
 
     // Se agrega a las agendas en memoria para que las siguientes reservas lo vean.
     addToAgenda(ctx.agendaConductor, conductor.id, reserva);
@@ -152,7 +146,33 @@ export async function runAutoAsignacionUseCase({
       kmVacio: kmVacio ?? null,
       esperaMin: esperaMin ?? null,
     });
+  };
+
+  // Reservas cuyo dropoff queda cerca del pickup de otra: se intenta que las haga un solo conductor.
+  const parejas = buscarParejas(pendientes, finalConfig, tiempos);
+
+  for (const reserva of pendientes) {
+    if (yaAsignadas.has(reserva.id)) continue;
+
+    const siguiente = parejas.get(reserva.id);
+    if (siguiente && !yaAsignadas.has(siguiente.id)) {
+      const pareja = pickConductorPareja(reserva, siguiente, conductores, ctx, finalConfig);
+      if (pareja) {
+        await registrar(reserva, pareja.primero);
+        await registrar(siguiente, pareja.segundo);
+        continue;
+      }
+    }
+
+    const resultado = pickConductor(reserva, conductores, ctx, finalConfig);
+    if (!resultado.conductor) {
+      sinAsignar.push({ id: reserva.id, fecha: reserva.fecha, hora: reserva.hora, motivo: resultado.motivo });
+      continue;
+    }
+    await registrar(reserva, resultado);
   }
+
+  asignadas.sort(compareFechaHora);
 
   return {
     dryRun,

@@ -25,13 +25,15 @@ const manana = { minutos: 480, origen: K.lir, destino: K.tamarindo };
 const tarde = { minutos: 900, origen: K.tamarindo, destino: K.lir };
 
 describe("paresNecesarios", () => {
-  it("incluye garage->pickup, pickup->dropoff y dropoff->pickup posteriores del mismo día", () => {
+  it("incluye garage->pickup, pickup->dropoff, dropoff->garage y dropoff->pickup posteriores del mismo día", () => {
     const claves = paresNecesarios([[manana, tarde]]).map((p) => p.clave).sort();
 
     expect(claves).toEqual(
       [
         claveViaje(GARAGE_COORDS, K.lir),
         claveViaje(GARAGE_COORDS, K.tamarindo),
+        claveViaje(K.lir, GARAGE_COORDS),
+        claveViaje(K.tamarindo, GARAGE_COORDS),
         claveViaje(K.lir, K.tamarindo),
         claveViaje(K.tamarindo, K.lir),
       ].sort()
@@ -74,7 +76,7 @@ describe("cargarTiemposReales", () => {
     expect(tiempos.get(lirTam)).toEqual({ minutos: 84, km: 64 });
     expect(tiempos.get(tamLir)).toEqual({ minutos: 90, km: 70 });
     expect(mocks.saveTravelTimes).toHaveBeenCalledTimes(1);
-    expect(resumen).toEqual({ pares: 4, cache: 1, osrm: 2, estimados: 1, error: null });
+    expect(resumen).toEqual({ pares: 6, cache: 1, osrm: 4, estimados: 1, error: null });
   });
 
   it("si la cache y OSRM fallan, devuelve todo para estimar sin lanzar", async () => {
@@ -84,7 +86,7 @@ describe("cargarTiemposReales", () => {
     const { tiempos, resumen } = await cargarTiemposReales([[manana, tarde]], { now: NOW });
 
     expect(tiempos.size).toBe(0);
-    expect(resumen).toMatchObject({ pares: 4, cache: 0, osrm: 0, estimados: 4, error: "osrm: timeout" });
+    expect(resumen).toMatchObject({ pares: 6, cache: 0, osrm: 0, estimados: 6, error: "osrm: timeout" });
     expect(mocks.saveTravelTimes).not.toHaveBeenCalled();
   });
 

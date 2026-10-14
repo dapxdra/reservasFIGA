@@ -49,3 +49,11 @@ export async function actualizarEstadoServicio(id, estado) {
     body: JSON.stringify({ estado }),
   });
 }
+
+// Rendimiento de conductores ({ desde, hasta, tolerancia }); el conductor recibe solo el suyo
+export async function getRendimientoConductores(params = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v != null && v !== "")
+  ).toString();
+  return authenticatedJson(`/api/reportes/conductores${query ? `?${query}` : ""}`);
+}

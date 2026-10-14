@@ -118,6 +118,37 @@ describe("runAutoAsignacionUseCase", () => {
     expect(update).not.toHaveProperty("buseta");
   });
 
+  it("asigna ida y vuelta cercanas al mismo conductor, aunque otro tenga menos carga", async () => {
+    const fortuna = { lat: 10.4693, lng: -84.6432 };
+    const lir = { lat: 10.5933, lng: -85.5444 };
+    const entre = (id, hora, desde, hasta) => ({
+      id,
+      fecha: "2026-10-01",
+      hora,
+      conductorId: "",
+      pickUpLat: desde.lat,
+      pickUpLng: desde.lng,
+      dropOffLat: hasta.lat,
+      dropOffLng: hasta.lng,
+    });
+    mocks.listReservasOrderedByFecha.mockResolvedValue([
+      entre("ida", "08:00", fortuna, lir),
+      // Otra salida temprana que hace que la ida y la vuelta no queden repartidas.
+      entre("otra", "08:30", fortuna, fortuna),
+      entre("vuelta", "15:00", lir, fortuna),
+    ]);
+
+    const summary = await runAutoAsignacionUseCase({ dias: 0 });
+
+    const porId = Object.fromEntries(summary.asignadas.map((a) => [a.id, a]));
+    expect(porId.ida.conductorId).toBe(porId.vuelta.conductorId);
+    expect(porId.otra.conductorId).not.toBe(porId.ida.conductorId);
+    expect(porId.ida.motivo).toBe("IdaYVuelta");
+    expect(porId.vuelta.motivo).toBe("IdaYVuelta");
+    // El resumen sigue en orden cronológico.
+    expect(summary.asignadas.map((a) => a.id)).toEqual(["ida", "otra", "vuelta"]);
+  });
+
   it("valida el rango de días", async () => {
     await expect(runAutoAsignacionUseCase({ dias: 99 })).rejects.toMatchObject({
       status: 400,

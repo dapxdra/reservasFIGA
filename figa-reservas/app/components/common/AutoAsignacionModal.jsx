@@ -6,12 +6,15 @@ import { autoAsignarReservas } from "@/app/lib/api.js";
 import { formatDate } from "@/app/utils/formatDate.js";
 
 const MOTIVOS = {
+  IdaYVuelta: "Ida y vuelta con el mismo conductor",
+  AprovechaRuta: "Aprovecha la ruta: hace también el servicio cercano siguiente",
   EncadenaServicio: "Encadena con su servicio anterior",
   MenorRecorridoVacio: "Menos km sin pasajeros para llegar",
   MenorCargaDelDia: "Menor carga del día",
   SinHora: "La reserva no tiene hora",
   SinConductorDisponible: "Ningún conductor libre en esa franja",
   CapacidadInsuficiente: "Ningún vehículo con capacidad suficiente",
+  JornadaExcedida: "Los conductores libres pasarían su jornada de 12 h o su descanso de 10 h",
 };
 
 function detalleRuta(a) {
@@ -63,7 +66,8 @@ export default function AutoAsignacionModal({ onClose, onApplied }) {
           <h2 className="management-modal-title">Auto-Asignar conductores</h2>
           <p className="management-modal-subtitle">
             Asigna conductores activos, con su vehículo fijo, a reservas sin conductor.
-            Cada servicio bloquea al conductor y a su vehículo 5 horas.
+            Junta en un mismo conductor los viajes de ida y vuelta cercanos y respeta jornadas
+            de 12 h con 10 h de descanso.
           </p>
         </div>
 

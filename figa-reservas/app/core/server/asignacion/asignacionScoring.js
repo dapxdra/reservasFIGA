@@ -19,9 +19,13 @@ export const DEFAULT_ASIGNACION_CONFIG = {
   tiempoAbordajeMin: 15,
   // Colchón entre que el conductor llega al pickup y la hora de la reserva.
   holguraMin: 20,
-  // Encadena: el pickup queda cerca del dropoff anterior y la espera es corta.
+  // Encadena: el pickup queda cerca del dropoff anterior y la espera es corta
+  // (o menor que volver vacío al garage y regresar).
   radioEncadenarKm: 15,
   maxEsperaEncadenarMin: 120,
+  // Jornada máxima (salida del garage -> último dropoff) y descanso mínimo entre jornadas.
+  jornadaMaxMin: 12 * 60,
+  descansoMinMin: 10 * 60,
   // Km de recorrido vacío que "cuesta" cada servicio que ya tiene el conductor ese día.
   kmPorServicioDia: 40,
 };
@@ -199,33 +203,167 @@ export function resolveVehiculoParaReserva(reserva, conductor, vehiculosById) {
 }
 
 /**
+ * Relación entre dos servicios consecutivos del mismo conductor: km vacíos y espera entre
+ * el dropoff de `antes` y el pickup de `despues`, y si conviene que los haga la misma persona.
+ * Encadenan si el pickup queda cerca del dropoff y la espera es corta, o al menos menor que
+ * volver vacío al garage y regresar (p. ej. esperar 4 h en LIR en vez de manejar 6 h).
+ * Son ida y vuelta si además `despues` termina cerca de donde empezó `antes`.
+ */
+function relacionEntre(antes, despues, est) {
+  const { cfg } = est;
+  const km = est.km(antes.destino, despues.origen);
+  const esperaMin = esperaEntre(antes, despues, est);
+  const mismoLugar =
+    Boolean(normalizePlace(despues.pickUp)) &&
+    normalizePlace(antes.dropOff) === normalizePlace(despues.pickUp);
+  const cerca = mismoLugar || (km != null && km <= cfg.radioEncadenarKm);
+
+  let esperaConviene;
+  if (esperaMin == null) {
+    // Sin ubicaciones no se puede medir la espera: basta con que el lugar coincida.
+    esperaConviene = mismoLugar;
+  } else {
+    const alGarage = est.minutos(antes.destino, GARAGE_COORDS);
+    const desdeGarage = est.minutos(GARAGE_COORDS, despues.origen);
+    const vueltaVacia = alGarage == null || desdeGarage == null ? 0 : alGarage + desdeGarage;
+    esperaConviene = esperaMin <= Math.max(cfg.maxEsperaEncadenarMin, vueltaVacia);
+  }
+  const encadena = cerca && esperaConviene;
+
+  const regresaMismoLugar =
+    Boolean(normalizePlace(despues.dropOff)) &&
+    normalizePlace(despues.dropOff) === normalizePlace(antes.pickUp);
+  const regresaCerca =
+    regresaMismoLugar ||
+    (despues.destino && antes.origen
+      ? distanciaKm(despues.destino, antes.origen) * cfg.factorRuta <= cfg.radioEncadenarKm
+      : false);
+
+  return {
+    kmVacio: km == null ? null : Math.round(km),
+    esperaMin,
+    encadena,
+    idaYVuelta: encadena && regresaCerca,
+  };
+}
+
+/**
  * Cómo llega el conductor a este servicio: desde el dropoff de su servicio anterior
  * del día o, si no tiene, desde el garage.
  */
 function evaluarLlegada(agendaDia, nuevo, est) {
-  const { cfg } = est;
   const anterior = agendaDia
     .filter((item) => item.minutos != null && item.minutos < nuevo.minutos)
     .sort((a, b) => b.minutos - a.minutos)[0];
 
   if (!anterior) {
     const km = est.km(GARAGE_COORDS, nuevo.origen);
-    return { kmVacio: km == null ? null : Math.round(km), esperaMin: null, encadena: false };
+    return { kmVacio: km == null ? null : Math.round(km), esperaMin: null, encadena: false, idaYVuelta: false };
   }
 
-  const km = est.km(anterior.destino, nuevo.origen);
-  const esperaMin = esperaEntre(anterior, nuevo, est);
-  const mismoLugar =
-    Boolean(normalizePlace(nuevo.pickUp)) &&
-    normalizePlace(anterior.dropOff) === normalizePlace(nuevo.pickUp);
-  const cerca = mismoLugar || (km != null && km <= cfg.radioEncadenarKm);
-  // Sin ubicaciones no se puede medir la espera: basta con que el lugar coincida.
-  const esperaCorta = esperaMin == null ? mismoLugar : esperaMin <= cfg.maxEsperaEncadenarMin;
+  return relacionEntre(anterior, nuevo, est);
+}
+
+const MINUTOS_DIA = 24 * 60;
+
+/**
+ * Inicio y fin de la jornada de un día, en minutos desde las 00:00 de ese día (el fin puede
+ * pasar de 1440 si el último servicio cruza la medianoche). La jornada va desde que el
+ * conductor sale del garage hasta que deja a los últimos pasajeros. Lo que no se puede
+ * estimar por falta de ubicación no suma, para no descartar a nadie sin certeza.
+ */
+function jornadaDe(servicios, est) {
+  const conHora = servicios.filter((s) => s.minutos != null);
+  if (conHora.length === 0) return null;
+
+  const primero = conHora.reduce((a, b) => (b.minutos < a.minutos ? b : a));
+  const salida = est.minutos(GARAGE_COORDS, primero.origen) ?? 0;
+  const inicio = primero.minutos - est.cfg.holguraMin - salida;
+  const fin = Math.max(...conHora.map((s) => s.minutos + (duracionCon(s, est) ?? 0)));
+  return { inicio, fin };
+}
+
+/** ¿Con estos servicios del día el conductor pasa su jornada máxima o no descansa lo mínimo? */
+function excedeJornada(agendaConductor, conductorId, fecha, serviciosDia, est) {
+  const { cfg } = est;
+  const hoy = jornadaDe(serviciosDia, est);
+  if (!hoy) return false;
+  if (hoy.fin - hoy.inicio > cfg.jornadaMaxMin) return true;
+
+  const ayer = jornadaDe(agendaDiaDe(agendaConductor, conductorId, addDaysYmd(fecha, -1)), est);
+  if (ayer && hoy.inicio + MINUTOS_DIA - ayer.fin < cfg.descansoMinMin) return true;
+
+  const manana = jornadaDe(agendaDiaDe(agendaConductor, conductorId, addDaysYmd(fecha, 1)), est);
+  if (manana && manana.inicio + MINUTOS_DIA - hoy.fin < cfg.descansoMinMin) return true;
+
+  return false;
+}
+
+/**
+ * ¿Puede `conductor` tomar `nuevo`? `extra` son servicios que ya tomaría en esta misma
+ * evaluación (p. ej. el primero de una pareja). Devuelve { descarte } o el candidato.
+ */
+function evaluarCandidato(conductor, reserva, nuevo, ctx, est, extra = { conductor: [], vehiculo: [] }) {
+  const { cfg } = est;
+  const agendaDia = [...agendaDiaDe(ctx.agendaConductor, conductor.id, reserva.fecha), ...extra.conductor];
+  if (agendaDia.length >= cfg.maxServiciosPorDia) return { descarte: "Carga" };
+  if (conflictoCon(agendaDia, nuevo, est)) return { descarte: "Horario" };
+
+  const { vehiculo, esFijo } = resolveVehiculoParaReserva(reserva, conductor, ctx.vehiculosById);
+  if (vehiculo) {
+    const capacidad = Number(vehiculo.capacidad) || 0;
+    if (capacidad > 0 && pasajerosDe(reserva) > capacidad) return { descarte: "Capacidad" };
+    // Solo se revisa la agenda del vehículo cuando lo pone el conductor (vehículo fijo);
+    // si la reserva ya traía vehículo, ese choque ya lo decidió quien la creó.
+    const agendaVehiculo = esFijo
+      ? [...agendaDiaDe(ctx.agendaVehiculo, vehiculo.id, reserva.fecha), ...extra.vehiculo]
+      : [];
+    if (esFijo && conflictoCon(agendaVehiculo, nuevo, est)) return { descarte: "Horario" };
+  }
+
+  if (excedeJornada(ctx.agendaConductor, conductor.id, reserva.fecha, [...agendaDia, nuevo], est)) {
+    return { descarte: "Jornada" };
+  }
+
+  const llegada = evaluarLlegada(agendaDia, nuevo, est);
+  // Recorrido vacío desconocido cuenta como un servicio extra, para no premiarlo.
+  const costo = (llegada.kmVacio ?? cfg.kmPorServicioDia) + agendaDia.length * cfg.kmPorServicioDia;
 
   return {
-    kmVacio: km == null ? null : Math.round(km),
-    esperaMin,
-    encadena: cerca && esperaCorta,
+    conductor,
+    vehiculo,
+    asignaVehiculo: esFijo,
+    serviciosDia: agendaDia.length,
+    costo,
+    ...llegada,
+  };
+}
+
+function motivoSinCandidatos(descartes) {
+  if (descartes.Capacidad > 0) return "CapacidadInsuficiente";
+  if (descartes.Jornada > 0) return "JornadaExcedida";
+  return "SinConductorDisponible";
+}
+
+function compararCandidatos(a, b) {
+  return (
+    Number(b.encadena) - Number(a.encadena) ||
+    a.costo - b.costo ||
+    // A igual costo, se prefiere quien trae vehículo fijo (la reserva sale completa).
+    Number(Boolean(b.vehiculo)) - Number(Boolean(a.vehiculo)) ||
+    String(a.conductor.nombre || "").localeCompare(String(b.conductor.nombre || ""))
+  );
+}
+
+function resultadoDe(candidato, motivo) {
+  return {
+    conductor: candidato.conductor,
+    vehiculo: candidato.vehiculo,
+    asignaVehiculo: candidato.asignaVehiculo,
+    serviciosDia: candidato.serviciosDia,
+    kmVacio: candidato.kmVacio,
+    esperaMin: candidato.esperaMin,
+    motivo,
   };
 }
 
@@ -244,64 +382,28 @@ function evaluarLlegada(agendaDia, nuevo, est) {
 export function pickConductor(reserva, conductores, ctx, config = DEFAULT_ASIGNACION_CONFIG) {
   const cfg = withDefaults(config);
   const est = crearEstimador(cfg, ctx.tiempos);
-  const { agendaConductor, agendaVehiculo, vehiculosById } = ctx;
   const nuevo = servicioDe(reserva);
   if (nuevo.minutos == null) {
     return { conductor: null, motivo: "SinHora" };
   }
 
-  const pasajeros = pasajerosDe(reserva);
   const candidatos = [];
-  let descartadosPorCapacidad = 0;
+  const descartes = { Carga: 0, Horario: 0, Capacidad: 0, Jornada: 0 };
 
   for (const conductor of conductores) {
-    const agendaDia = agendaDiaDe(agendaConductor, conductor.id, reserva.fecha);
-    if (agendaDia.length >= cfg.maxServiciosPorDia) continue;
-    if (conflictoCon(agendaDia, nuevo, est)) continue;
-
-    const { vehiculo, esFijo } = resolveVehiculoParaReserva(reserva, conductor, vehiculosById);
-    if (vehiculo) {
-      const capacidad = Number(vehiculo.capacidad) || 0;
-      if (capacidad > 0 && pasajeros > capacidad) {
-        descartadosPorCapacidad += 1;
-        continue;
-      }
-      // Solo se revisa la agenda del vehículo cuando lo pone el conductor (vehículo fijo);
-      // si la reserva ya traía vehículo, ese choque ya lo decidió quien la creó.
-      if (esFijo && conflictoCon(agendaDiaDe(agendaVehiculo, vehiculo.id, reserva.fecha), nuevo, est)) {
-        continue;
-      }
+    const candidato = evaluarCandidato(conductor, reserva, nuevo, ctx, est);
+    if (candidato.descarte) {
+      descartes[candidato.descarte] += 1;
+      continue;
     }
-
-    const llegada = evaluarLlegada(agendaDia, nuevo, est);
-    // Recorrido vacío desconocido cuenta como un servicio extra, para no premiarlo.
-    const costo = (llegada.kmVacio ?? cfg.kmPorServicioDia) + agendaDia.length * cfg.kmPorServicioDia;
-
-    candidatos.push({
-      conductor,
-      vehiculo,
-      asignaVehiculo: esFijo,
-      serviciosDia: agendaDia.length,
-      costo,
-      ...llegada,
-    });
+    candidatos.push(candidato);
   }
 
   if (candidatos.length === 0) {
-    return {
-      conductor: null,
-      motivo: descartadosPorCapacidad > 0 ? "CapacidadInsuficiente" : "SinConductorDisponible",
-    };
+    return { conductor: null, motivo: motivoSinCandidatos(descartes) };
   }
 
-  candidatos.sort(
-    (a, b) =>
-      Number(b.encadena) - Number(a.encadena) ||
-      a.costo - b.costo ||
-      // A igual costo, se prefiere quien trae vehículo fijo (la reserva sale completa).
-      Number(Boolean(b.vehiculo)) - Number(Boolean(a.vehiculo)) ||
-      String(a.conductor.nombre || "").localeCompare(String(b.conductor.nombre || ""))
-  );
+  candidatos.sort(compararCandidatos);
 
   const best = candidatos[0];
   // "Menor recorrido vacío" solo cuando la distancia realmente marcó la diferencia.
@@ -309,13 +411,100 @@ export function pickConductor(reserva, conductores, ctx, config = DEFAULT_ASIGNA
     best.kmVacio != null &&
     candidatos.some((c) => c.kmVacio != null && c.kmVacio - best.kmVacio > 5);
 
-  return {
-    conductor: best.conductor,
-    vehiculo: best.vehiculo,
-    asignaVehiculo: best.asignaVehiculo,
-    serviciosDia: best.serviciosDia,
-    kmVacio: best.kmVacio,
-    esperaMin: best.esperaMin,
-    motivo: best.encadena ? "EncadenaServicio" : ahorraKm ? "MenorRecorridoVacio" : "MenorCargaDelDia",
-  };
+  return resultadoDe(
+    best,
+    best.idaYVuelta
+      ? "IdaYVuelta"
+      : best.encadena
+        ? "EncadenaServicio"
+        : ahorraKm
+          ? "MenorRecorridoVacio"
+          : "MenorCargaDelDia"
+  );
+}
+
+function compararRelaciones(a, b) {
+  return (
+    Number(b.idaYVuelta) - Number(a.idaYVuelta) ||
+    (a.esperaMin ?? Infinity) - (b.esperaMin ?? Infinity) ||
+    (a.kmVacio ?? Infinity) - (b.kmVacio ?? Infinity)
+  );
+}
+
+/**
+ * Empareja reservas pendientes del mismo día que conviene que haga un solo conductor:
+ * el dropoff de una queda cerca del pickup de otra posterior (ida y vuelta o ruta encadenada).
+ * Cada reserva queda en una pareja como máximo; se prefieren ida y vuelta y la menor espera.
+ * Devuelve Map<reservaId, reservaSiguiente>.
+ */
+export function buscarParejas(reservas, config = DEFAULT_ASIGNACION_CONFIG, tiempos = null) {
+  const est = crearEstimador(withDefaults(config), tiempos);
+  const items = reservas
+    .map((reserva) => ({ reserva, servicio: servicioDe(reserva) }))
+    .filter((item) => item.servicio.minutos != null && item.reserva.fecha)
+    .sort(
+      (a, b) =>
+        String(a.reserva.fecha).localeCompare(String(b.reserva.fecha)) ||
+        a.servicio.minutos - b.servicio.minutos
+    );
+
+  const usadas = new Set();
+  const parejas = new Map();
+
+  for (const a of items) {
+    if (usadas.has(a)) continue;
+    let mejor = null;
+    for (const b of items) {
+      if (b === a || usadas.has(b)) continue;
+      if (b.reserva.fecha !== a.reserva.fecha || b.servicio.minutos <= a.servicio.minutos) continue;
+      if (!alcanza(a.servicio, b.servicio, est)) continue;
+      const relacion = relacionEntre(a.servicio, b.servicio, est);
+      if (!relacion.encadena) continue;
+      if (!mejor || compararRelaciones(relacion, mejor.relacion) < 0) mejor = { b, relacion };
+    }
+    if (mejor) {
+      usadas.add(a);
+      usadas.add(mejor.b);
+      parejas.set(a.reserva.id, mejor.b.reserva);
+    }
+  }
+
+  return parejas;
+}
+
+/**
+ * Busca un conductor que haga `reserva` y luego `siguiente` (pareja de buscarParejas).
+ * Devuelve { primero, segundo } con el mismo formato que pickConductor, o null si
+ * nadie puede hacer ambas (entonces se asignan por separado).
+ */
+export function pickConductorPareja(reserva, siguiente, conductores, ctx, config = DEFAULT_ASIGNACION_CONFIG) {
+  const cfg = withDefaults(config);
+  const est = crearEstimador(cfg, ctx.tiempos);
+  const a = servicioDe(reserva);
+  const b = servicioDe(siguiente);
+  if (a.minutos == null || b.minutos == null || reserva.fecha !== siguiente.fecha) return null;
+
+  const opciones = [];
+  for (const conductor of conductores) {
+    const primero = evaluarCandidato(conductor, reserva, a, ctx, est);
+    if (primero.descarte) continue;
+    const segundo = evaluarCandidato(conductor, siguiente, b, ctx, est, {
+      conductor: [a],
+      vehiculo: primero.asignaVehiculo ? [a] : [],
+    });
+    if (segundo.descarte || !segundo.encadena) continue;
+    opciones.push({
+      ...primero,
+      // El segundo tramo vacío es corto por construcción; el costo lo define el primero.
+      costo: primero.costo + (segundo.kmVacio ?? cfg.kmPorServicioDia),
+      segundo,
+    });
+  }
+
+  if (opciones.length === 0) return null;
+  opciones.sort(compararCandidatos);
+
+  const best = opciones[0];
+  const motivo = best.segundo.idaYVuelta ? "IdaYVuelta" : "AprovechaRuta";
+  return { primero: resultadoDe(best, motivo), segundo: resultadoDe(best.segundo, motivo) };
 }

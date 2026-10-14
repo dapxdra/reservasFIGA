@@ -935,3 +935,75 @@
     padding: 12px 16px 16px;
   }
 }
+
+/* =============================================================
+   Rendimiento de Conductores
+   ============================================================= */
+
+.rpt-cond-kpis {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.rpt-section > .rpt-cond-kpis {
+  padding: 16px 22px 0;
+}
+
+.rpt-cond-good { color: #15803d; }
+.rpt-cond-warn { color: #b45309; }
+.rpt-cond-bad  { color: #b91c1c; }
+
+.rpt-cond-row {
+  cursor: pointer;
+}
+
+.rpt-cond-row:focus-visible {
+  outline: 2px solid var(--dashboard-primary, #2b8a3e);
+  outline-offset: -2px;
+}
+
+.rpt-table tbody tr.rpt-cond-row.is-selected {
+  background: #ecfdf3;
+}
+
+.rpt-cond-row-muted td {
+  color: var(--dashboard-muted-foreground, #98a2b3);
+  text-decoration: line-through;
+}
+
+.rpt-section > .rpt-table-wrap,
+.rpt-section > .rpt-no-data {
+  margin-top: 16px;
+}
+
+.rpt-section > .rpt-no-data {
+  border: 0;
+}
+
+.rpt-cond-note {
+  font-size: 12px;
+  color: var(--dashboard-muted-foreground, #98a2b3);
+  margin: 0;
+}
+
+.rpt-cond-mobile-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.rpt-cond-mobile-filters .rpt-filter-input {
+  width: 100%;
+}
+
+@media (max-width: 1079px) {
+  .rpt-cond-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .rpt-section > .rpt-cond-kpis {
+    padding: 12px 12px 0;
+  }
+}

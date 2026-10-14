@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   addDaysYmd,
+  buscarParejas,
   hasConflict,
   parseHoraToMinutes,
   claveViaje,
   pickConductor,
+  pickConductorPareja,
   servicioDe,
 } from "./asignacionScoring.js";
 import { KNOWN_PLACE_COORDS as K } from "@/app/core/server/shared/knownPlaces.js";
 
 const FECHA = "2026-10-01";
+// Para tests que miden km o esperas en días largos, sin el límite de jornada.
+const SIN_LIMITE_JORNADA = { jornadaMaxMin: 24 * 60 };
 
 const conductores = [
   { id: "c1", nombre: "Ana", vehiculoId: "v1" },
@@ -201,7 +205,7 @@ describe("pickConductor con tiempos estimados", () => {
   // LIR -> Tamarindo a las 08:00: el conductor queda libre en Tamarindo ~09:38.
   const servicioManana = reservaEntre("08:00", K.lir, K.tamarindo);
 
-  it("encadena una salida cercana al dropoff anterior aunque falten menos de 5h", () => {
+  it("hace ida y vuelta si la salida queda cerca del dropoff anterior y regresa al origen", () => {
     const ctx = ctxConServicios({ c1: [servicioManana] });
     const result = pickConductor(
       reservaEntre("11:00", { lat: K.tamarindo.lat + 0.005, lng: K.tamarindo.lng }, K.lir),
@@ -209,7 +213,7 @@ describe("pickConductor con tiempos estimados", () => {
       ctx
     );
     expect(result.conductor.id).toBe("c1");
-    expect(result.motivo).toBe("EncadenaServicio");
+    expect(result.motivo).toBe("IdaYVuelta");
     expect(result.kmVacio).toBe(1);
     expect(result.esperaMin).toBeGreaterThan(20);
     expect(result.esperaMin).toBeLessThanOrEqual(120);
@@ -224,7 +228,7 @@ describe("pickConductor con tiempos estimados", () => {
   it("prefiere al conductor con menos km vacío aunque no encadene", () => {
     const ctx = ctxConServicios({ c1: [servicioManana] });
     // c1 sale de Tamarindo (~60 km); c2 saldría del garage en La Fortuna (~145 km).
-    const result = pickConductor(reservaEntre("15:00", K.lir, K.tamarindo), conductores, ctx);
+    const result = pickConductor(reservaEntre("15:00", K.lir, K.tamarindo), conductores, ctx, SIN_LIMITE_JORNADA);
     expect(result.conductor.id).toBe("c1");
     expect(result.motivo).toBe("MenorRecorridoVacio");
     expect(result.esperaMin).toBeGreaterThan(120);
@@ -265,7 +269,71 @@ describe("pickConductor con tiempos reales", () => {
       ...ctxConServicios({ c1: [reservaEntre("08:00", K.lir, K.tamarindo)] }),
       tiempos: new Map([[claveViaje(K.tamarindo, K.flamingo), { minutos: 30, km: 23 }]]),
     };
-    const result = pickConductor(reservaEntre("16:00", K.flamingo, K.lir), [conductores[0]], ctx);
+    const result = pickConductor(reservaEntre("16:00", K.flamingo, K.lir), [conductores[0]], ctx, SIN_LIMITE_JORNADA);
     expect(result.kmVacio).toBe(23);
+  });
+});
+
+describe("ida y vuelta y jornada", () => {
+  // Fortuna -> LIR (~3h estimadas): el conductor queda libre en LIR ~11:15.
+  const idaLir = reservaEntre("08:00", K.la_fortuna_center, K.lir, { id: "ida" });
+  const vueltaLir = reservaEntre("15:00", K.lir, K.la_fortuna_center, { id: "vuelta" });
+
+  it("encadena una espera larga si es menor que volver vacío al garage y regresar", () => {
+    const ctx = ctxConServicios({ c1: [idaLir] });
+    const result = pickConductor(vueltaLir, conductores, ctx);
+    expect(result.conductor.id).toBe("c1");
+    expect(result.motivo).toBe("IdaYVuelta");
+    expect(result.esperaMin).toBeGreaterThan(120);
+  });
+
+  it("descarta a quien pasaría su jornada máxima de 12 h", () => {
+    const ctx = ctxConServicios({ c1: [reservaEntre("06:00", K.la_fortuna_center, K.lir)] });
+    const result = pickConductor(
+      reservaEntre("17:00", K.lir, K.la_fortuna_center),
+      [conductores[0]],
+      ctx
+    );
+    expect(result).toEqual({ conductor: null, motivo: "JornadaExcedida" });
+  });
+
+  it("exige 10 h de descanso desde el servicio del día anterior, aunque cruce la medianoche", () => {
+    const ayer = addDaysYmd(FECHA, -1);
+    const ctx = {
+      agendaConductor: new Map([
+        ["c1", new Map([[ayer, [servicioDe(reservaEntre("21:00", K.la_fortuna_center, K.lir))]]])],
+      ]),
+      agendaVehiculo: new Map(),
+      vehiculosById: new Map(vehiculos.map((v) => [v.id, v])),
+    };
+
+    const temprano = pickConductor(reservaEntre("06:00", K.la_fortuna_center, K.lir), [conductores[0]], ctx);
+    expect(temprano).toEqual({ conductor: null, motivo: "JornadaExcedida" });
+
+    const descansado = pickConductor(reservaEntre("11:00", K.la_fortuna_center, K.lir), [conductores[0]], ctx);
+    expect(descansado.conductor.id).toBe("c1");
+  });
+
+  it("buscarParejas junta la ida con la vuelta cercana y deja sola la que no encaja", () => {
+    const suelta = reservaEntre("09:00", K.tamarindo, K.sjo, { id: "suelta" });
+    const parejas = buscarParejas([idaLir, suelta, vueltaLir]);
+    expect(parejas.size).toBe(1);
+    expect(parejas.get("ida")).toBe(vueltaLir);
+  });
+
+  it("pickConductorPareja asigna ambos tramos al mismo conductor que pueda hacer los dos", () => {
+    // c1 tiene algo a las 19:00 en Monteverde: no alcanza a hacer la vuelta y llegar.
+    const ctx = ctxConServicios({ c1: [reservaEntre("19:00", K.monteverde_center, K.la_fortuna_center)] });
+    const pareja = pickConductorPareja(idaLir, vueltaLir, conductores, ctx);
+
+    expect(pareja.primero.conductor.id).toBe("c2");
+    expect(pareja.segundo.conductor.id).toBe("c2");
+    expect(pareja.primero.motivo).toBe("IdaYVuelta");
+    expect(pareja.segundo.kmVacio).toBe(0);
+  });
+
+  it("pickConductorPareja devuelve null si nadie puede hacer ambos tramos", () => {
+    const ctx = ctxConServicios({ c1: [reservaEntre("12:00", K.lir, K.tamarindo)] });
+    expect(pickConductorPareja(idaLir, vueltaLir, [conductores[0]], ctx)).toBeNull();
   });
 });

@@ -153,6 +153,14 @@ function OpcionesContent() {
               onClick={() => router.push("/reportes")}
             />
           ) : null}
+          {isAdmin ? (
+            <OptionCard
+              title="Rendimiento"
+              description="Puntualidad y cumplimiento de conductores"
+              icon="barChart"
+              onClick={() => router.push("/reportes/conductores")}
+            />
+          ) : null}
         </section>
       </main>
     </div>

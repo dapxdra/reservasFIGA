@@ -88,6 +88,14 @@ const ICONS = {
       <circle cx="12" cy="10" r="2" {...COMMON_PROPS} />
     </>
   ),
+  barChart: (
+    <>
+      <path d="M4.5 19.5h15" {...COMMON_PROPS} />
+      <path d="M7.5 16v-4" {...COMMON_PROPS} />
+      <path d="M12 16V7.5" {...COMMON_PROPS} />
+      <path d="M16.5 16v-6" {...COMMON_PROPS} />
+    </>
+  ),
   clock: (
     <>
       <circle cx="12" cy="12" r="8" {...COMMON_PROPS} />
