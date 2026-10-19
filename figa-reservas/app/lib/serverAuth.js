@@ -1,6 +1,6 @@
 import admin from "firebase-admin";
 import { db } from "./firebaseadmin.jsx";
-import { normalizeRole } from "./roles.js";
+import { ROLES, normalizeRole } from "./roles.js";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -128,7 +128,7 @@ export async function getAuthUserContext(req) {
   }
 
   const normalizedRole = normalizeRole(profile.role);
-  if (!normalizedRole) {
+  if (!Object.values(ROLES).includes(normalizedRole)) {
     return {
       errorResponse: json(
         {

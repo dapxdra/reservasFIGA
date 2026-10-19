@@ -459,9 +459,9 @@ export default function DashboardPage() {
   const isAdmin = role === "admin";
   const isOperador = role === "operador";
   const isConductor = role === "conductor";
-  const showPriceColumn = !isConductor;
-  const showPaymentColumn = false;
   const canManageReservas = isAdmin || isOperador;
+  const showPriceColumn = canManageReservas;
+  const showPaymentColumn = false;
   const [filtro, setFiltro] = useState("activas");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
